@@ -1114,6 +1114,22 @@ public partial class MainView : UserControl
                 case MediaControlCommand.PlayPause:
                     await TogglePlaybackAsync();
                     break;
+                case MediaControlCommand.Play:
+                    if (!_audio.IsPlaying)
+                    {
+                        _audio.Resume();
+                        UpdatePlayPauseIcon();
+                        UpdateMediaControls();
+                    }
+                    break;
+                case MediaControlCommand.Pause:
+                    if (_audio.IsPlaying)
+                    {
+                        _audio.Pause();
+                        UpdatePlayPauseIcon();
+                        UpdateMediaControls();
+                    }
+                    break;
                 case MediaControlCommand.Next:
                     PlayNext();
                     break;

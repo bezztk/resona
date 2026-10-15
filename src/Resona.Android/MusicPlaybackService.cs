@@ -33,9 +33,19 @@ public sealed class MusicPlaybackService : Service
 
     public override void OnDestroy()
     {
+        CompanionServices.AudioPlayer.Stop();
         _mediaSession?.Release();
         _mediaSession = null;
         base.OnDestroy();
+    }
+
+    public override void OnTaskRemoved(Intent? rootIntent)
+    {
+        CompanionServices.AudioPlayer.Stop();
+        DeactivateMediaSession();
+        StopForeground(true);
+        StopSelf();
+        base.OnTaskRemoved(rootIntent);
     }
 
     public override StartCommandResult OnStartCommand(Intent? intent, StartCommandFlags flags, int startId)
@@ -44,19 +54,15 @@ public sealed class MusicPlaybackService : Service
         {
             case ActionPrevious:
                 CommandReceived?.Invoke(MediaControlCommand.Previous);
-                return StartCommandResult.Sticky;
+                return StartCommandResult.NotSticky;
             case ActionPlayPause:
                 CommandReceived?.Invoke(MediaControlCommand.PlayPause);
-                return StartCommandResult.Sticky;
+                return StartCommandResult.NotSticky;
             case ActionNext:
                 CommandReceived?.Invoke(MediaControlCommand.Next);
-                return StartCommandResult.Sticky;
+                return StartCommandResult.NotSticky;
             case ActionStop:
-                _mediaSession?.SetPlaybackState(new PlaybackState.Builder()
-                    .SetState(PlaybackStateCode.Stopped, 0, 0)
-                    .Build());
-                if (_mediaSession != null)
-                    _mediaSession.Active = false;
+                DeactivateMediaSession();
                 StopForeground(true);
                 StopSelf();
                 return StartCommandResult.NotSticky;
@@ -72,7 +78,7 @@ public sealed class MusicPlaybackService : Service
         CreateNotificationChannel();
         UpdateMediaSession(title, largeIcon, isPlaying, positionMs, durationMs);
         StartForeground(NotificationId, BuildNotification(title, largeIcon, isPlaying, positionMs, durationMs));
-        return StartCommandResult.Sticky;
+        return StartCommandResult.NotSticky;
     }
 
     public static void StartOrUpdate(
@@ -205,6 +211,15 @@ public sealed class MusicPlaybackService : Service
             .Build());
     }
 
+    private void DeactivateMediaSession()
+    {
+        _mediaSession?.SetPlaybackState(new PlaybackState.Builder()
+            .SetState(PlaybackStateCode.Stopped, 0, 0)
+            .Build());
+        if (_mediaSession != null)
+            _mediaSession.Active = false;
+    }
+
     private Notification.Action BuildAction(int icon, string title, string action)
     {
         var intent = new Intent(this, typeof(MusicPlaybackService));
@@ -273,12 +288,12 @@ public sealed class MusicPlaybackService : Service
 
         public override void OnPlay()
         {
-            CommandReceived?.Invoke(MediaControlCommand.PlayPause);
+            CommandReceived?.Invoke(MediaControlCommand.Play);
         }
 
         public override void OnPause()
         {
-            CommandReceived?.Invoke(MediaControlCommand.PlayPause);
+            CommandReceived?.Invoke(MediaControlCommand.Pause);
         }
 
         public override void OnSkipToNext()

@@ -39,6 +39,8 @@ public enum MediaControlCommand
 {
     Previous,
     PlayPause,
+    Play,
+    Pause,
     Next
 }
 
