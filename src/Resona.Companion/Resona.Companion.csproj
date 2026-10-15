@@ -10,9 +10,9 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="Avalonia" Version="11.3.6" />
-    <PackageReference Include="Avalonia.Themes.Fluent" Version="11.3.6" />
-    <PackageReference Include="Avalonia.Fonts.Inter" Version="11.3.6" />
+    <PackageReference Include="Avalonia" Version="11.3.22" />
+    <PackageReference Include="Avalonia.Themes.Fluent" Version="11.3.22" />
+    <PackageReference Include="Avalonia.Fonts.Inter" Version="11.3.22" />
     <PackageReference Include="Svg.Controls.Skia.Avalonia" Version="11.3.6" />
   </ItemGroup>
 
@@ -20,6 +20,7 @@
     <AvaloniaResource Include="..\Resona\Assets\*.svg">
       <Link>Assets\%(Filename)%(Extension)</Link>
     </AvaloniaResource>
+    <AvaloniaResource Include="Assets\Fonts\*.otf" />
   </ItemGroup>
 
   <ItemGroup>

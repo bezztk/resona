@@ -3,7 +3,6 @@ using Android.Content;
 using Android.Content.PM;
 using Avalonia;
 using Avalonia.Android;
-using Avalonia.Media;
 using Resona.Companion;
 using AndroidUri = Android.Net.Uri;
 
@@ -27,13 +26,7 @@ public class MainActivity : AvaloniaMainActivity<App>
         CompanionServices.LibraryStorage = new AndroidLibraryStorage(this);
         CompanionServices.MediaControls = new AndroidMediaControls(this);
 
-        // Use Android's system font collection. It includes the platform's
-        // language-specific fallbacks instead of limiting text to one bundled font.
-        return base.CustomizeAppBuilder(builder)
-            .With(new FontManagerOptions
-            {
-                DefaultFamilyName = "sans-serif"
-            });
+        return base.CustomizeAppBuilder(builder);
     }
 
     public Task<AndroidUri?> SelectMusicFolderAsync()
