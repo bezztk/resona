@@ -100,17 +100,3 @@ The `Resona.Tests` project covers:
 - SQLite claim behavior, atomic completion and rollback.
 
 Any new persisted state or transition must extend the policy/state-machine tests before it is used by a worker.
-
-## Before cloud synchronization
-
-The local workflow is now the authoritative baseline. Cloud work should build on it instead of adding another set of implicit flags. Before enabling multi-device writes, add:
-
-1. stable globally unique track and operation IDs;
-2. a transactional outbox/change journal written in the same database transaction as local mutations;
-3. explicit conflict rules for rating, review, rejection and deletion;
-4. idempotency keys for remote import and analysis operations;
-5. schema/protocol versions and migration compatibility tests;
-6. tombstones for deletions so another device cannot resurrect removed tracks;
-7. end-to-end crash/restart tests around each outbox boundary.
-
-Cloud state must never directly bypass the transition methods or SQLite invariants.

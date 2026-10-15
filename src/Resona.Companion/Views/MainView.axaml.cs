@@ -8,7 +8,6 @@ using Avalonia.Media;
 using Avalonia.Media.Imaging;
 using Avalonia.Threading;
 using Resona.Core;
-using Resona.Models;
 using SkiaSharp;
 
 namespace Resona.Companion.Views;
@@ -16,7 +15,6 @@ namespace Resona.Companion.Views;
 public partial class MainView : UserControl
 {
     private readonly ICompanionAudioPlayer _audio = CompanionServices.AudioPlayer;
-    private readonly DeviceLibraryCloudClient _cloud = new();
     private readonly DispatcherTimer _timer;
     private readonly DispatcherTimer _artworkTimer;
     private bool _systemBarsConfigured;
@@ -54,10 +52,6 @@ public partial class MainView : UserControl
     private string? _activeLibrarySourceId;
     private DateTime _lastMediaUpdate = DateTime.MinValue;
     private CancellationTokenSource? _toastCts;
-    private CancellationTokenSource? _cloudDownloadCts;
-    private CloudDeviceLibrarySnapshot? _cloudSnapshot;
-    private CloudDeviceTrack? _editingCloudTrack;
-    private bool _cloudBusy;
 
     private enum MobileLibrarySource
     {
@@ -257,7 +251,6 @@ public partial class MainView : UserControl
             _safeAreaBottom = safeArea.Bottom;
 
         HeaderBar.Padding = new Thickness(14, 6 + _safeAreaTop, 12, 6);
-        CloudHeaderBar.Padding = new Thickness(16, 12 + _safeAreaTop, 10, 11);
         PlayerContent.Margin = new Thickness(12, 5, 12, 6 + _safeAreaBottom);
     }
 
@@ -266,7 +259,6 @@ public partial class MainView : UserControl
         try
         {
             ClearThumbnailCache();
-            _cloudSnapshot = _cloud.LoadCachedSnapshot();
             _loadedLibrary = await PortableLibraryStore.LoadAsync(CompanionServices.LibraryStorage.LibraryDirectory);
             SetStatus();
         }
@@ -280,23 +272,6 @@ public partial class MainView : UserControl
 
         PopulateFilters();
         ApplyFilter();
-        RefreshCloudPage();
-
-        if (_cloud.LoadConnection() is not null)
-            _ = RefreshCloudMetadataInBackgroundAsync();
-    }
-
-    private async Task RefreshCloudMetadataInBackgroundAsync()
-    {
-        try
-        {
-            await RefreshCloudMetadataAndLibraryAsync(isBackground: true);
-        }
-        catch (Exception ex)
-        {
-            // The already displayed local library remains usable while the server is unavailable.
-            CloudOperationStatusText.Text = $"Background sync failed: {ex.Message}";
-        }
     }
 
     private void PopulateFilters()
@@ -504,7 +479,7 @@ public partial class MainView : UserControl
         var path = _loadedLibrary.TrackPath(track);
         if (!File.Exists(path))
         {
-            SetStatus("This track is not downloaded. Open the cloud library to download missing tracks.");
+            SetStatus("This track is not available in the local music folder.");
             return;
         }
 
@@ -997,446 +972,6 @@ public partial class MainView : UserControl
 
         if (_filteredTracks.Count > 0)
             await PlayTrackAtAsync(0);
-    }
-
-    private void OnCloudClicked(object? sender, RoutedEventArgs e)
-    {
-        FilterDrawer.IsVisible = false;
-        CloudPage.IsVisible = true;
-        ConfigureSystemBars();
-        RefreshCloudPage();
-    }
-
-    private void OnCloseCloudClicked(object? sender, RoutedEventArgs e) => CloudPage.IsVisible = false;
-
-    private void OnEditTrackClicked(object? sender, RoutedEventArgs e)
-    {
-        e.Handled = true;
-        if (sender is not Button { DataContext: TrackRow row }
-            || string.IsNullOrWhiteSpace(row.Track.TrackKey))
-            return;
-        _cloudSnapshot ??= _cloud.LoadCachedSnapshot();
-        _editingCloudTrack = _cloudSnapshot?.Tracks.FirstOrDefault(track =>
-            string.Equals(track.TrackKey, row.Track.TrackKey, StringComparison.Ordinal));
-        if (_editingCloudTrack is null)
-        {
-            ShowToast("Synchronize before editing this track");
-            return;
-        }
-
-        TrackEditTitleBox.Text = _editingCloudTrack.Title;
-        TrackEditArtistBox.Text = _editingCloudTrack.Artist ?? string.Empty;
-        TrackEditRemixBox.Text = _editingCloudTrack.Remix ?? string.Empty;
-        var ratings = new[] { "(No rating)" }
-            .Concat(_cloudSnapshot!.Ratings.OrderBy(rating => rating.SortOrder).Select(rating => rating.Name))
-            .ToList();
-        TrackEditRatingBox.ItemsSource = ratings;
-        TrackEditRatingBox.SelectedItem = _editingCloudTrack.Rating ?? "(No rating)";
-        TrackEditRevisionText.Text = $"Server revision {_editingCloudTrack.Revision}";
-        TrackEditStatusText.Text = string.Empty;
-        RefreshTrackEditAudioButtons();
-        TrackEditPage.IsVisible = true;
-    }
-
-    private void OnCloseTrackEditClicked(object? sender, RoutedEventArgs e)
-    {
-        TrackEditPage.IsVisible = false;
-        _editingCloudTrack = null;
-    }
-
-    private async void OnSaveTrackEditClicked(object? sender, RoutedEventArgs e)
-    {
-        if (_editingCloudTrack is null || string.IsNullOrWhiteSpace(TrackEditTitleBox.Text))
-        {
-            TrackEditStatusText.Text = "A title is required.";
-            return;
-        }
-        var selectedRating = TrackEditRatingBox.SelectedItem as string;
-        var rating = selectedRating == "(No rating)" ? null : selectedRating;
-        var update = _editingCloudTrack with
-        {
-            Title = TrackEditTitleBox.Text.Trim(),
-            Artist = NullIfWhiteSpace(TrackEditArtistBox.Text),
-            Remix = NullIfWhiteSpace(TrackEditRemixBox.Text),
-            Rating = rating,
-            RatingBand = string.Equals(rating, _editingCloudTrack.Rating, StringComparison.OrdinalIgnoreCase)
-                ? _editingCloudTrack.RatingBand
-                : null,
-            NeedsReview = rating is null,
-            LibraryState = rating is null ? "PendingRating" : "Active"
-        };
-        try
-        {
-            TrackEditSaveButton.IsEnabled = false;
-            TrackEditStatusText.Text = "Saving on server…";
-            _cloudSnapshot = await _cloud.UpdateTrackAsync(update);
-            _loadedLibrary = await PortableLibraryStore.LoadAsync(CompanionServices.LibraryStorage.LibraryDirectory);
-            ClearThumbnailCache();
-            PopulateFilters();
-            ApplyFilter();
-            TrackEditPage.IsVisible = false;
-            _editingCloudTrack = null;
-            ShowToast("Track updated on every device");
-        }
-        catch (CloudRevisionConflictException)
-        {
-            await RefreshCloudMetadataAndLibraryAsync(isBackground: false);
-            TrackEditStatusText.Text =
-                "This track changed on another device. The current version was loaded; close and reopen it before editing.";
-        }
-        catch (Exception ex)
-        {
-            TrackEditStatusText.Text = $"Could not save: {ex.Message}";
-        }
-        finally
-        {
-            TrackEditSaveButton.IsEnabled = true;
-        }
-    }
-
-    private static string? NullIfWhiteSpace(string? value) =>
-        string.IsNullOrWhiteSpace(value) ? null : value.Trim();
-
-    private async void OnDownloadEditedTrackClicked(object? sender, RoutedEventArgs e)
-    {
-        if (_editingCloudTrack is null)
-            return;
-        try
-        {
-            TrackEditDownloadButton.IsEnabled = false;
-            TrackEditStatusText.Text = "Downloading this track to the phone…";
-            await _cloud.DownloadTrackAudioAsync(_editingCloudTrack);
-            TrackEditStatusText.Text = "This track is available offline.";
-            RefreshTrackEditAudioButtons();
-            RefreshCloudCountersOnly();
-        }
-        catch (Exception ex)
-        {
-            TrackEditStatusText.Text = $"Could not download: {ex.Message}";
-        }
-    }
-
-    private void OnRemoveEditedTrackAudioClicked(object? sender, RoutedEventArgs e)
-    {
-        if (_editingCloudTrack is null)
-            return;
-        if (string.Equals(_currentTrackFileName, _editingCloudTrack.FileName, StringComparison.OrdinalIgnoreCase)
-            && _audio.IsPlaying)
-        {
-            TrackEditStatusText.Text = "Pause this track before removing its offline copy.";
-            return;
-        }
-        try
-        {
-            _cloud.RemoveLocalTrackAudio(_editingCloudTrack);
-            TrackEditStatusText.Text = "Offline copy removed. The server copy is unchanged.";
-            RefreshTrackEditAudioButtons();
-            RefreshCloudCountersOnly();
-        }
-        catch (Exception ex)
-        {
-            TrackEditStatusText.Text = $"Could not remove offline copy: {ex.Message}";
-        }
-    }
-
-    private void RefreshTrackEditAudioButtons()
-    {
-        if (_editingCloudTrack is null)
-            return;
-        var localPath = Path.Combine(
-            CompanionServices.LibraryStorage.LibraryDirectory,
-            "tracks",
-            Path.GetFileName(_editingCloudTrack.FileName));
-        var exists = File.Exists(localPath);
-        TrackEditDownloadButton.IsEnabled = !exists && _editingCloudTrack.AudioAvailable;
-        TrackEditRemoveAudioButton.IsEnabled = exists;
-    }
-
-    private async void OnConnectCloudClicked(object? sender, RoutedEventArgs e)
-    {
-        if (string.IsNullOrWhiteSpace(CloudConnectionCodeBox.Text))
-        {
-            CloudOperationStatusText.Text = "Enter the Resona server URL first.";
-            return;
-        }
-
-        try
-        {
-            _cloud.SaveServerUrl(CloudConnectionCodeBox.Text);
-            await RefreshCloudMetadataAndLibraryAsync(isBackground: false);
-            ShowToast("Cloud library connected");
-        }
-        catch (Exception ex)
-        {
-            CloudOperationStatusText.Text = $"Connection failed: {ex.Message}";
-        }
-    }
-
-    private async void OnRefreshCloudClicked(object? sender, RoutedEventArgs e)
-    {
-        if (_cloud.LoadConnection() is null)
-        {
-            CloudOperationStatusText.Text = "Connect this device first.";
-            return;
-        }
-
-        try
-        {
-            var updated = await RefreshCloudMetadataAndLibraryAsync(isBackground: false);
-            ShowToast(updated ? "Library and presets updated" : "Library already current");
-        }
-        catch (Exception ex)
-        {
-            CloudOperationStatusText.Text = $"Refresh failed: {ex.Message}";
-        }
-    }
-
-    private async Task<bool> RefreshCloudMetadataAndLibraryAsync(bool isBackground)
-    {
-        SetCloudBusy(true);
-        CloudOperationStatusText.Text = isBackground
-            ? "Checking for library updates…"
-            : "Synchronizing metadata and presets…";
-        try
-        {
-            using var timeout = new CancellationTokenSource(TimeSpan.FromSeconds(30));
-            var result = await _cloud.RefreshMetadataAsync(timeout.Token);
-            _cloudSnapshot = result.Snapshot;
-            if (result.LibraryUpdated)
-            {
-                ClearThumbnailCache();
-                _loadedLibrary = await PortableLibraryStore.LoadAsync(CompanionServices.LibraryStorage.LibraryDirectory);
-                PopulateFilters();
-                ApplyFilter();
-            }
-
-            var presetCount = _loadedLibrary.Library.FilterPresets?.Count ?? 0;
-            CloudOperationStatusText.Text = result.LibraryUpdated
-                ? $"Updated {DateTime.Now:t} · {_loadedLibrary.Library.Tracks.Count} tracks · {presetCount} presets"
-                : $"Already current · {_loadedLibrary.Library.Tracks.Count} tracks · {presetCount} presets";
-            return result.LibraryUpdated;
-        }
-        finally
-        {
-            SetCloudBusy(false);
-            RefreshCloudPage();
-        }
-    }
-
-    private async void OnDownloadMissingCloudAudioClicked(object? sender, RoutedEventArgs e)
-    {
-        _cloudSnapshot ??= _cloud.LoadCachedSnapshot();
-        if (_cloudSnapshot is null)
-        {
-            CloudOperationStatusText.Text = "Refresh metadata before downloading audio.";
-            return;
-        }
-
-        var missing = _cloud.FindMissingAudio(_cloudSnapshot);
-        if (missing.Count == 0)
-        {
-            CloudOperationStatusText.Text = "No downloadable tracks are missing.";
-            return;
-        }
-
-        _cloudDownloadCts?.Cancel();
-        _cloudDownloadCts?.Dispose();
-        _cloudDownloadCts = new CancellationTokenSource();
-        SetCloudBusy(true);
-        CloudCancelDownloadButton.IsVisible = true;
-        try
-        {
-            var progress = new Progress<(int Completed, int Total, string FileName)>(value =>
-            {
-                var percent = value.Total == 0 ? 100 : value.Completed * 100d / value.Total;
-                CloudDownloadProgressBar.Value = percent;
-                CloudDownloadProgressText.Text = $"{value.Completed} of {value.Total} · {value.FileName}";
-                RefreshCloudCountersOnly();
-            });
-            await _cloud.DownloadMissingAudioAsync(_cloudSnapshot, progress, _cloudDownloadCts.Token);
-            CloudDownloadProgressBar.Value = 100;
-            CloudDownloadProgressText.Text = $"Downloaded {missing.Count} tracks.";
-            CloudOperationStatusText.Text = "Offline library is up to date.";
-            ShowToast("Missing tracks downloaded");
-        }
-        catch (OperationCanceledException)
-        {
-            CloudOperationStatusText.Text = "Download paused. It will continue from the partial file next time.";
-        }
-        catch (Exception ex)
-        {
-            CloudOperationStatusText.Text = $"Download failed: {ex.Message}";
-        }
-        finally
-        {
-            _cloudDownloadCts.Dispose();
-            _cloudDownloadCts = null;
-            SetCloudBusy(false);
-            RefreshCloudPage();
-        }
-    }
-
-    private void OnCancelCloudDownloadClicked(object? sender, RoutedEventArgs e) => _cloudDownloadCts?.Cancel();
-
-    private async void OnRenameCloudPresetClicked(object? sender, RoutedEventArgs e)
-    {
-        var selected = SelectedPreset();
-        var name = CloudPresetNameBox.Text?.Trim();
-        if (selected is null || string.IsNullOrWhiteSpace(name))
-        {
-            CloudOperationStatusText.Text = "Select a preset in Filters and enter its new name.";
-            return;
-        }
-        var presets = (_loadedLibrary.Library.FilterPresets ?? [])
-            .Select(preset => ReferenceEquals(preset, selected)
-                || string.Equals(preset.Name, selected.Name, StringComparison.OrdinalIgnoreCase)
-                    ? preset with { Name = name }
-                    : preset)
-            .ToList();
-        await SaveCloudPresetsAsync(presets, name);
-    }
-
-    private async void OnCopyCloudPresetClicked(object? sender, RoutedEventArgs e)
-    {
-        var selected = SelectedPreset();
-        var name = CloudPresetNameBox.Text?.Trim();
-        if (selected is null || string.IsNullOrWhiteSpace(name))
-        {
-            CloudOperationStatusText.Text = "Select a preset in Filters and enter a name for the copy.";
-            return;
-        }
-        var presets = (_loadedLibrary.Library.FilterPresets ?? []).ToList();
-        if (presets.Any(preset => string.Equals(preset.Name, name, StringComparison.OrdinalIgnoreCase)))
-        {
-            CloudOperationStatusText.Text = "A preset with that name already exists.";
-            return;
-        }
-        presets.Add(selected with { Name = name });
-        await SaveCloudPresetsAsync(presets, name);
-    }
-
-    private async void OnDeleteCloudPresetClicked(object? sender, RoutedEventArgs e)
-    {
-        var selected = SelectedPreset();
-        if (selected is null)
-        {
-            CloudOperationStatusText.Text = "Select the preset to delete in Filters first.";
-            return;
-        }
-        var presets = (_loadedLibrary.Library.FilterPresets ?? [])
-            .Where(preset => !string.Equals(preset.Name, selected.Name, StringComparison.OrdinalIgnoreCase))
-            .ToList();
-        await SaveCloudPresetsAsync(presets, null);
-    }
-
-    private PortableFilterPreset? SelectedPreset() =>
-        _activeLibrarySource == MobileLibrarySource.Preset
-            ? (_loadedLibrary.Library.FilterPresets ?? []).FirstOrDefault(preset =>
-                string.Equals(preset.Name, _activeLibrarySourceId, StringComparison.OrdinalIgnoreCase))
-            : null;
-
-    private async Task SaveCloudPresetsAsync(List<PortableFilterPreset> presets, string? selectedName)
-    {
-        try
-        {
-            SetCloudBusy(true);
-            _cloudSnapshot = await _cloud.UpdatePresetsAsync(presets);
-            _loadedLibrary = await PortableLibraryStore.LoadAsync(CompanionServices.LibraryStorage.LibraryDirectory);
-            _activeLibrarySource = selectedName is null ? MobileLibrarySource.Default : MobileLibrarySource.Preset;
-            _activeLibrarySourceId = selectedName;
-            CloudPresetNameBox.Text = string.Empty;
-            PopulateFilters();
-            ApplyFilter();
-            CloudOperationStatusText.Text = $"Shared presets updated · {_cloudSnapshot.PresetsRevision}";
-            ShowToast("Presets updated on server");
-        }
-        catch (CloudRevisionConflictException)
-        {
-            await RefreshCloudMetadataAndLibraryAsync(isBackground: false);
-            CloudOperationStatusText.Text =
-                "The presets changed on another device. The current server version was loaded; review it and try again.";
-        }
-        catch (Exception ex)
-        {
-            CloudOperationStatusText.Text = $"Could not update presets: {ex.Message}";
-        }
-        finally
-        {
-            SetCloudBusy(false);
-        }
-    }
-
-    private void SetCloudBusy(bool busy)
-    {
-        _cloudBusy = busy;
-        CloudConnectButton.IsEnabled = !busy;
-        CloudRefreshButton.IsEnabled = !busy && _cloud.LoadConnection() is not null;
-        CloudConnectionCodeBox.IsEnabled = !busy;
-        CloudPresetNameBox.IsEnabled = !busy;
-        CloudRenamePresetButton.IsEnabled = !busy && _cloud.LoadConnection() is not null;
-        CloudCopyPresetButton.IsEnabled = !busy && _cloud.LoadConnection() is not null;
-        CloudDeletePresetButton.IsEnabled = !busy && _cloud.LoadConnection() is not null;
-        CloudDownloadButton.IsEnabled = !busy && _cloudSnapshot is not null
-                                      && _cloud.FindMissingAudio(_cloudSnapshot).Count > 0;
-        CloudCancelDownloadButton.IsVisible = _cloudDownloadCts is not null;
-    }
-
-    private void RefreshCloudPage()
-    {
-        var connection = _cloud.LoadConnection();
-        CloudConnectionSummaryText.Text = connection is null
-            ? "Not connected"
-            : $"Connected · {new Uri(connection.ServerUrl).Host}";
-        if (connection is not null && !CloudConnectionCodeBox.IsFocused)
-            CloudConnectionCodeBox.Text = connection.ServerUrl;
-        CloudRefreshButton.IsEnabled = !_cloudBusy && connection is not null;
-        CloudRenamePresetButton.IsEnabled = !_cloudBusy && connection is not null;
-        CloudCopyPresetButton.IsEnabled = !_cloudBusy && connection is not null;
-        CloudDeletePresetButton.IsEnabled = !_cloudBusy && connection is not null;
-        _cloudSnapshot ??= _cloud.LoadCachedSnapshot();
-        RefreshCloudCountersOnly();
-    }
-
-    private void RefreshCloudCountersOnly()
-    {
-        if (_cloudSnapshot is null)
-        {
-            CloudTotalTracksText.Text = "—";
-            CloudLocalTracksText.Text = "—";
-            CloudMissingTracksText.Text = "—";
-            CloudMissingSizeText.Text = "Refresh metadata to see available downloads.";
-            CloudDownloadButton.IsEnabled = false;
-            return;
-        }
-
-        var status = _cloud.GetAudioStatus(_cloudSnapshot);
-        CloudTotalTracksText.Text = status.TotalTracks.ToString();
-        CloudLocalTracksText.Text = status.LocalTracks.ToString();
-        CloudMissingTracksText.Text = status.MissingTracks.ToString();
-        CloudMissingSizeText.Text = status.MissingTracks > 0
-            ? $"{FormatBytes(status.MissingBytes)} available to download"
-              + (status.WaitingForDesktopUpload > 0
-                  ? $" · {status.WaitingForDesktopUpload} waiting for desktop upload"
-                  : string.Empty)
-            : status.WaitingForDesktopUpload > 0
-                ? $"{status.WaitingForDesktopUpload} tracks are still waiting for desktop upload."
-                : "All tracks are available offline.";
-        CloudDownloadButton.IsEnabled = !_cloudBusy && status.MissingTracks > 0;
-        if (_cloudDownloadCts is null && status.MissingTracks == 0)
-            CloudDownloadProgressBar.Value = 100;
-    }
-
-    private static string FormatBytes(long bytes)
-    {
-        string[] units = ["B", "KB", "MB", "GB", "TB"];
-        var value = (double)Math.Max(0, bytes);
-        var unit = 0;
-        while (value >= 1024 && unit < units.Length - 1)
-        {
-            value /= 1024;
-            unit++;
-        }
-        return $"{value:0.#} {units[unit]}";
     }
 
     private async void ShowToast(string message)

@@ -1,4 +1,0 @@
-subjectAltName=IP:192.168.178.102,DNS:debian,DNS:debian.local,DNS:api.resona.home.arpa,DNS:analyzer.resona.home.arpa
-basicConstraints=CA:FALSE
-keyUsage=digitalSignature,keyEncipherment
-extendedKeyUsage=serverAuth

@@ -2,12 +2,12 @@
 
 This FastAPI service accepts an audio file at `POST /analyze` and returns the analysis data consumed by the Resona desktop app. `GET /health` verifies that the script and every required model file are present.
 
-The complete production stack is started by `deploy/cloud/compose.yaml`. The standalone compose file in this directory is useful for testing only the analyzer:
+Build and start the analyzer from this directory:
 
 ```powershell
 Copy-Item src\AnalysisServer\.env.example src\AnalysisServer\.env
 docker compose --env-file src\AnalysisServer\.env -f src\AnalysisServer\compose.yaml up -d --build
-Invoke-RestMethod http://127.0.0.1:5081/health
+Invoke-RestMethod http://127.0.0.1:8000/health
 ```
 
 For a direct local start with the Python dependencies installed:

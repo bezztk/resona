@@ -56,10 +56,7 @@ public class MusicLibraryService
     public List<TrackModelGenre> GetTrackModelGenres(int trackId) => _db.GetTrackModelGenres(trackId);
     public void SetTrackModelGenreEnabled(int trackId, int genreId, bool isEnabled) => _db.SetTrackModelGenreEnabled(trackId, genreId, isEnabled);
     public void SetTrackVersion(int id, bool isOriginal, int? parentTrackId, TrackEditTypes editTypes)
-    {
-        _db.SetTrackVersion(id, isOriginal, parentTrackId, editTypes);
-        CloudLibrarySyncService.Current.RequestSynchronization();
-    }
+        => _db.SetTrackVersion(id, isOriginal, parentTrackId, editTypes);
 
     public void UpdateTrack(
         int id,
@@ -93,8 +90,6 @@ public class MusicLibraryService
     public void RecordTrackSkip(int trackId) => _db.RecordTrackSkip(trackId);
     public TrackUsageStats GetTrackUsageStats(int trackId) => _db.GetTrackUsageStats(trackId);
     public Dictionary<int, TrackUsageStats> GetAllTrackUsageStats() => _db.GetAllTrackUsageStats();
-    public int ApplyCloudDeviceSnapshot(CloudDeviceLibrarySnapshot snapshot) =>
-        _db.ApplyCloudDeviceSnapshot(snapshot);
     public TimeSpan? EstimateAnalysisDuration(int? trackDurationSeconds, long? fileSizeBytes) =>
         _db.EstimateAnalysisDuration(trackDurationSeconds, fileSizeBytes);
     public TimeSpan? EstimateDownloadDuration(int? trackDurationSeconds, long? fileSizeBytes) =>
@@ -399,7 +394,6 @@ public class MusicLibraryService
                 version?.VersionName);
             var track = GetTrackById(trackId)
                 ?? throw new InvalidOperationException($"Track {trackId} was inserted but could not be reloaded.");
-            CloudLibrarySyncService.Current.RequestSynchronization();
             WorkflowLog.Info("download", $"Persisted track {trackId} from a YouTube download.");
             return new ImportResult(true, track);
         }

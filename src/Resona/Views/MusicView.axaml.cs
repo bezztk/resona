@@ -258,7 +258,6 @@ public partial class MusicView : UserControl
         // are intentionally started only after the initial UI data is ready.
         ImportQueueService.Current.Initialize();
         BackgroundAnalysisService.Current.Initialize();
-        CloudLibrarySyncService.Current.Initialize();
         _restoringPlayerSession = false;
         UpdateShuffleButton();
         PersistPlayerSession();

@@ -12,11 +12,9 @@ using Avalonia.Input;
 using Avalonia.Interactivity;
 using Avalonia.Layout;
 using Avalonia.Media;
-using Avalonia.Media.Imaging;
 using Avalonia.Platform.Storage;
 using Avalonia.Threading;
 using Avalonia.Svg.Skia;
-using Resona.Core;
 using Resona.Models;
 using Resona.Services;
 
@@ -44,39 +42,18 @@ public partial class SettingsOverlay : UserControl
     private bool _appearanceSavePending;
     private bool _loadingDiscordPresenceSettings;
     private bool _loadingBrowserCookieSettings;
-    private bool _loadingProfile;
-    private bool _profileSavePending;
-    private readonly DispatcherTimer _profileSaveTimer = new() { Interval = TimeSpan.FromSeconds(2) };
-    private readonly DispatcherTimer _profileSaveAnimationTimer = new() { Interval = TimeSpan.FromMilliseconds(45) };
-    private CloudIdentity? _cloudIdentity;
-    private byte[]? _pendingProfileImage;
-    private Bitmap? _profileAvatarBitmap;
 
     public event Action<string>? ToastRequested;
     public event Action? LibraryMetadataChanged;
     public event Action<AppearanceSettings>? AppearanceChanged;
     public event Action? DiscordPresenceChanged;
-    public event Action? CloudProfileChanged;
 
     public SettingsOverlay()
     {
         InitializeComponent();
         BuildAppearanceControls();
         _appearanceSaveTimer.Tick += (_, _) => PersistPendingAppearance();
-        _profileSaveTimer.Tick += (_, _) => PersistPendingProfile();
-        _profileSaveAnimationTimer.Tick += (_, _) =>
-        {
-            var rotation = (RotateTransform)ProfileSaveLoadingIcon.RenderTransform!;
-            rotation.Angle = (rotation.Angle + 18) % 360;
-        };
         SearchBox.TextChanged += (_, _) => RebuildGenreVocabularyRows();
-        ProfileUsernameBox.TextChanged += (_, _) =>
-        {
-            RefreshProfileAvatar();
-            QueueProfileSave();
-        };
-        CloudLibrarySyncService.Current.StatusChanged += status =>
-            Dispatcher.UIThread.Post(() => RefreshCloudSyncStatus(status));
         AppUpdateService.Current.StateChanged += OnAppUpdateStateChanged;
         RefreshUpdatePage(AppUpdateService.Current.State);
     }
@@ -92,7 +69,6 @@ public partial class SettingsOverlay : UserControl
         _loadingDiscordPresenceSettings = false;
         _appearanceSettings = appSettings.Appearance.Clone().Clamp();
         RefreshAppearanceControls();
-        CloudServerStatusText.IsVisible = false;
         AnalysisServerStatusText.IsVisible = false;
         _loadingBrowserCookieSettings = true;
         var cookiesBrowser = AppSettingsStore.NormalizeYtDlpCookiesBrowser(appSettings.YtDlpCookiesBrowser);
@@ -104,9 +80,6 @@ public partial class SettingsOverlay : UserControl
         ApplyBrowserCookieSettings(save: false);
         RefreshLinuxDependencies();
         RebuildBackupDirectoryRows();
-        CloudServerUrlBox.Text = appSettings.CloudServerUrl;
-        RefreshCloudSyncStatus(CloudLibrarySyncService.Current.Status);
-        LoadCloudProfile();
         SelectPage(SettingsPage.Profile);
         IsVisible = true;
     }
@@ -382,7 +355,6 @@ public partial class SettingsOverlay : UserControl
             "health" => SettingsPage.Health,
             "appearance" => SettingsPage.Appearance,
             "backup" => SettingsPage.Backup,
-            "cloud_sync" => SettingsPage.CloudSync,
             "updates" => SettingsPage.Updates,
             "discord" => SettingsPage.Discord,
             "profile" => SettingsPage.Profile,
@@ -404,7 +376,6 @@ public partial class SettingsOverlay : UserControl
         var isGenreVocabularyPage = page == SettingsPage.GenreVocabulary;
         var isHealthPage = page == SettingsPage.Health;
         var isBackupPage = page == SettingsPage.Backup;
-        var isCloudSyncPage = page == SettingsPage.CloudSync;
         var isUpdatesPage = page == SettingsPage.Updates;
         var isAppearancePage = page == SettingsPage.Appearance;
         var isDiscordPage = page == SettingsPage.Discord;
@@ -413,7 +384,6 @@ public partial class SettingsOverlay : UserControl
         GenreVocabularyPage.IsVisible = isGenreVocabularyPage;
         HealthPage.IsVisible = isHealthPage;
         BackupPage.IsVisible = isBackupPage;
-        CloudSyncPage.IsVisible = isCloudSyncPage;
         UpdatesPage.IsVisible = isUpdatesPage;
         AppearancePage.IsVisible = isAppearancePage;
         DiscordPage.IsVisible = isDiscordPage;
@@ -425,7 +395,6 @@ public partial class SettingsOverlay : UserControl
         GenreVocabularyNavButton.IsChecked = isGenreVocabularyPage;
         HealthNavButton.IsChecked = isHealthPage;
         BackupNavButton.IsChecked = isBackupPage;
-        CloudSyncNavButton.IsChecked = isCloudSyncPage;
         UpdatesNavButton.IsChecked = isUpdatesPage;
         AppearanceNavButton.IsChecked = isAppearancePage;
         DiscordNavButton.IsChecked = isDiscordPage;
@@ -439,7 +408,6 @@ public partial class SettingsOverlay : UserControl
         {
             SettingsPage.Health => "Health check",
             SettingsPage.Backup => "Backup",
-            SettingsPage.CloudSync => "Cloud sync",
             SettingsPage.Updates => "Updates",
             SettingsPage.Appearance => "Appearance",
             SettingsPage.Discord => "Discord presence",
@@ -456,16 +424,14 @@ public partial class SettingsOverlay : UserControl
                     ? "Check database integrity, workflow consistency, channel mappings and local audio files."
                 : isBackupPage
                     ? "Keep daily database snapshots in your backup locations."
-                    : isCloudSyncPage
-                        ? "Track the Android cloud library and upload anything that is still missing."
-                        : isAppearancePage
+                    : isAppearancePage
                             ? "Tune artwork, blur, color and audio-reactive visuals. Changes are applied live."
                             : isDiscordPage
                                 ? "Customize the text Discord displays while Resona is playing music."
                             : isProfilePage
                                 ? "Manage your local identity and temporary session behavior."
                             : isServersPage
-                                ? "Configure cloud synchronization and track analysis services."
+                                ? "Configure the track analysis service."
                             : isUpdatesPage
                                 ? "Check, download and install application releases from GitHub."
                             : page == SettingsPage.Tags
@@ -478,34 +444,10 @@ public partial class SettingsOverlay : UserControl
         SummaryText.Text = isGenreVocabularyPage ? BuildSummaryText() : "";
         if (isGenreVocabularyPage) RebuildGenreVocabularyRows();
         if (isBackupPage) RebuildBackupDirectoryRows();
-        if (isCloudSyncPage) RefreshCloudSyncStatus(CloudLibrarySyncService.Current.Status);
         if (page == SettingsPage.Tags) ReloadTagManagement();
         if (page == SettingsPage.Styles) ReloadStyleManagement();
         if (page == SettingsPage.TagRules) ReloadTagRules();
         if (isUpdatesPage) RefreshUpdatePage(AppUpdateService.Current.State);
-    }
-
-    private void LoadCloudProfile()
-    {
-        try
-        {
-            _cloudIdentity = CloudIdentityStore.Current.GetOrCreate();
-            _pendingProfileImage = _cloudIdentity.ProfileImage?.ToArray();
-            _loadingProfile = true;
-            ProfileUsernameBox.Text = _cloudIdentity.Username;
-            _loadingProfile = false;
-            ProfileUserIdText.Text = _cloudIdentity.UserId;
-            ProfileStatusText.IsVisible = false;
-            RefreshProfileAvatar();
-            ShowProfileSavedState();
-        }
-        catch (Exception exception)
-        {
-            _loadingProfile = false;
-            ProfileStatusText.Text = $"Could not load profile: {exception.Message}";
-            ProfileStatusText.IsVisible = true;
-            ShowProfileSaveFailedState();
-        }
     }
 
     private void OnShowCreateSubgenreClicked(object? sender, RoutedEventArgs e)
@@ -541,209 +483,6 @@ public partial class SettingsOverlay : UserControl
             e.Handled = true;
             OnCancelCreateSubgenreClicked(sender, new RoutedEventArgs());
         }
-    }
-
-    private async void OnChooseProfileImageClicked(object? sender, RoutedEventArgs e)
-    {
-        ProfileAvatarButton.Flyout?.Hide();
-        var topLevel = TopLevel.GetTopLevel(this);
-        if (topLevel is null)
-            return;
-
-        var files = await topLevel.StorageProvider.OpenFilePickerAsync(new FilePickerOpenOptions
-        {
-            Title = "Choose profile picture",
-            AllowMultiple = false,
-            FileTypeFilter = [FilePickerFileTypes.ImageAll]
-        });
-        if (files.Count == 0)
-            return;
-
-        try
-        {
-            await using var input = await files[0].OpenReadAsync();
-            if (input.CanSeek && input.Length > 12 * 1024 * 1024)
-                throw new InvalidDataException("Profile picture must be smaller than 12 MB.");
-            using var buffer = new MemoryStream();
-            await input.CopyToAsync(buffer);
-            _pendingProfileImage = ThumbnailService.CreateSquareArtwork(buffer.ToArray(), 256, 88)
-                ?? throw new InvalidDataException("The selected image could not be decoded.");
-            RefreshProfileAvatar();
-            ProfileAvatarButton.Flyout?.Hide();
-            PersistProfile();
-        }
-        catch (Exception exception)
-        {
-            ProfileStatusText.Text = $"Could not use picture: {exception.Message}";
-            ProfileStatusText.IsVisible = true;
-        }
-    }
-
-    private void OnRemoveProfileImageClicked(object? sender, RoutedEventArgs e)
-    {
-        _pendingProfileImage = null;
-        RefreshProfileAvatar();
-        ProfileAvatarButton.Flyout?.Hide();
-        PersistProfile();
-    }
-
-    private void RefreshProfileAvatar()
-    {
-        _profileAvatarBitmap?.Dispose();
-        _profileAvatarBitmap = null;
-        if (_pendingProfileImage is { Length: > 0 })
-        {
-            using var stream = new MemoryStream(_pendingProfileImage, writable: false);
-            _profileAvatarBitmap = new Bitmap(stream);
-        }
-
-        ProfileAvatarImage.Source = _profileAvatarBitmap;
-        ProfileAvatarImage.IsVisible = _profileAvatarBitmap is not null;
-        ProfileAvatarPlaceholderText.IsVisible = _profileAvatarBitmap is null;
-        var username = ProfileUsernameBox.Text?.Trim();
-        ProfileAvatarPlaceholderText.Text = string.IsNullOrWhiteSpace(username)
-            ? "?"
-            : username[..1].ToUpperInvariant();
-        RemoveProfileImageMenuButton.IsVisible = _pendingProfileImage is { Length: > 0 };
-    }
-
-    private void QueueProfileSave()
-    {
-        if (_loadingProfile)
-            return;
-
-        _profileSavePending = true;
-        _profileSaveTimer.Stop();
-        _profileSaveTimer.Start();
-        ProfileStatusText.IsVisible = false;
-        ProfileSaveCheckIcon.IsVisible = false;
-        ProfileSaveLoadingIcon.IsVisible = true;
-        _profileSaveAnimationTimer.Start();
-    }
-
-    private void PersistPendingProfile()
-    {
-        _profileSaveTimer.Stop();
-        if (!_profileSavePending)
-            return;
-
-        PersistProfile();
-    }
-
-    private void PersistProfile()
-    {
-        _profileSaveTimer.Stop();
-        _profileSavePending = false;
-        var username = ProfileUsernameBox.Text?.Trim() ?? string.Empty;
-
-        try
-        {
-            _cloudIdentity = CloudIdentityStore.Current.UpdateProfile(
-                username,
-                _cloudIdentity?.Bio,
-                _pendingProfileImage);
-            _loadingProfile = true;
-            ProfileUsernameBox.Text = _cloudIdentity.Username;
-            _loadingProfile = false;
-            ProfileStatusText.IsVisible = false;
-            ShowProfileSavedState();
-            CloudProfileChanged?.Invoke();
-        }
-        catch (Exception exception)
-        {
-            _loadingProfile = false;
-            ProfileStatusText.Text = $"Could not save profile: {exception.Message}";
-            ProfileStatusText.IsVisible = true;
-            ShowProfileSaveFailedState();
-        }
-    }
-
-    private void ShowProfileSavedState()
-    {
-        _profileSaveAnimationTimer.Stop();
-        ((RotateTransform)ProfileSaveLoadingIcon.RenderTransform!).Angle = 0;
-        ProfileSaveLoadingIcon.IsVisible = false;
-        ProfileSaveCheckIcon.IsVisible = true;
-    }
-
-    private void ShowProfileSaveFailedState()
-    {
-        _profileSaveAnimationTimer.Stop();
-        ((RotateTransform)ProfileSaveLoadingIcon.RenderTransform!).Angle = 0;
-        ProfileSaveLoadingIcon.IsVisible = false;
-        ProfileSaveCheckIcon.IsVisible = false;
-    }
-
-    private async void OnCopyProfileUserIdClicked(object? sender, RoutedEventArgs e)
-    {
-        var clipboard = TopLevel.GetTopLevel(this)?.Clipboard;
-        if (clipboard is null || _cloudIdentity is null)
-            return;
-        await clipboard.SetTextAsync(_cloudIdentity.UserId);
-        ToastRequested?.Invoke("User ID copied");
-    }
-
-    private async void OnCopyAndroidConnectionCodeClicked(object? sender, RoutedEventArgs e)
-    {
-        var serverUrl = CloudServerUrlBox.Text?.Trim();
-        if (!Uri.TryCreate(serverUrl, UriKind.Absolute, out var uri)
-            || uri.Scheme is not ("http" or "https"))
-        {
-            ToastRequested?.Invoke("Configure a valid cloud server address first.");
-            return;
-        }
-
-        var clipboard = TopLevel.GetTopLevel(this)?.Clipboard;
-        if (clipboard is null)
-            return;
-        var androidUrl = uri.Host.Equals("api.resona.home.arpa", StringComparison.OrdinalIgnoreCase)
-            ? new UriBuilder(uri) { Host = "192.168.178.102" }.Uri.ToString().TrimEnd('/')
-            : serverUrl;
-        await clipboard.SetTextAsync(androidUrl);
-        ToastRequested?.Invoke("Android server URL copied");
-    }
-
-    private async void OnSynchronizeCloudClicked(object? sender, RoutedEventArgs e)
-    {
-        if (!ServerUrlNormalizer.TryNormalize(CloudServerUrlBox.Text, out var serverUrl))
-        {
-            CloudServerStatusText.Text = "Invalid server address";
-            CloudServerStatusText.IsVisible = true;
-            return;
-        }
-
-        CloudServerUrlBox.Text = serverUrl;
-        AppSettingsStore.SaveCloudServerUrl(serverUrl);
-        var status = await CloudLibrarySyncService.Current.SynchronizeAsync();
-        RefreshCloudSyncStatus(status);
-    }
-
-    private void RefreshCloudSyncStatus(CloudSyncStatus status)
-    {
-        CloudServerStatusText.Text = status.Message;
-        CloudServerStatusText.IsVisible = true;
-        CloudSyncStateText.Text = status.Message;
-        CloudSyncTotalText.Text = status.TotalAudioTracks?.ToString(CultureInfo.InvariantCulture) ?? "—";
-        CloudSyncUploadedText.Text = status.UploadedAudioTracks?.ToString(CultureInfo.InvariantCulture) ?? "—";
-        CloudSyncPendingText.Text = status.PendingAudioTracks?.ToString(CultureInfo.InvariantCulture) ?? "—";
-        CloudSyncPresetText.Text = status.PresetCount?.ToString(CultureInfo.InvariantCulture) ?? "—";
-
-        var total = status.TotalAudioTracks.GetValueOrDefault();
-        var uploaded = status.UploadedAudioTracks.GetValueOrDefault();
-        var progress = total > 0
-            ? Math.Clamp(uploaded * 100d / total, 0, 100)
-            : status.State == CloudSyncState.Succeeded ? 100 : 0;
-        CloudSyncProgressBar.IsIndeterminate = status.State == CloudSyncState.Synchronizing
-                                               && status.TotalAudioTracks is null;
-        CloudSyncProgressBar.Value = progress;
-        CloudSyncPercentText.Text = status.TotalAudioTracks is null ? "" : $"{progress:0}%";
-        SynchronizeLibraryButton.IsEnabled = status.State != CloudSyncState.Synchronizing;
-
-        CloudSyncCompletedText.Text = DateTimeOffset.TryParse(status.CompletedAt, out var completedAt)
-            ? $"Last completed {completedAt.ToLocalTime():g}"
-            : status.FailedAudioTracks is > 0
-                ? $"{status.FailedAudioTracks} uploads will be retried."
-                : "";
     }
 
     private async void OnCheckForUpdatesClicked(object? sender, RoutedEventArgs e)
@@ -2070,7 +1809,6 @@ public partial class SettingsOverlay : UserControl
     private void OnCloseClicked(object? sender, RoutedEventArgs e)
     {
         PersistPendingAppearance();
-        PersistPendingProfile();
         IsVisible = false;
     }
 
@@ -2094,5 +1832,5 @@ public partial class SettingsOverlay : UserControl
         public override string ToString() => Name;
     }
 
-    private enum SettingsPage { GenreVocabulary, Health, Appearance, Discord, Profile, Servers, Backup, CloudSync, Updates, Tags, Styles, TagRules }
+    private enum SettingsPage { GenreVocabulary, Health, Appearance, Discord, Profile, Servers, Backup, Updates, Tags, Styles, TagRules }
 }

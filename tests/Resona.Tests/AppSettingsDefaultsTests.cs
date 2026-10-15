@@ -13,8 +13,6 @@ public sealed class AppSettingsDefaultsTests
         Assert.Equal(0.53030306f, settings.Volume);
         Assert.Equal("https://analyzer.resona-music.de", settings.MusicAnalysisServerUrl);
         Assert.Null(settings.MusicAnalysisApiKey);
-        Assert.Equal(12, settings.ChannelDownloadMaxDurationMinutes);
-        Assert.Equal("https://api.resona-music.de", settings.CloudServerUrl);
         Assert.True(settings.DiscordRichPresenceEnabled);
         Assert.Null(settings.DiscordStateText);
         Assert.Null(settings.DiscordLargeImageText);

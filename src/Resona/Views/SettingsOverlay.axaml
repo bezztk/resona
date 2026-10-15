@@ -203,9 +203,6 @@
                             <ToggleButton x:Name="BackupNavButton" Classes="settings-nav"
                                           Content="Backup" Tag="backup"
                                           Click="OnSettingsNavigationClicked"/>
-                            <ToggleButton x:Name="CloudSyncNavButton" Classes="settings-nav"
-                                          Content="Cloud sync" Tag="cloud_sync"
-                                          Click="OnSettingsNavigationClicked"/>
                         </StackPanel>
 
                         <Rectangle Height="1" Fill="{DynamicResource Theme.Brush.Divider}" Margin="4,14"/>
@@ -319,122 +316,6 @@
             <ScrollViewer x:Name="ProfilePage" Grid.Row="2" IsVisible="False" Margin="30,22,30,0"
                           HorizontalScrollBarVisibility="Disabled">
                 <StackPanel Spacing="22" Margin="0,0,0,24">
-                    <StackPanel Spacing="5">
-                        <TextBlock Text="ACCOUNT" FontSize="10" FontWeight="SemiBold" Opacity="0.42"/>
-                        <TextBlock Text="Local account" FontSize="15" FontWeight="SemiBold"/>
-                        <TextBlock Text="This identity belongs to this Resona installation and authenticates its private cloud library."
-                                   FontSize="11" Opacity="0.62" TextWrapping="Wrap"/>
-                    </StackPanel>
-
-                    <Grid ColumnDefinitions="112,*" ColumnSpacing="22">
-                        <Button x:Name="ProfileAvatarButton"
-                                Classes="profile-avatar"
-                                HorizontalAlignment="Center"
-                                VerticalAlignment="Top"
-                                ToolTip.Tip="Profile picture options">
-                            <Button.Flyout>
-                                <Flyout Placement="BottomEdgeAlignedLeft">
-                                    <Flyout.FlyoutPresenterTheme>
-                                        <ControlTheme TargetType="FlyoutPresenter">
-                                            <Setter Property="Padding" Value="4"/>
-                                            <Setter Property="Background" Value="#F21A1A1A"/>
-                                            <Setter Property="BorderBrush" Value="{DynamicResource Theme.Brush.BorderStrong}"/>
-                                            <Setter Property="BorderThickness" Value="1"/>
-                                            <Setter Property="CornerRadius" Value="6"/>
-                                        </ControlTheme>
-                                    </Flyout.FlyoutPresenterTheme>
-                                    <StackPanel Width="160" Spacing="2">
-                                        <Button Background="Transparent" BorderThickness="0"
-                                                HorizontalContentAlignment="Left"
-                                                Padding="10,7"
-                                                Click="OnChooseProfileImageClicked">
-                                            <StackPanel Orientation="Horizontal" Spacing="8">
-                                                <Image Source="{SvgImage /Assets/pencil-simple.svg}" Width="13" Height="13"/>
-                                                <TextBlock Text="Change picture"/>
-                                            </StackPanel>
-                                        </Button>
-                                        <Button x:Name="RemoveProfileImageMenuButton"
-                                                IsVisible="False"
-                                                Background="Transparent" BorderThickness="0"
-                                                HorizontalContentAlignment="Left"
-                                                Padding="10,7"
-                                                Click="OnRemoveProfileImageClicked">
-                                            <StackPanel Orientation="Horizontal" Spacing="8">
-                                                <Image Source="{SvgImage /Assets/trash.svg}" Width="13" Height="13"/>
-                                                <TextBlock Text="Remove picture"
-                                                           Foreground="{DynamicResource Theme.Brush.DangerText}"/>
-                                            </StackPanel>
-                                        </Button>
-                                    </StackPanel>
-                                </Flyout>
-                            </Button.Flyout>
-                            <Border Width="96" Height="96"
-                                    CornerRadius="48" ClipToBounds="True"
-                                    Background="{DynamicResource Theme.Brush.SurfaceSelected}"
-                                    BorderBrush="{DynamicResource Theme.Brush.BorderStrong}" BorderThickness="1">
-                                <Border CornerRadius="48" ClipToBounds="True"
-                                        Background="Transparent">
-                                    <Grid>
-                                        <TextBlock x:Name="ProfileAvatarPlaceholderText"
-                                                   Text="?" FontSize="31" FontWeight="SemiBold" Opacity="0.58"
-                                                   HorizontalAlignment="Center" VerticalAlignment="Center"/>
-                                        <Image x:Name="ProfileAvatarImage" IsVisible="False" Stretch="UniformToFill"/>
-                                        <Border Background="#10000000"/>
-                                    </Grid>
-                                </Border>
-                            </Border>
-                        </Button>
-
-                        <StackPanel Grid.Column="1" Spacing="14">
-                            <StackPanel Spacing="4">
-                                <TextBlock Text="PUBLIC USER ID"
-                                           FontSize="10" FontWeight="SemiBold" Opacity="0.42"/>
-                                <Grid ColumnDefinitions="*,30" ColumnSpacing="5">
-                                    <TextBlock x:Name="ProfileUserIdText"
-                                               FontSize="10.5" FontFamily="Consolas"
-                                               Opacity="0.72"
-                                               VerticalAlignment="Center"
-                                               TextTrimming="CharacterEllipsis"/>
-                                    <Button Grid.Column="1"
-                                            Width="30" Height="30" Padding="0"
-                                            Background="Transparent" BorderThickness="0"
-                                            ToolTip.Tip="Copy user ID"
-                                            Click="OnCopyProfileUserIdClicked">
-                                        <Image Source="{SvgImage /Assets/copy.svg}" Width="13" Height="13"/>
-                                    </Button>
-                                </Grid>
-                            </StackPanel>
-                            <StackPanel Spacing="5">
-                                <TextBlock Text="USERNAME" FontSize="10" FontWeight="SemiBold" Opacity="0.42"/>
-                                <Grid ColumnDefinitions="*,24" ColumnSpacing="8">
-                                    <TextBox x:Name="ProfileUsernameBox" Classes="settings-input"
-                                             MaxLength="40" Watermark="Choose a display name"/>
-                                    <Grid Grid.Column="1" Width="18" Height="18"
-                                          HorizontalAlignment="Center" VerticalAlignment="Center">
-                                        <Image x:Name="ProfileSaveLoadingIcon"
-                                               IsVisible="False"
-                                               Source="{SvgImage /Assets/reload.svg}"
-                                               Width="14" Height="14"
-                                               RenderTransformOrigin="50%,50%">
-                                            <Image.RenderTransform>
-                                                <RotateTransform/>
-                                            </Image.RenderTransform>
-                                        </Image>
-                                        <Image x:Name="ProfileSaveCheckIcon"
-                                               Source="{SvgImage /Assets/check-green.svg}"
-                                               Width="14" Height="14"/>
-                                    </Grid>
-                                </Grid>
-                                <TextBlock x:Name="ProfileStatusText"
-                                           IsVisible="False" FontSize="10.5"
-                                           Foreground="{DynamicResource Theme.Brush.DangerText}"
-                                           TextWrapping="Wrap"/>
-                            </StackPanel>
-                        </StackPanel>
-                    </Grid>
-
-                    <Rectangle Height="1" Fill="{DynamicResource Theme.Brush.Divider}"/>
-
                     <StackPanel Spacing="18">
                         <Border x:Name="LinuxDependenciesPanel"
                                 IsVisible="False"
@@ -509,36 +390,6 @@
             <ScrollViewer x:Name="ServersPage" Grid.Row="2" IsVisible="False" Margin="30,22,30,0"
                           HorizontalScrollBarVisibility="Disabled">
                 <StackPanel Spacing="26" Margin="0,0,0,24">
-                    <StackPanel Spacing="12">
-                        <TextBlock Text="Cloud synchronization" FontSize="15" FontWeight="SemiBold"/>
-                        <StackPanel Spacing="6">
-                            <TextBlock Text="SERVER ADDRESS" FontSize="10" FontWeight="SemiBold" Opacity="0.42"/>
-                            <Grid ColumnDefinitions="*,34" ColumnSpacing="8">
-                                <TextBox x:Name="CloudServerUrlBox" Classes="settings-input"
-                                         Watermark="https://cloud.example.com"/>
-                                <Button Grid.Column="1"
-                                        Width="34" Height="34" Padding="0"
-                                        Background="Transparent" BorderThickness="0"
-                                        HorizontalContentAlignment="Center"
-                                        VerticalContentAlignment="Center"
-                                        ToolTip.Tip="Synchronize now"
-                                        Click="OnSynchronizeCloudClicked">
-                                    <Image Source="{SvgImage /Assets/cloud-arrow-down.svg}"
-                                           Width="17" Height="17" Opacity="0.78"/>
-                                </Button>
-                            </Grid>
-                            <TextBlock Text="The latest metadata snapshot and missing audio files are synchronized for your Android library."
-                                       FontSize="10.5" FontWeight="SemiBold"
-                                       Foreground="{DynamicResource Theme.Brush.Warning}"
-                                       TextWrapping="Wrap"/>
-                            <TextBlock x:Name="CloudServerStatusText"
-                                       IsVisible="False" FontSize="10.5" Opacity="0.68"
-                                       TextWrapping="Wrap"/>
-                        </StackPanel>
-                    </StackPanel>
-
-                    <Rectangle Height="1" Fill="{DynamicResource Theme.Brush.Divider}"/>
-
                     <StackPanel Spacing="12">
                         <TextBlock Text="Analysis server" FontSize="15" FontWeight="SemiBold"/>
                         <StackPanel Spacing="6">
@@ -670,76 +521,6 @@
                 </StackPanel>
             </ScrollViewer>
 
-            <ScrollViewer x:Name="CloudSyncPage" Grid.Row="2" IsVisible="False" Margin="30,22,30,0"
-                          HorizontalScrollBarVisibility="Disabled">
-                <StackPanel Spacing="22" Margin="0,0,0,24">
-                    <StackPanel Spacing="5">
-                        <TextBlock Text="Android cloud library" FontSize="15" FontWeight="SemiBold"/>
-                        <TextBlock Text="A full sync uploads the current metadata, filter presets, collections, and any missing audio files for your phone."
-                                   FontSize="11" Opacity="0.62" TextWrapping="Wrap"/>
-                    </StackPanel>
-
-                    <Grid ColumnDefinitions="*,*,*,*" ColumnSpacing="10">
-                        <Border Grid.Column="0" Padding="14,12" CornerRadius="8"
-                                Background="{DynamicResource Theme.Brush.SurfaceHover}"
-                                BorderBrush="{DynamicResource Theme.Brush.BorderSubtle}" BorderThickness="1">
-                            <StackPanel Spacing="4">
-                                <TextBlock Text="LOCAL AUDIO" FontSize="9.5" FontWeight="SemiBold" Opacity="0.46"/>
-                                <TextBlock x:Name="CloudSyncTotalText" Text="—" FontSize="20" FontWeight="SemiBold"/>
-                            </StackPanel>
-                        </Border>
-                        <Border Grid.Column="1" Padding="14,12" CornerRadius="8"
-                                Background="{DynamicResource Theme.Brush.SurfaceHover}"
-                                BorderBrush="{DynamicResource Theme.Brush.BorderSubtle}" BorderThickness="1">
-                            <StackPanel Spacing="4">
-                                <TextBlock Text="IN CLOUD" FontSize="9.5" FontWeight="SemiBold" Opacity="0.46"/>
-                                <TextBlock x:Name="CloudSyncUploadedText" Text="—" FontSize="20" FontWeight="SemiBold"/>
-                            </StackPanel>
-                        </Border>
-                        <Border Grid.Column="2" Padding="14,12" CornerRadius="8"
-                                Background="{DynamicResource Theme.Brush.SurfaceHover}"
-                                BorderBrush="{DynamicResource Theme.Brush.BorderSubtle}" BorderThickness="1">
-                            <StackPanel Spacing="4">
-                                <TextBlock Text="PENDING" FontSize="9.5" FontWeight="SemiBold" Opacity="0.46"/>
-                                <TextBlock x:Name="CloudSyncPendingText" Text="—" FontSize="20" FontWeight="SemiBold"
-                                           Foreground="{DynamicResource Theme.Brush.Accent}"/>
-                            </StackPanel>
-                        </Border>
-                        <Border Grid.Column="3" Padding="14,12" CornerRadius="8"
-                                Background="{DynamicResource Theme.Brush.SurfaceHover}"
-                                BorderBrush="{DynamicResource Theme.Brush.BorderSubtle}" BorderThickness="1">
-                            <StackPanel Spacing="4">
-                                <TextBlock Text="PRESETS" FontSize="9.5" FontWeight="SemiBold" Opacity="0.46"/>
-                                <TextBlock x:Name="CloudSyncPresetText" Text="—" FontSize="20" FontWeight="SemiBold"/>
-                            </StackPanel>
-                        </Border>
-                    </Grid>
-
-                    <StackPanel Spacing="8">
-                        <Grid ColumnDefinitions="*,Auto" ColumnSpacing="12">
-                            <TextBlock x:Name="CloudSyncStateText" Text="Cloud synchronization has not run yet."
-                                       FontSize="11" TextWrapping="Wrap" VerticalAlignment="Center"/>
-                            <TextBlock Grid.Column="1" x:Name="CloudSyncPercentText" Text=""
-                                       FontSize="10.5" Opacity="0.58" VerticalAlignment="Center"/>
-                        </Grid>
-                        <ProgressBar x:Name="CloudSyncProgressBar" Minimum="0" Maximum="100" Height="4" Value="0"/>
-                        <TextBlock x:Name="CloudSyncCompletedText" Text="" FontSize="10" Opacity="0.48"/>
-                    </StackPanel>
-
-                    <StackPanel Orientation="Horizontal" Spacing="8">
-                        <Button x:Name="SynchronizeLibraryButton"
-                                Content="Full sync now"
-                                Click="OnSynchronizeCloudClicked"
-                                Classes="settings-action"/>
-                        <Button Content="Copy Android server URL"
-                                Click="OnCopyAndroidConnectionCodeClicked"
-                                Classes="settings-action"/>
-                    </StackPanel>
-                    <TextBlock Text="Android only needs this URL. Access is limited by your home network or VPN."
-                               FontSize="10" Opacity="0.48" TextWrapping="Wrap"/>
-                </StackPanel>
-            </ScrollViewer>
-
             <ScrollViewer x:Name="BackupPage" Grid.Row="2" IsVisible="False" Margin="30,22,30,0"
                           HorizontalScrollBarVisibility="Disabled">
                 <StackPanel Spacing="22">
@@ -752,7 +533,7 @@
                     <Grid ColumnDefinitions="*,Auto" ColumnSpacing="12">
                         <StackPanel Spacing="5">
                             <TextBlock Text="BACKUP FOLDERS" FontSize="10" FontWeight="SemiBold" Opacity="0.42"/>
-                            <TextBlock Text="Recommended: one folder on an external drive and one folder synced to cloud storage."
+                            <TextBlock Text="Recommended: one folder on an external drive and one folder synced to another storage location."
                                        FontSize="11" Opacity="0.56" TextWrapping="Wrap"/>
                         </StackPanel>
                         <Button Grid.Column="1"
