@@ -573,6 +573,8 @@ public partial class MainView : UserControl
     private void OnToggleSearchClicked(object? sender, RoutedEventArgs e)
     {
         SearchBox.IsVisible = !SearchBox.IsVisible;
+        SearchIcon.IsVisible = !SearchBox.IsVisible;
+        CloseSearchIcon.IsVisible = SearchBox.IsVisible;
         SearchButton.Opacity = SearchBox.IsVisible || !string.IsNullOrWhiteSpace(SearchBox.Text) ? 1 : 0.72;
         ToolTip.SetTip(SearchButton, SearchBox.IsVisible ? "Close search" : "Search");
 

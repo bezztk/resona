@@ -151,14 +151,18 @@
                     </StackPanel>
                     <Button Grid.Column="2" x:Name="SearchButton" Classes="toolbarIcon"
                             Click="OnToggleSearchClicked" Opacity="0.72" ToolTip.Tip="Search">
-                        <Image Source="{SvgImage /Assets/search.svg}" Width="17" Height="17"/>
+                        <Panel Width="17" Height="17">
+                            <Image x:Name="SearchIcon" Source="{SvgImage /Assets/search.svg}" Width="17" Height="17"/>
+                            <Image x:Name="CloseSearchIcon" Source="{SvgImage /Assets/close.svg}"
+                                   Width="17" Height="17" IsVisible="False"/>
+                        </Panel>
                     </Button>
                     <Button Grid.Column="3" x:Name="FilterButton" Classes="toolbarIcon"
                             Click="OnToggleFiltersClicked" ToolTip.Tip="Filters">
                         <Image Source="{SvgImage /Assets/filter.svg}" Width="18" Height="18"/>
                     </Button>
                     <TextBox x:Name="SearchBox"
-                             Grid.Column="1" Grid.ColumnSpan="2"
+                             Grid.Column="1"
                              ZIndex="4"
                              IsVisible="False"
                              Watermark="Search tracks"
@@ -252,40 +256,17 @@
 
             <Border x:Name="FilterDrawer"
                     IsVisible="False"
-                    HorizontalAlignment="Right"
-                    Width="340"
-                    MaxWidth="340"
+                    HorizontalAlignment="Stretch"
                     Background="{DynamicResource Mobile.Brush.Navigation}"
-                    BorderBrush="{DynamicResource Mobile.Brush.BorderStrong}"
-                    BorderThickness="1,0,0,0"
-                    BoxShadow="-12 0 34 0 #88000000">
+                    BorderThickness="0">
                 <Grid RowDefinitions="Auto,*">
-                    <Grid ColumnDefinitions="*,Auto" Margin="16,14,10,12" Height="34">
+                    <Grid Margin="16,14,16,12" Height="34">
                         <TextBlock Text="FILTERS" FontSize="14" FontWeight="SemiBold" LetterSpacing="0.8"
                                    VerticalAlignment="Center"/>
-                        <Button Grid.Column="1" Click="OnToggleFiltersClicked" ToolTip.Tip="Close"
-                                Width="34" Height="32" Padding="0" Background="Transparent" BorderThickness="0">
-                            <Path Data="M5 5 L19 19 M19 5 L5 19"
-                                  Width="14" Height="14" Stretch="Uniform" Fill="Transparent"
-                                  Stroke="{DynamicResource Mobile.Brush.TextPrimary}" StrokeThickness="1.8"
-                                  StrokeLineCap="Round"/>
-                        </Button>
                     </Grid>
 
                     <ScrollViewer Grid.Row="1" Padding="16,8,16,22">
                         <StackPanel Spacing="16">
-                            <StackPanel Spacing="6">
-                                <TextBlock Text="PRESETS" FontSize="9.5" FontWeight="SemiBold"
-                                           Foreground="{DynamicResource Mobile.Brush.TextMuted}" LetterSpacing="0.8"/>
-                                <StackPanel x:Name="PresetRows" Spacing="6"/>
-                            </StackPanel>
-                            <Rectangle Height="1" Fill="{DynamicResource Mobile.Brush.Divider}"/>
-                            <StackPanel Spacing="6">
-                                <TextBlock Text="COLLECTIONS" FontSize="9.5" FontWeight="SemiBold"
-                                           Foreground="{DynamicResource Mobile.Brush.TextMuted}" LetterSpacing="0.8"/>
-                                <StackPanel x:Name="CollectionRows" Spacing="6"/>
-                            </StackPanel>
-                            <Rectangle Height="1" Fill="{DynamicResource Mobile.Brush.Divider}"/>
                             <StackPanel Spacing="8">
                                 <Grid ColumnDefinitions="*,140" ColumnSpacing="8">
                                     <TextBlock Text="RATING" FontSize="9.5" FontWeight="SemiBold"
@@ -314,6 +295,18 @@
                                     </Border>
                                 </Grid>
                                 <StackPanel x:Name="RatingButtonsPanel" Spacing="5" IsVisible="False"/>
+                            </StackPanel>
+                            <Rectangle Height="1" Fill="{DynamicResource Mobile.Brush.Divider}"/>
+                            <StackPanel Spacing="6">
+                                <TextBlock Text="COLLECTIONS" FontSize="9.5" FontWeight="SemiBold"
+                                           Foreground="{DynamicResource Mobile.Brush.TextMuted}" LetterSpacing="0.8"/>
+                                <StackPanel x:Name="CollectionRows" Spacing="6"/>
+                            </StackPanel>
+                            <Rectangle Height="1" Fill="{DynamicResource Mobile.Brush.Divider}"/>
+                            <StackPanel Spacing="6">
+                                <TextBlock Text="PRESETS" FontSize="9.5" FontWeight="SemiBold"
+                                           Foreground="{DynamicResource Mobile.Brush.TextMuted}" LetterSpacing="0.8"/>
+                                <StackPanel x:Name="PresetRows" Spacing="6"/>
                             </StackPanel>
                             <Border Height="132"/>
                         </StackPanel>

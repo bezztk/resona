@@ -9,8 +9,8 @@
     <RootNamespace>Resona.Android</RootNamespace>
     <ApplicationTitle>Resona</ApplicationTitle>
     <ApplicationId>com.beran.music.v2</ApplicationId>
-    <ApplicationVersion>9</ApplicationVersion>
-    <ApplicationDisplayVersion>0.6.3</ApplicationDisplayVersion>
+    <ApplicationVersion>10</ApplicationVersion>
+    <ApplicationDisplayVersion>0.6.4</ApplicationDisplayVersion>
     <AndroidPackageFormat>apk</AndroidPackageFormat>
     <AndroidEnableProfiledAot>false</AndroidEnableProfiledAot>
     <EmbedAssembliesIntoApk>true</EmbedAssembliesIntoApk>
