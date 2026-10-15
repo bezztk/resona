@@ -615,38 +615,6 @@ public class MusicDatabase
         EnsureColumn(conn, "channels", "source_url", "TEXT NULL");
         EnsureColumn(conn, "channels", "follower_count", "INTEGER NULL");
         EnsureColumn(conn, "channels", "remote_metadata_updated_at", "TEXT NULL");
-        BackfillLibraryTrackChannels(conn);
-    }
-
-    private static void BackfillLibraryTrackChannels(SqliteConnection conn)
-    {
-        ExecuteNonQuery(conn, @"
-            INSERT INTO channels (name, source_url)
-            SELECT MIN(TRIM(tracks.channel_name)), TRIM(tracks.channel_url)
-            FROM tracks
-            WHERE tracks.channel_id IS NULL
-              AND tracks.channel_url IS NOT NULL
-              AND TRIM(tracks.channel_url) <> ''
-              AND tracks.channel_name IS NOT NULL
-              AND TRIM(tracks.channel_name) <> ''
-              AND NOT EXISTS (
-                  SELECT 1 FROM channels
-                  WHERE TRIM(channels.source_url) = TRIM(tracks.channel_url))
-            GROUP BY TRIM(tracks.channel_url);
-
-            UPDATE tracks
-            SET channel_id = (
-                SELECT channels.id
-                FROM channels
-                WHERE TRIM(channels.source_url) = TRIM(tracks.channel_url)
-                ORDER BY channels.id
-                LIMIT 1)
-            WHERE tracks.channel_id IS NULL
-              AND tracks.channel_url IS NOT NULL
-              AND TRIM(tracks.channel_url) <> ''
-              AND EXISTS (
-                  SELECT 1 FROM channels
-                  WHERE TRIM(channels.source_url) = TRIM(tracks.channel_url));");
     }
 
     private static void CreateImportQueueSchema(SqliteConnection conn)
