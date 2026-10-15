@@ -329,6 +329,37 @@
                                            TextWrapping="Wrap"/>
                             </StackPanel>
                         </Border>
+                        <StackPanel Spacing="10">
+                            <TextBlock Text="Obsidian music library"
+                                       FontSize="12.5"
+                                       FontWeight="SemiBold"/>
+                            <TextBlock Text="Exports to Data/Music inside the selected vault. Tracks and images are mirrored for Obsidian Sync."
+                                       FontSize="11"
+                                       Opacity="0.58"
+                                       TextWrapping="Wrap"/>
+                            <Grid ColumnDefinitions="*,Auto,Auto" ColumnSpacing="9">
+                                <TextBox x:Name="ObsidianVaultPathBox"
+                                         Classes="settings-input"
+                                         IsReadOnly="True"
+                                         Watermark="Choose the Obsidian vault folder"/>
+                                <Button Grid.Column="1"
+                                        Classes="settings-action"
+                                        Content="Choose vault"
+                                        Click="OnChooseObsidianVaultClicked"/>
+                                <Button x:Name="ExportObsidianLibraryButton"
+                                        Grid.Column="2"
+                                        Classes="settings-action"
+                                        Content="Export now"
+                                        Click="OnExportObsidianLibraryClicked"/>
+                            </Grid>
+                            <TextBlock x:Name="ObsidianExportStatusText"
+                                       IsVisible="False"
+                                       FontSize="10.5"
+                                       TextWrapping="Wrap"/>
+                        </StackPanel>
+
+                        <Rectangle Height="1" Fill="{DynamicResource Theme.Brush.Divider}"/>
+
                         <Grid RowDefinitions="Auto,Auto" ColumnDefinitions="*,Auto" ColumnSpacing="16" RowSpacing="9">
                             <StackPanel Spacing="4">
                                 <TextBlock Text="YouTube browser session"

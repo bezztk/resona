@@ -15,6 +15,7 @@ namespace Resona.Companion.Views;
 public partial class MainView : UserControl
 {
     private readonly ICompanionAudioPlayer _audio = CompanionServices.AudioPlayer;
+    private readonly ILibraryStorage _libraryStorage = CompanionServices.LibraryStorage;
     private readonly DispatcherTimer _timer;
     private readonly DispatcherTimer _artworkTimer;
     private bool _systemBarsConfigured;
@@ -56,7 +57,6 @@ public partial class MainView : UserControl
     private enum MobileLibrarySource
     {
         Default,
-        Review,
         Preset,
         Collection
     }
@@ -257,14 +257,20 @@ public partial class MainView : UserControl
     {
         try
         {
+            if (!_libraryStorage.IsConfigured && !await _libraryStorage.SelectLibraryAsync())
+            {
+                SetStatus("Choose the Data/Music folder to load your library.");
+                return;
+            }
+
             ClearThumbnailCache();
-            _loadedLibrary = await PortableLibraryStore.LoadAsync(CompanionServices.LibraryStorage.LibraryDirectory);
+            _loadedLibrary = await _libraryStorage.LoadAsync();
             SetStatus();
         }
         catch (Exception ex)
         {
             _loadedLibrary = new LoadedMusicLibrary(
-                CompanionServices.LibraryStorage.LibraryDirectory,
+                _libraryStorage.LibraryDirectory,
                 PortableMusicLibrary.Empty);
             SetStatus($"Could not load library: {ex.Message}");
         }
@@ -290,11 +296,6 @@ public partial class MainView : UserControl
 
     private void RebuildLibrarySourceRows()
     {
-        BuiltInViewRows.Children.Clear();
-        BuiltInViewRows.Children.Add(CreateLibrarySourceButton(
-            "Default", "All tracks, including review flags", MobileLibrarySource.Default));
-        BuiltInViewRows.Children.Add(CreateLibrarySourceButton(
-            "Needs review", "Tracks marked for desktop review", MobileLibrarySource.Review));
         PresetRows.Children.Clear();
         foreach (var preset in (_loadedLibrary.Library.FilterPresets ?? [])
                      .OrderBy(item => item.Name, StringComparer.OrdinalIgnoreCase))
@@ -407,9 +408,6 @@ public partial class MainView : UserControl
 
         _filteredTracks = _activeLibrarySource switch
         {
-            MobileLibrarySource.Review => _filteredTracks
-                .Where(track => !IsRejected(track) && track.NeedsReview)
-                .ToList(),
             MobileLibrarySource.Preset => FilterForPresetCompletion(_filteredTracks),
             _ => _filteredTracks
                 .Where(track => !IsRejected(track))
@@ -467,16 +465,16 @@ public partial class MainView : UserControl
             return;
 
         var track = _filteredTracks[index];
-        var path = _loadedLibrary.TrackPath(track);
-        if (!File.Exists(path))
+        var source = _libraryStorage.TrackSource(_loadedLibrary, track);
+        if (string.IsNullOrWhiteSpace(source))
         {
-            SetStatus("This track is not available in the local music folder.");
+            SetStatus("This track is not available in the selected Music folder.");
             return;
         }
 
         try
         {
-            await _audio.PlayAsync(path);
+            await _audio.PlayAsync(source);
             _currentTrackFileName = track.FileName;
             _currentIndex = index;
             RefreshTrackRows(scrollToCurrent: true);
@@ -592,6 +590,12 @@ public partial class MainView : UserControl
     private void OnToggleFiltersClicked(object? sender, RoutedEventArgs e)
     {
         FilterDrawer.IsVisible = !FilterDrawer.IsVisible;
+    }
+
+    private async void OnChooseLibraryFolderClicked(object? sender, RoutedEventArgs e)
+    {
+        if (await _libraryStorage.SelectLibraryAsync())
+            await LoadLibraryAsync();
     }
 
     private void OnClearFiltersClicked(object? sender, RoutedEventArgs e)
@@ -721,10 +725,10 @@ public partial class MainView : UserControl
                 using var stream = new MemoryStream(thumbnail, writable: false);
                 bitmap = Bitmap.DecodeToWidth(stream, 96, BitmapInterpolationMode.MediumQuality);
             }
-            else if (_loadedLibrary.CoverPath(track) is { } path)
+            else if (_libraryStorage.OpenCover(_loadedLibrary, track) is { } coverStream)
             {
-                using var stream = File.OpenRead(path);
-                bitmap = Bitmap.DecodeToWidth(stream, 96, BitmapInterpolationMode.MediumQuality);
+                using (coverStream)
+                    bitmap = Bitmap.DecodeToWidth(coverStream, 96, BitmapInterpolationMode.MediumQuality);
             }
         }
         catch
@@ -809,10 +813,10 @@ public partial class MainView : UserControl
         try
         {
             Bitmap? bitmap = null;
-            if (_loadedLibrary.CoverPath(track) is { } coverPath)
+            if (_libraryStorage.OpenCover(_loadedLibrary, track) is { } coverStream)
             {
-                using var coverStream = File.OpenRead(coverPath);
-                bitmap = Bitmap.DecodeToWidth(coverStream, 720, BitmapInterpolationMode.MediumQuality);
+                using (coverStream)
+                    bitmap = Bitmap.DecodeToWidth(coverStream, 720, BitmapInterpolationMode.MediumQuality);
             }
             else if (track.Thumbnail is { Length: > 0 } thumbnail)
             {
@@ -1035,7 +1039,6 @@ public partial class MainView : UserControl
 
         LibraryContextTitleText.Text = _activeLibrarySource switch
         {
-            MobileLibrarySource.Review => "REVIEW",
             MobileLibrarySource.Preset => $"PRESET · {_activeLibrarySourceId?.ToUpperInvariant()}",
             MobileLibrarySource.Collection => $"COLLECTION · {(_loadedLibrary.Library.Collections ?? [])
                 .FirstOrDefault(item => string.Equals(item.StableId, _activeLibrarySourceId, StringComparison.OrdinalIgnoreCase))
@@ -1085,7 +1088,7 @@ public partial class MainView : UserControl
 
         CompanionServices.MediaControls.Update(
             track.Title,
-            _loadedLibrary.CoverPath(track),
+            _libraryStorage.CoverSource(_loadedLibrary, track),
             _audio.IsPlaying,
             _audio.Position,
             _audio.Duration);

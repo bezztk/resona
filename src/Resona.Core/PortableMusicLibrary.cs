@@ -120,7 +120,7 @@ public sealed record LoadedMusicLibrary(string RootDirectory, PortableMusicLibra
 {
     public string TrackPath(PortableTrack track)
     {
-        var tracksPath = Path.Combine(RootDirectory, "tracks", track.FileName);
+        var tracksPath = Path.Combine(RootDirectory, "Tracks", track.FileName);
         return File.Exists(tracksPath)
             ? tracksPath
             : Path.Combine(RootDirectory, track.FileName);
@@ -131,14 +131,14 @@ public sealed record LoadedMusicLibrary(string RootDirectory, PortableMusicLibra
         if (string.IsNullOrWhiteSpace(track.CoverFileName))
             return null;
 
-        var path = Path.Combine(RootDirectory, "covers", track.CoverFileName);
+        var path = Path.Combine(RootDirectory, "Images", track.CoverFileName);
         return File.Exists(path) ? path : null;
     }
 }
 
 public static class PortableLibraryStore
 {
-    public const string FileName = "library.json";
+    public const string FileName = "Library.json";
 
     private static readonly JsonSerializerOptions JsonOptions = new()
     {

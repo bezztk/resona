@@ -1,3 +1,5 @@
+using Resona.Core;
+
 namespace Resona.Companion;
 
 public static class CompanionServices
@@ -10,6 +12,12 @@ public static class CompanionServices
 public interface ILibraryStorage
 {
     string LibraryDirectory { get; }
+    bool IsConfigured { get; }
+    Task<bool> SelectLibraryAsync();
+    Task<LoadedMusicLibrary> LoadAsync();
+    string? TrackSource(LoadedMusicLibrary library, PortableTrack track);
+    Stream? OpenCover(LoadedMusicLibrary library, PortableTrack track);
+    string? CoverSource(LoadedMusicLibrary library, PortableTrack track);
 }
 
 public interface ICompanionAudioPlayer
@@ -48,6 +56,26 @@ public sealed class DefaultLibraryStorage : ILibraryStorage
     public string LibraryDirectory { get; } = Path.Combine(
         Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
         "MusicLibrary");
+
+    public bool IsConfigured => true;
+
+    public Task<bool> SelectLibraryAsync() => Task.FromResult(true);
+
+    public Task<LoadedMusicLibrary> LoadAsync() => PortableLibraryStore.LoadAsync(LibraryDirectory);
+
+    public string? TrackSource(LoadedMusicLibrary library, PortableTrack track)
+    {
+        var path = library.TrackPath(track);
+        return File.Exists(path) ? path : null;
+    }
+
+    public Stream? OpenCover(LoadedMusicLibrary library, PortableTrack track)
+    {
+        var path = library.CoverPath(track);
+        return path is null ? null : File.OpenRead(path);
+    }
+
+    public string? CoverSource(LoadedMusicLibrary library, PortableTrack track) => library.CoverPath(track);
 }
 
 internal sealed class EmptyAudioPlayer : ICompanionAudioPlayer

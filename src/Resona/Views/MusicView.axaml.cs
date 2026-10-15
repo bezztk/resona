@@ -314,6 +314,24 @@ public partial class MusicView : UserControl
             UpdateDiscordPresence();
         };
         SettingsOverlay.LibraryMetadataChanged += RefreshLibraryPresentation;
+        _ = ExportObsidianLibraryOnStartupAsync();
+    }
+
+    private async Task ExportObsidianLibraryOnStartupAsync()
+    {
+        var vaultPath = AppSettingsStore.Load().ObsidianVaultPath;
+        if (string.IsNullOrWhiteSpace(vaultPath))
+            return;
+
+        try
+        {
+            await Task.Run(() => ObsidianMusicExportService.ExportAsync(vaultPath));
+        }
+        catch (Exception exception)
+        {
+            WorkflowLog.Error("obsidian-export", "Automatic Obsidian export failed.", exception);
+            Dispatcher.UIThread.Post(() => ShowToast($"Obsidian export failed: {exception.Message}"));
+        }
     }
 
     private void UpdateEditorBounds()

@@ -89,6 +89,15 @@ public static class AppSettingsStore
         Save(settings);
     }
 
+    public static void SaveObsidianVaultPath(string? path)
+    {
+        var settings = Load();
+        settings.ObsidianVaultPath = string.IsNullOrWhiteSpace(path)
+            ? null
+            : Path.GetFullPath(path.Trim());
+        Save(settings);
+    }
+
     public static string NormalizeYtDlpCookiesBrowser(string? browser)
     {
         var normalized = browser?.Trim().ToLowerInvariant();
@@ -127,6 +136,7 @@ public sealed class AppSettings
     public bool DiscordRichPresenceEnabled { get; set; } = true;
     public bool UseYtDlpBrowserCookies { get; set; }
     public string YtDlpCookiesBrowser { get; set; } = "firefox";
+    public string? ObsidianVaultPath { get; set; }
 }
 
 public sealed class PlayerSessionSettings

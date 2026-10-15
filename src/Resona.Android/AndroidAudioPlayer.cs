@@ -1,3 +1,4 @@
+using Android.App;
 using Android.Media;
 using Android.OS;
 using Resona.Companion;
@@ -14,22 +15,29 @@ public sealed class AndroidAudioPlayer : ICompanionAudioPlayer, IDisposable
     public TimeSpan Position => TimeSpan.FromMilliseconds(_player?.CurrentPosition ?? 0);
     public TimeSpan Duration => TimeSpan.FromMilliseconds(_player?.Duration ?? 0);
 
-    public Task PlayAsync(string filePath)
+    public Task PlayAsync(string source)
     {
         Stop();
 
         var player = new MediaPlayer();
         try
         {
-            // Passing the raw path string makes MediaPlayer interpret some
-            // leading Unicode and URI-reserved characters as a remote source.
-            // A file descriptor addresses the already resolved local file and
-            // is independent of its display name.
-            using var descriptor = ParcelFileDescriptor.Open(
-                new Java.IO.File(filePath),
-                ParcelFileMode.ReadOnly)
-                ?? throw new IOException($"Could not open audio file '{filePath}'.");
-            player.SetDataSource(descriptor.FileDescriptor);
+            if (source.StartsWith("content://", StringComparison.OrdinalIgnoreCase))
+            {
+                var uri = global::Android.Net.Uri.Parse(source)
+                          ?? throw new IOException("The selected audio URI is invalid.");
+                player.SetDataSource(Application.Context, uri);
+            }
+            else
+            {
+                // A file descriptor keeps local paths with Unicode or URI-reserved
+                // characters from being interpreted as remote sources.
+                using var descriptor = ParcelFileDescriptor.Open(
+                    new Java.IO.File(source),
+                    ParcelFileMode.ReadOnly)
+                    ?? throw new IOException($"Could not open audio file '{source}'.");
+                player.SetDataSource(descriptor.FileDescriptor);
+            }
             player.Completion += OnPlaybackCompleted;
             player.Prepare();
             player.Start();

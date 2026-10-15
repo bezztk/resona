@@ -12,6 +12,7 @@ using Avalonia.Input;
 using Avalonia.Interactivity;
 using Avalonia.Layout;
 using Avalonia.Media;
+using Avalonia.Platform.Storage;
 using Avalonia.Threading;
 using Avalonia.Svg.Skia;
 using Resona.Models;
@@ -61,6 +62,7 @@ public partial class SettingsOverlay : UserControl
     {
         var appSettings = AppSettingsStore.Load();
         MusicAnalysisServerUrlBox.Text = appSettings.MusicAnalysisServerUrl;
+        ObsidianVaultPathBox.Text = appSettings.ObsidianVaultPath;
         _loadingDiscordPresenceSettings = true;
         DiscordPresenceToggle.IsChecked = appSettings.DiscordRichPresenceEnabled;
         DiscordLargeImageTextBox.Text = appSettings.DiscordLargeImageText;
@@ -577,6 +579,62 @@ public partial class SettingsOverlay : UserControl
 
         if (save)
             AppSettingsStore.SaveYtDlpBrowserCookies(enabled, browser);
+    }
+
+    private async void OnChooseObsidianVaultClicked(object? sender, RoutedEventArgs e)
+    {
+        var topLevel = TopLevel.GetTopLevel(this);
+        if (topLevel is null)
+            return;
+
+        var folders = await topLevel.StorageProvider.OpenFolderPickerAsync(new FolderPickerOpenOptions
+        {
+            Title = "Choose the Obsidian vault",
+            AllowMultiple = false
+        });
+        if (folders.Count == 0)
+            return;
+
+        var path = folders[0].Path.LocalPath;
+        AppSettingsStore.SaveObsidianVaultPath(path);
+        ObsidianVaultPathBox.Text = path;
+        await ExportObsidianLibraryAsync(path);
+    }
+
+    private async void OnExportObsidianLibraryClicked(object? sender, RoutedEventArgs e)
+    {
+        var path = AppSettingsStore.Load().ObsidianVaultPath;
+        if (string.IsNullOrWhiteSpace(path))
+        {
+            ObsidianExportStatusText.Text = "Choose the Obsidian vault first.";
+            ObsidianExportStatusText.IsVisible = true;
+            return;
+        }
+
+        await ExportObsidianLibraryAsync(path);
+    }
+
+    private async Task ExportObsidianLibraryAsync(string path)
+    {
+        ExportObsidianLibraryButton.IsEnabled = false;
+        ObsidianExportStatusText.Text = "Exporting library and media…";
+        ObsidianExportStatusText.IsVisible = true;
+        try
+        {
+            var result = await Task.Run(() => ObsidianMusicExportService.ExportAsync(path));
+            ObsidianExportStatusText.Text = result.MissingTracks == 0
+                ? $"Exported {result.TrackCount:N0} tracks to {result.MusicDirectory}."
+                : $"Exported {result.TrackCount:N0} tracks; {result.MissingTracks:N0} audio files are missing.";
+            ToastRequested?.Invoke("Obsidian music library exported.");
+        }
+        catch (Exception exception)
+        {
+            ObsidianExportStatusText.Text = $"Export failed: {exception.Message}";
+        }
+        finally
+        {
+            ExportObsidianLibraryButton.IsEnabled = true;
+        }
     }
 
     private void ReloadTagManagement()

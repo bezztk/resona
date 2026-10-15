@@ -238,13 +238,24 @@ public sealed class MusicPlaybackService : Service
         manager?.CreateNotificationChannel(channel);
     }
 
-    private static Bitmap? LoadCover(string? coverPath)
+    private Bitmap? LoadCover(string? coverPath)
     {
-        if (string.IsNullOrWhiteSpace(coverPath) || !File.Exists(coverPath))
+        if (string.IsNullOrWhiteSpace(coverPath))
             return null;
 
         try
         {
+            if (coverPath.StartsWith("content://", StringComparison.OrdinalIgnoreCase))
+            {
+                var uri = global::Android.Net.Uri.Parse(coverPath);
+                if (uri is null)
+                    return null;
+                using var stream = ContentResolver.OpenInputStream(uri);
+                return stream is null ? null : BitmapFactory.DecodeStream(stream);
+            }
+
+            if (!File.Exists(coverPath))
+                return null;
             return BitmapFactory.DecodeFile(coverPath);
         }
         catch
