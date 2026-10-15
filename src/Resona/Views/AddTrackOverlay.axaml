@@ -78,13 +78,6 @@
                                        TextWrapping="Wrap"/>
                         </StackPanel>
 
-                        <!-- Rating -->
-                        <StackPanel Spacing="6">
-                            <TextBlock Text="Version" FontSize="13" FontWeight="SemiBold" />
-                            <views:TrackVersionFields x:Name="VersionFields" />
-                            <TextBox x:Name="VersionNameBox" Watermark="Version / remix name (optional)" />
-                        </StackPanel>
-
                         <StackPanel Spacing="6">
                             <TextBlock Text="Rating"
                                        FontSize="13" FontWeight="SemiBold" />

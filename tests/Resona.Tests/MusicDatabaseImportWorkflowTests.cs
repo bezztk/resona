@@ -41,11 +41,7 @@ public sealed class MusicDatabaseImportWorkflowTests : IDisposable
             RawUrl = "https://youtu.be/request",
             GenreIds = [2, 5],
             RatingId = 4,
-            StyleIds = [7],
-            IsOriginal = false,
-            ParentTrackId = 42,
-            EditTypes = TrackEditTypes.Remix,
-            VersionName = "Club Mix"
+            StyleIds = [7]
         };
         var preview = new ImportPreviewItem(
             request.RawUrl,
@@ -64,10 +60,6 @@ public sealed class MusicDatabaseImportWorkflowTests : IDisposable
         Assert.Equal(request.GenreIds, claimed.DownloadRequest.GenreIds);
         Assert.Equal(request.RatingId, claimed.DownloadRequest.RatingId);
         Assert.Equal(request.StyleIds, claimed.DownloadRequest.StyleIds);
-        Assert.Equal(request.IsOriginal, claimed.DownloadRequest.IsOriginal);
-        Assert.Equal(request.ParentTrackId, claimed.DownloadRequest.ParentTrackId);
-        Assert.Equal(request.EditTypes, claimed.DownloadRequest.EditTypes);
-        Assert.Equal(request.VersionName, claimed.DownloadRequest.VersionName);
     }
 
     [Fact]
@@ -261,13 +253,10 @@ public sealed class MusicDatabaseImportWorkflowTests : IDisposable
                 status TEXT NOT NULL,
                 detail TEXT NULL,
                 track_id INTEGER NULL REFERENCES tracks(id) ON DELETE SET NULL,
-                is_original INTEGER NOT NULL DEFAULT 1,
-                parent_track_id INTEGER NULL REFERENCES tracks(id) ON DELETE SET NULL,
-                edit_types INTEGER NOT NULL DEFAULT 0,
                 request_json TEXT NULL,
                 created_at TEXT NOT NULL,
                 updated_at TEXT NOT NULL
-            );
+            );";
         command.ExecuteNonQuery();
     }
 

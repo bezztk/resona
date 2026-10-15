@@ -150,8 +150,8 @@
                               HorizontalScrollBarVisibility="Disabled">
                     <StackPanel>
                         <StackPanel Spacing="6">
-                            <ToggleButton x:Name="ProfileNavButton" Classes="settings-nav"
-                                          Content="Account" Tag="profile"
+                            <ToggleButton x:Name="GeneralNavButton" Classes="settings-nav"
+                                          Content="General" Tag="general"
                                           FontSize="13" FontWeight="SemiBold"
                                           Click="OnSettingsNavigationClicked"/>
                         </StackPanel>
@@ -163,12 +163,6 @@
                                        Opacity="0.4" LetterSpacing="0.8" Margin="10,0,0,4"/>
                             <ToggleButton x:Name="AppearanceNavButton" Classes="settings-nav"
                                           Content="Appearance" Tag="appearance"
-                                          Click="OnSettingsNavigationClicked"/>
-                            <ToggleButton x:Name="DiscordNavButton" Classes="settings-nav"
-                                          Content="Discord presence" Tag="discord"
-                                          Click="OnSettingsNavigationClicked"/>
-                            <ToggleButton x:Name="ServersNavButton" Classes="settings-nav"
-                                          Content="Connections" Tag="servers"
                                           Click="OnSettingsNavigationClicked"/>
                         </StackPanel>
 
@@ -189,19 +183,6 @@
                             <ToggleButton x:Name="TagRulesNavButton" Classes="settings-nav"
                                           IsVisible="False"
                                           Content="Tag rules" Tag="tag_rules"
-                                          Click="OnSettingsNavigationClicked"/>
-                        </StackPanel>
-
-                        <Rectangle Height="1" Fill="{DynamicResource Theme.Brush.Divider}" Margin="4,14"/>
-
-                        <StackPanel Spacing="6">
-                            <TextBlock Text="LIBRARY" FontSize="10" FontWeight="SemiBold"
-                                       Opacity="0.4" LetterSpacing="0.8" Margin="10,0,0,4"/>
-                            <ToggleButton x:Name="HealthNavButton" Classes="settings-nav"
-                                          Content="Health check" Tag="health"
-                                          Click="OnSettingsNavigationClicked"/>
-                            <ToggleButton x:Name="BackupNavButton" Classes="settings-nav"
-                                          Content="Backup" Tag="backup"
                                           Click="OnSettingsNavigationClicked"/>
                         </StackPanel>
 
@@ -313,7 +294,7 @@
                 </Border>
             </Grid>
 
-            <ScrollViewer x:Name="ProfilePage" Grid.Row="2" IsVisible="False" Margin="30,22,30,0"
+            <ScrollViewer x:Name="GeneralPage" Grid.Row="2" IsVisible="False" Margin="30,22,30,0"
                           HorizontalScrollBarVisibility="Disabled">
                 <StackPanel Spacing="22" Margin="0,0,0,24">
                     <StackPanel Spacing="18">
@@ -383,116 +364,45 @@
                                        TextWrapping="Wrap"/>
                         </Grid>
 
-                    </StackPanel>
-                </StackPanel>
-            </ScrollViewer>
+                        <Rectangle Height="1" Fill="{DynamicResource Theme.Brush.Divider}"/>
 
-            <ScrollViewer x:Name="ServersPage" Grid.Row="2" IsVisible="False" Margin="30,22,30,0"
-                          HorizontalScrollBarVisibility="Disabled">
-                <StackPanel Spacing="26" Margin="0,0,0,24">
-                    <StackPanel Spacing="12">
-                        <TextBlock Text="Analysis server" FontSize="15" FontWeight="SemiBold"/>
-                        <StackPanel Spacing="6">
-                            <TextBlock Text="SERVER ADDRESS" FontSize="10" FontWeight="SemiBold" Opacity="0.42"/>
-                            <TextBox x:Name="MusicAnalysisServerUrlBox"
-                                     Classes="settings-input"
-                                     Watermark="https://analyzer.example.com"/>
+                        <StackPanel Spacing="12">
+                            <TextBlock Text="Analysis server" FontSize="12.5" FontWeight="SemiBold"/>
+                            <Grid>
+                                <TextBox x:Name="MusicAnalysisServerUrlBox"
+                                         Classes="settings-input"
+                                         Watermark="http://debian:5268"/>
+                            </Grid>
+                            <Grid ColumnDefinitions="*,Auto,Auto" ColumnSpacing="9">
+                                <TextBlock x:Name="AnalysisServerStatusText"
+                                           IsVisible="False" FontSize="11"
+                                           VerticalAlignment="Center" TextWrapping="Wrap"/>
+                                <Button x:Name="TestAnalysisServerButton"
+                                        Grid.Column="1" Classes="settings-action"
+                                        Content="Test" Click="OnTestAnalysisServerClicked"/>
+                                <Button Grid.Column="2" Classes="settings-action"
+                                        Content="Save" Click="OnSaveAnalysisServerClicked"/>
+                            </Grid>
                         </StackPanel>
-                        <StackPanel Spacing="6">
-                            <TextBlock Text="API KEY" FontSize="10" FontWeight="SemiBold" Opacity="0.42"/>
-                            <TextBox x:Name="MusicAnalysisApiKeyBox"
-                                     Classes="settings-input"
-                                     PasswordChar="●"
-                                     Watermark="Optional access key"/>
-                        </StackPanel>
-                        <Grid ColumnDefinitions="*,Auto,Auto" ColumnSpacing="9">
-                            <TextBlock x:Name="AnalysisServerStatusText"
-                                       IsVisible="False" FontSize="11"
-                                       VerticalAlignment="Center" TextWrapping="Wrap"/>
-                            <Button x:Name="TestAnalysisServerButton"
-                                    Grid.Column="1" Classes="settings-action"
-                                    Content="Test connection"
-                                    Click="OnTestAnalysisServerClicked"/>
-                            <Button Grid.Column="2" Classes="settings-action"
-                                    Content="Save"
-                                    Click="OnSaveAnalysisServerClicked"/>
-                        </Grid>
-                    </StackPanel>
-                </StackPanel>
-            </ScrollViewer>
 
-            <ScrollViewer x:Name="HealthPage" Grid.Row="2" IsVisible="False" Margin="30,22,30,0"
-                          HorizontalScrollBarVisibility="Disabled">
-                <StackPanel Spacing="20" Margin="0,0,0,24">
-                    <Grid ColumnDefinitions="*,Auto" ColumnSpacing="16">
-                        <StackPanel Spacing="5">
-                            <TextBlock Text="Database and media health" FontSize="15" FontWeight="SemiBold"/>
-                            <TextBlock Text="Run read-only checks for structural damage, broken relationships, invalid workflow states, channel mappings, and audio files."
-                                       FontSize="11" Opacity="0.62" TextWrapping="Wrap"/>
-                        </StackPanel>
-                        <Button x:Name="RunHealthCheckButton"
-                                Grid.Column="1"
-                                Classes="settings-action"
-                                Content="Run health check"
-                                Click="OnRunHealthCheckClicked"
-                                VerticalAlignment="Top"/>
-                    </Grid>
+                        <Rectangle Height="1" Fill="{DynamicResource Theme.Brush.Divider}"/>
 
-                    <Border x:Name="HealthResultPanel"
-                            IsVisible="False"
-                            Background="{DynamicResource Theme.Brush.SurfaceTranslucent}"
-                            BorderBrush="{DynamicResource Theme.Brush.BorderSubtle}"
-                            BorderThickness="1"
-                            CornerRadius="7"
-                            Padding="13,11">
-                        <Grid ColumnDefinitions="Auto,*" ColumnSpacing="11">
-                            <Border x:Name="HealthStatusDot" Width="8" Height="8" CornerRadius="4"
-                                    Margin="0,4,0,0" VerticalAlignment="Top"/>
-                            <StackPanel Grid.Column="1" Spacing="3">
-                                <TextBlock x:Name="HealthSummaryText" FontSize="12" FontWeight="SemiBold"/>
-                                <TextBlock x:Name="HealthCountsText" FontSize="10.5" Opacity="0.62" TextWrapping="Wrap"/>
-                                <TextBlock x:Name="HealthLastRunText" FontSize="9.5" Opacity="0.42"/>
+                        <Grid ColumnDefinitions="*,Auto" ColumnSpacing="16">
+                            <StackPanel Spacing="5">
+                                <TextBlock Text="Discord presence" FontSize="12.5" FontWeight="SemiBold"/>
+                                <TextBox x:Name="DiscordLargeImageTextBox" Classes="settings-input"
+                                         MaxLength="128" Watermark="Optional Discord note"
+                                         TextChanged="OnDiscordPresenceTextChanged"/>
                             </StackPanel>
+                            <ToggleSwitch x:Name="DiscordPresenceToggle"
+                                          Grid.Column="1"
+                                          OnContent="On" OffContent="Off"
+                                          VerticalAlignment="Center"
+                                          Checked="OnDiscordPresenceEnabledChanged"
+                                          Unchecked="OnDiscordPresenceEnabledChanged"/>
                         </Grid>
-                    </Border>
 
-                    <StackPanel x:Name="HealthIssueRows" Spacing="8"/>
-                    <TextBlock x:Name="HealthReadOnlyHint"
-                               Text="This check never changes database rows or files."
-                               FontSize="10.5" Opacity="0.46" TextWrapping="Wrap"/>
-                </StackPanel>
-            </ScrollViewer>
-
-
-            <ScrollViewer x:Name="DiscordPage" Grid.Row="2" IsVisible="False" Margin="30,22,30,0"
-                          HorizontalScrollBarVisibility="Disabled">
-                <StackPanel Spacing="18" Margin="0,0,0,24">
-                    <Grid ColumnDefinitions="*,Auto" ColumnSpacing="16">
-                        <StackPanel Spacing="3">
-                            <TextBlock Text="Discord Rich Presence" FontSize="12.5" FontWeight="SemiBold"/>
-                            <TextBlock Text="Show the current Resona track on your Discord profile."
-                                       FontSize="10.5" Opacity="0.56" TextWrapping="Wrap"/>
-                        </StackPanel>
-                        <ToggleSwitch x:Name="DiscordPresenceToggle"
-                                      Grid.Column="1"
-                                      OnContent="On"
-                                      OffContent="Off"
-                                      VerticalAlignment="Center"
-                                      Checked="OnDiscordPresenceEnabledChanged"
-                                      Unchecked="OnDiscordPresenceEnabledChanged"/>
-                    </Grid>
-
-                    <StackPanel Spacing="7">
-                        <TextBlock Text="DISCORD NOTE" FontSize="10" FontWeight="SemiBold" Opacity="0.42"/>
-                        <TextBlock Text="Shown below the channel name in your Discord activity."
-                                   FontSize="10.5" Opacity="0.56" TextWrapping="Wrap"/>
-                        <TextBox x:Name="DiscordLargeImageTextBox" Classes="settings-input"
-                                 MaxLength="128" Watermark="Add a short note…"
-                                 TextChanged="OnDiscordPresenceTextChanged"/>
                     </StackPanel>
-
-                    <TextBlock Text="Saved automatically and reflected in Discord while music is playing."
-                               FontSize="10.5" Opacity="0.54"/>
                 </StackPanel>
             </ScrollViewer>
 
@@ -518,32 +428,6 @@
                         <Button Grid.Column="1" Classes="settings-action"
                                 Content="Reset to defaults" Click="OnResetAppearanceClicked"/>
                     </Grid>
-                </StackPanel>
-            </ScrollViewer>
-
-            <ScrollViewer x:Name="BackupPage" Grid.Row="2" IsVisible="False" Margin="30,22,30,0"
-                          HorizontalScrollBarVisibility="Disabled">
-                <StackPanel Spacing="22">
-                    <StackPanel Spacing="5">
-                        <TextBlock Text="Database backup" FontSize="15" FontWeight="SemiBold"/>
-                        <TextBlock Text="On startup, the app creates one database copy per day in each selected folder."
-                                   FontSize="11" Opacity="0.62" TextWrapping="Wrap"/>
-                    </StackPanel>
-
-                    <Grid ColumnDefinitions="*,Auto" ColumnSpacing="12">
-                        <StackPanel Spacing="5">
-                            <TextBlock Text="BACKUP FOLDERS" FontSize="10" FontWeight="SemiBold" Opacity="0.42"/>
-                            <TextBlock Text="Recommended: one folder on an external drive and one folder synced to another storage location."
-                                       FontSize="11" Opacity="0.56" TextWrapping="Wrap"/>
-                        </StackPanel>
-                        <Button Grid.Column="1"
-                                Classes="settings-action"
-                                Content="Add folder"
-                                Click="OnAddBackupDirectoryClicked"
-                                VerticalAlignment="Top"/>
-                    </Grid>
-
-                    <StackPanel x:Name="BackupDirectoryRows" Spacing="8"/>
                 </StackPanel>
             </ScrollViewer>
 

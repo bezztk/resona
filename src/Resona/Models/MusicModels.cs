@@ -35,13 +35,9 @@ public record MusicTrack(
     string? LanguageCode = null,
     string OriginalTitle = "",
     string? Artist = null,
-    string? Remix = null,
-    RatingBand? RatingBand = null,
-    bool IsOriginal = true,
-    int? ParentTrackId = null,
-    TrackEditTypes EditTypes = TrackEditTypes.None)
+    RatingBand? RatingBand = null)
 {
-    public string DisplayTitle => TrackTitleFormatter.Format(Artist, Title, Remix);
+    public string DisplayTitle => TrackTitleFormatter.Format(Artist, Title);
     public string? DisplayChannelName => ChannelNameFormatter.Format(ChannelName);
 }
 
@@ -63,15 +59,12 @@ public static class ChannelNameFormatter
 
 public static class TrackTitleFormatter
 {
-    public static string Format(string? artist, string title, string? remix)
+    public static string Format(string? artist, string title)
     {
         var cleanTitle = title.Trim();
         var result = string.IsNullOrWhiteSpace(artist)
             ? cleanTitle
             : $"{artist.Trim()} — {cleanTitle}";
-
-        if (!string.IsNullOrWhiteSpace(remix))
-            result += $" ({remix.Trim()})";
 
         return result;
     }

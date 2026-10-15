@@ -48,7 +48,6 @@ public partial class EditTrackOverlay : UserControl
     private bool _initialIsPublic;
     private string _initialTitle = string.Empty;
     private string? _initialArtist;
-    private string? _initialRemix;
     private bool _isEditingInformation;
     private int _openGeneration;
     private bool _isDeletingTrack;
@@ -81,7 +80,6 @@ public partial class EditTrackOverlay : UserControl
         InitializeComponent();
         TitleBox.LostFocus += (_, _) => CommitInformationEdit();
         ArtistBox.LostFocus += (_, _) => CommitInformationEdit();
-        RemixBox.LostFocus += (_, _) => CommitInformationEdit();
         _analysisElapsedTimer.Tick += (_, _) => UpdateAnalysisElapsedTime();
     }
 
@@ -198,10 +196,6 @@ public partial class EditTrackOverlay : UserControl
         _loadingTrack = true;
         TitleBox.Text = track.Title;
         ArtistBox.Text = track.Artist;
-        RemixBox.Text = track.Remix;
-        VersionFields.Configure(MusicLibraryService.Current.GetTracksForLibraryView(),
-            track.IsOriginal, track.ParentTrackId, track.EditTypes, track.Id);
-        VersionStatusText.Text = string.Empty;
         SetInformationEditing(false);
         UpdateInformationDisplay(track);
         SetPublicSelection(track.IsPublic);
@@ -338,10 +332,8 @@ public partial class EditTrackOverlay : UserControl
         _isEditingInformation = isEditing;
         TitleBox.IsVisible = isEditing;
         ArtistBox.IsVisible = isEditing;
-        RemixBox.IsVisible = isEditing;
         TitleDisplayText.IsVisible = !isEditing;
         ArtistDisplayText.IsVisible = !isEditing;
-        RemixDisplayText.IsVisible = !isEditing;
         EditInformationButton.Background = isEditing
             ? ThemeResources.Brush("Theme.Brush.AccentSurface")
             : Brushes.Transparent;
@@ -355,7 +347,6 @@ public partial class EditTrackOverlay : UserControl
         var originalTitle = OriginalTitle(track);
         ArtistDisplayText.Text = DisplayValue(ArtistBox.Text);
         TitleDisplayText.Text = DisplayValue(TitleBox.Text);
-        RemixDisplayText.Text = DisplayValue(RemixBox.Text);
         OriginalTitleDisplayText.Text = DisplayValue(originalTitle);
         ChannelDisplayText.Text = DisplayValue(track.DisplayChannelName);
         YouTubeUrlDisplayText.Text = DisplayValue(track.CanonicalUrl);
@@ -370,7 +361,6 @@ public partial class EditTrackOverlay : UserControl
         CopyOriginalTitleButton.IsEnabled = !string.IsNullOrWhiteSpace(originalTitle);
         ToolTip.SetTip(TitleDisplayText, TitleBox.Text);
         ToolTip.SetTip(ArtistDisplayText, ArtistBox.Text);
-        ToolTip.SetTip(RemixDisplayText, RemixBox.Text);
         ToolTip.SetTip(OriginalTitleDisplayText, originalTitle);
         ToolTip.SetTip(ChannelDisplayText, track.DisplayChannelName);
         ToolTip.SetTip(YouTubeUrlDisplayText, track.CanonicalUrl);
@@ -696,7 +686,6 @@ public partial class EditTrackOverlay : UserControl
     {
         _initialTitle = track.Title;
         _initialArtist = NormalizeOptionalText(track.Artist);
-        _initialRemix = NormalizeOptionalText(track.Remix);
         _initialRatingId = track.RatingId;
         _initialRatingBand = track.RatingBand;
         _initialLanguageCode = track.LanguageCode;
@@ -934,29 +923,6 @@ public partial class EditTrackOverlay : UserControl
         }
     }
 
-    private void OnSaveVersionClicked(object? sender, RoutedEventArgs e)
-    {
-        if (_track is null) return;
-        if (VersionFields.ValidationError is { } error)
-        {
-            VersionStatusText.Text = error;
-            return;
-        }
-        try
-        {
-            MusicLibraryService.Current.SetTrackVersion(_track.Id, VersionFields.IsOriginal,
-                VersionFields.ParentTrackId, VersionFields.EditTypes);
-            _track = _track with { IsOriginal = VersionFields.IsOriginal,
-                ParentTrackId = VersionFields.ParentTrackId, EditTypes = VersionFields.EditTypes };
-            VersionStatusText.Text = "Version saved";
-            TrackSaved?.Invoke(_track.Id);
-        }
-        catch (Exception exception)
-        {
-            VersionStatusText.Text = exception.Message;
-        }
-    }
-
     private void AutoSaveChanges()
     {
         if (_track is null || _loadingTrack || string.IsNullOrWhiteSpace(TitleBox.Text))
@@ -964,13 +930,11 @@ public partial class EditTrackOverlay : UserControl
 
         var title = TitleBox.Text.Trim();
         var artist = NormalizeOptionalText(ArtistBox.Text);
-        var remix = NormalizeOptionalText(RemixBox.Text);
         var tagIds = SelectedTagIds();
         var styleIds = SelectedStyleIds().ToList();
         var languageCode = SelectedLanguageCode();
         var coreChanged = !string.Equals(title, _initialTitle, StringComparison.Ordinal)
             || !string.Equals(artist, _initialArtist, StringComparison.Ordinal)
-            || !string.Equals(remix, _initialRemix, StringComparison.Ordinal)
             || SelectedRatingId() != _initialRatingId
             || _isPublic != _initialIsPublic
             || !styleIds.ToHashSet().SetEquals(_initialStyleIds);
@@ -988,7 +952,6 @@ public partial class EditTrackOverlay : UserControl
                 _track.Id,
                 title,
                 artist,
-                remix,
                 [],
                 SelectedRatingId(),
                 styleIds,
@@ -1013,7 +976,6 @@ public partial class EditTrackOverlay : UserControl
         {
             Title = title,
             Artist = artist,
-            Remix = remix,
             RatingId = SelectedRatingId(),
             RatingBand = _selectedRatingBand,
             LibraryState = SelectedRatingId() is null

@@ -14,7 +14,6 @@ services:
       ANALYSIS_TIMEOUT_SECONDS: "${ANALYSIS_TIMEOUT_SECONDS:-1800}"
       MAX_CONCURRENT_ANALYSES: "${MAX_CONCURRENT_ANALYSES:-1}"
       MAX_UPLOAD_BYTES: "${MAX_UPLOAD_BYTES:-1073741824}"
-      MUSIC_API_KEY: "${MUSIC_API_KEY:-}"
     shm_size: "1gb"
     tmpfs:
       - /tmp:size=2g,mode=1777

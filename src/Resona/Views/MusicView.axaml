@@ -374,12 +374,6 @@
                               IsChecked="False"
                               Checked="OnCompletionFilterChanged"
                               Unchecked="OnCompletionFilterChanged"/>
-                <ToggleButton x:Name="ShowDeclinedCheckBox"
-                              IsVisible="False"
-                              IsChecked="False"
-                              Checked="OnCompletionFilterChanged"
-                              Unchecked="OnCompletionFilterChanged"/>
-
                 <Button x:Name="RefreshLibraryButton"
                         Click="OnRefreshLibraryClicked"
                         Classes="icon"
@@ -461,9 +455,7 @@
                 </ListBox.ItemsPanel>
                 <ListBox.ItemTemplate>
                     <DataTemplate x:DataType="models:TrackDisplayItem">
-                        <Grid RowDefinitions="Auto,Auto" HorizontalAlignment="Stretch"
-                              Margin="{Binding VersionMargin}" Opacity="{Binding VersionOpacity}"
-                              ToolTip.Tip="{Binding VersionTooltip}">
+                        <Grid RowDefinitions="Auto,Auto" HorizontalAlignment="Stretch">
                             <Border Grid.Row="0"
                                     Classes="track-card"
                                     PointerPressed="OnTrackContextMenuPointerPressed"
@@ -603,14 +595,6 @@
                                                        FontWeight="SemiBold"
                                                        VerticalAlignment="Center"
                                                        TextTrimming="CharacterEllipsis"/>
-                                            <Border Background="#243CA99B" CornerRadius="4" Padding="6,1"
-                                                    VerticalAlignment="Center">
-                                                <TextBlock Text="{Binding VersionLabel}" FontSize="10" Foreground="#B7DED6" />
-                                            </Border>
-                                            <Border IsVisible="{Binding IsContextOnly}" Padding="4,1"
-                                                    VerticalAlignment="Center">
-                                                <TextBlock Text="Not in playback" FontSize="10" />
-                                            </Border>
                                             <views:TrackTagSummaryControl Tags="{Binding TagDisplays}"
                                                                           Margin="0,0,8,0"
                                                                           HorizontalAlignment="Stretch"
@@ -1224,10 +1208,6 @@
                                                        Foreground="{DynamicResource Theme.Brush.TextSecondary}"
                                                        TextWrapping="Wrap"/>
                                         </StackPanel>
-                                        <StackPanel x:Name="CurrentSetVersionsRow" IsVisible="False" Spacing="2">
-                                            <TextBlock Text="VERSIONS" FontSize="9" FontWeight="SemiBold" Opacity="0.42" />
-                                            <TextBlock x:Name="CurrentSetVersionsText" FontSize="10.5" TextWrapping="Wrap" />
-                                        </StackPanel>
                                         <StackPanel x:Name="CurrentSetStylesRow" IsVisible="False" Spacing="2">
                                             <TextBlock Text="STYLES" FontSize="9" FontWeight="SemiBold"
                                                        Opacity="0.42" LetterSpacing="0.8"/>
@@ -1281,7 +1261,6 @@
 
     <!-- Queue management is a workspace, not a small dialog. It deliberately stops above the player. -->
     <views:ImportOverlay x:Name="ImportOverlay" IsVisible="False" ZIndex="70"/>
-    <views:AddVersionOverlay x:Name="AddVersionOverlay" IsVisible="False" ZIndex="85"/>
 
     <!-- Covers the toolbar as well as the list while track details are open. -->
     <views:EditTrackOverlay x:Name="EditTrackOverlay" IsVisible="False" ZIndex="80"/>

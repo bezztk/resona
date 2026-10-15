@@ -68,12 +68,6 @@ public record TrackDisplayItem(
     };
 
     public bool NeedsReview { get; set; }
-    public bool IsContextOnly { get; set; }
-    public bool IsVersionChild { get; set; }
-    public double VersionOpacity => IsContextOnly ? 0.45 : 1;
-    public Thickness VersionMargin => new(IsVersionChild ? 32 : 0, 0, 0, 0);
-    public string VersionLabel => TrackVersions.Label(Track);
-    public string VersionTooltip => IsContextOnly ? "Not in playback · does not match the current view" : VersionLabel;
     public bool NeedsAnalysis { get; set; }
     public bool IsPlaying { get; set; }
     public bool ShowDownloadedDate { get; set; }

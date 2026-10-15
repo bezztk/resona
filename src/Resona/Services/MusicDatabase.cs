@@ -104,10 +104,6 @@ public class MusicDatabase
                 title               TEXT NOT NULL,
                 original_title      TEXT NOT NULL,
                 artist              TEXT NULL,
-                remix               TEXT NULL,
-                is_original         INTEGER NOT NULL DEFAULT 1,
-                parent_track_id     INTEGER NULL REFERENCES tracks(id) ON DELETE SET NULL,
-                edit_types          INTEGER NOT NULL DEFAULT 0,
                 rating_band         TEXT NULL,
                 file_name           TEXT NOT NULL UNIQUE,
                 duration_seconds    INTEGER NULL,
@@ -253,9 +249,6 @@ public class MusicDatabase
                 status                TEXT NOT NULL,
                 detail                TEXT NULL,
                 track_id              INTEGER NULL REFERENCES tracks(id) ON DELETE SET NULL,
-                is_original           INTEGER NOT NULL DEFAULT 1,
-                parent_track_id       INTEGER NULL REFERENCES tracks(id) ON DELETE SET NULL,
-                edit_types            INTEGER NOT NULL DEFAULT 0,
                 request_json          TEXT NULL,
                 created_at            TEXT NOT NULL,
                 updated_at            TEXT NOT NULL
@@ -289,8 +282,6 @@ public class MusicDatabase
         EnsureColumn(conn, "tracks", "analysis_disabled", "INTEGER NOT NULL DEFAULT 0");
         EnsureColumn(conn, "tracks", "language_code", "TEXT NULL");
         EnsureColumn(conn, "tracks", "artist", "TEXT NULL");
-        EnsureColumn(conn, "tracks", "remix", "TEXT NULL");
-        EnsureTrackVersionSchema(conn);
         EnsureColumn(conn, "tracks", "rating_band", "TEXT NULL");
         EnsureCurrentRatings(conn);
         EnsureColumn(conn, "tracks", "is_public", "INTEGER NOT NULL DEFAULT 1");
@@ -640,14 +631,6 @@ public class MusicDatabase
             );
             CREATE INDEX IF NOT EXISTS ix_import_queue_status ON import_queue_items(status, created_at);";
         cmd.ExecuteNonQuery();
-        EnsureImportVersionSchema(conn);
-    }
-
-    internal static void EnsureImportVersionSchema(SqliteConnection conn)
-    {
-        EnsureColumn(conn, "import_queue_items", "is_original", "INTEGER NOT NULL DEFAULT 1");
-        EnsureColumn(conn, "import_queue_items", "parent_track_id", "INTEGER NULL REFERENCES tracks(id) ON DELETE SET NULL");
-        EnsureColumn(conn, "import_queue_items", "edit_types", "INTEGER NOT NULL DEFAULT 0");
         EnsureColumn(conn, "import_queue_items", "request_json", "TEXT NULL");
     }
 
@@ -827,21 +810,12 @@ public class MusicDatabase
                 if ((long)check.ExecuteScalar()! != 0)
                     throw new InvalidOperationException("This track is already in your library or Current Queue.");
             }
-            if (item.ParentTrackId is int parent)
-            {
-                using var check = conn.CreateCommand();
-                check.Transaction = tx;
-                check.CommandText = "SELECT COUNT(*) FROM tracks WHERE id = $parent AND is_original = 1";
-                check.Parameters.AddWithValue("$parent", parent);
-                if (item.IsOriginal || (long)check.ExecuteScalar()! != 1)
-                    throw new InvalidOperationException("The original track is no longer available. Please reopen Add version.");
-            }
             ExecuteInsert(conn, tx, @"
                 INSERT INTO import_queue_items
                     (batch_id, source_url, canonical_url, title, duration_seconds, estimated_size_bytes, status, detail, created_at, updated_at,
-                     is_original, parent_track_id, edit_types, request_json)
+                     request_json)
                 VALUES ($batchId, $sourceUrl, $canonicalUrl, $title, $duration, $size, $status, $detail, $createdAt, $updatedAt,
-                        $original, $parent, $types, $requestJson)
+                        $requestJson)
                 ON CONFLICT(canonical_url) DO UPDATE SET
                     batch_id = excluded.batch_id,
                     source_url = excluded.source_url,
@@ -851,9 +825,6 @@ public class MusicDatabase
                     status = excluded.status,
                     detail = excluded.detail,
                     track_id = NULL,
-                    is_original = excluded.is_original,
-                    parent_track_id = excluded.parent_track_id,
-                    edit_types = excluded.edit_types,
                     request_json = excluded.request_json,
                     updated_at = excluded.updated_at
                 WHERE import_queue_items.status IN ('Failed', 'Skipped')",
@@ -861,7 +832,6 @@ public class MusicDatabase
                 ("$title", item.Title), ("$duration", item.DurationSeconds), ("$size", item.EstimatedSizeBytes),
                 ("$status", ImportQueueStatus.Queued.ToString()), ("$detail", item.Detail),
                 ("$createdAt", now), ("$updatedAt", now),
-                ("$original", item.IsOriginal ? 1 : 0), ("$parent", item.ParentTrackId), ("$types", (int)item.EditTypes),
                 ("$requestJson", item.Request is null ? null : JsonSerializer.Serialize(item.Request)));
         }
         ExecuteInsert(conn, tx, @"DELETE FROM import_batches
@@ -892,7 +862,7 @@ public class MusicDatabase
         using var conn = Open();
         using var cmd = conn.CreateCommand();
         cmd.CommandText = @"SELECT id, batch_id, source_url, canonical_url, title, duration_seconds, estimated_size_bytes,
-                                   status, detail, track_id, is_original, parent_track_id, edit_types, request_json
+                                   status, detail, track_id, request_json
                             FROM import_queue_items
                             WHERE status IN ($downloading, $analyzing)
                             ORDER BY created_at, id";
@@ -909,7 +879,7 @@ public class MusicDatabase
         using var conn = Open();
         using var cmd = conn.CreateCommand();
         cmd.CommandText = @"SELECT id, batch_id, source_url, canonical_url, title, duration_seconds, estimated_size_bytes,
-                                   status, detail, track_id, is_original, parent_track_id, edit_types, request_json
+                                   status, detail, track_id, request_json
                             FROM import_queue_items WHERE status = $status ORDER BY created_at, id LIMIT 1";
         cmd.Parameters.AddWithValue("$status", ImportQueueStatus.Queued.ToString());
         using var reader = cmd.ExecuteReader();
@@ -925,7 +895,7 @@ public class MusicDatabase
         {
             select.Transaction = tx;
             select.CommandText = @"SELECT id, batch_id, source_url, canonical_url, title, duration_seconds,
-                                          estimated_size_bytes, status, detail, track_id, is_original, parent_track_id, edit_types, request_json
+                                          estimated_size_bytes, status, detail, track_id, request_json
                                    FROM import_queue_items
                                    WHERE status = $queued
                                    ORDER BY created_at, id
@@ -1073,7 +1043,7 @@ public class MusicDatabase
         using var conn = Open();
         using var cmd = conn.CreateCommand();
         cmd.CommandText = @"SELECT id, batch_id, source_url, canonical_url, title, duration_seconds, estimated_size_bytes,
-                                   status, detail, track_id, is_original, parent_track_id, edit_types, request_json
+                                   status, detail, track_id, request_json
                             FROM import_queue_items
                             WHERE status IN ($queued, $downloading, $analyzing, $failed)
                             ORDER BY CASE status
@@ -1162,11 +1132,8 @@ public class MusicDatabase
         reader.IsDBNull(5) ? null : reader.GetInt32(5), reader.IsDBNull(6) ? null : reader.GetInt64(6),
         Enum.Parse<ImportQueueStatus>(reader.GetString(7)), reader.IsDBNull(8) ? null : reader.GetString(8),
         reader.IsDBNull(9) ? null : reader.GetInt32(9),
-        reader.GetInt32(10) != 0,
-        reader.IsDBNull(11) ? null : reader.GetInt32(11),
-        (TrackEditTypes)reader.GetInt32(12),
-        reader.FieldCount > 13 && !reader.IsDBNull(13)
-            ? JsonSerializer.Deserialize<DownloadRequest>(reader.GetString(13))
+        reader.FieldCount > 10 && !reader.IsDBNull(10)
+            ? JsonSerializer.Deserialize<DownloadRequest>(reader.GetString(10))
             : null);
 
     private static void SeedDefaultMetadata(SqliteConnection conn, SqliteTransaction tx)
@@ -1251,9 +1218,7 @@ public class MusicDatabase
 
     public int InsertTrack(string canonicalUrl, string title, string fileName,
         List<int> genreIds, int? ratingId, List<int> styleIds, int? durationSeconds, long? fileSizeBytes,
-        int? downloadDurationMilliseconds, YouTubeTrackMetadata? metadata = null, byte[]? thumbnail = null,
-        bool isOriginal = true, int? parentTrackId = null, TrackEditTypes editTypes = TrackEditTypes.None,
-        string? versionName = null)
+        int? downloadDurationMilliseconds, YouTubeTrackMetadata? metadata = null, byte[]? thumbnail = null)
     {
         using var conn = Open();
         using var tx = conn.BeginTransaction();
@@ -1309,21 +1274,6 @@ public class MusicDatabase
             ("$metadataUpdatedAt", metadata is null ? null : now));
 
         SetTrackStyles(conn, tx, trackId, styleIds);
-        // The original may have been deleted while this queued download was running.
-        // Keep the downloaded edit, just as we do when deleting its parent afterward.
-        if (!isOriginal && parentTrackId is int requestedParent)
-        {
-            using var parent = conn.CreateCommand();
-            parent.Transaction = tx;
-            parent.CommandText = "SELECT id FROM tracks WHERE id = $id AND is_original = 1";
-            parent.Parameters.AddWithValue("$id", requestedParent);
-            if (parent.ExecuteScalar() is null)
-                parentTrackId = null;
-        }
-        SetTrackVersion(conn, tx, (int)trackId, isOriginal, parentTrackId, editTypes);
-        if (!string.IsNullOrWhiteSpace(versionName))
-            ExecuteInsert(conn, tx, "UPDATE tracks SET remix = $name WHERE id = $id",
-                ("$name", versionName.Trim()), ("$id", trackId));
 
         tx.Commit();
         return (int)trackId;
@@ -1424,7 +1374,7 @@ public class MusicDatabase
                                    tracks.updated_at, tracks.analysis_disabled, tracks.is_public, tracks.library_state,
                                    tracks.source_video_id, tracks.view_count, tracks.like_count,
                                    tracks.source_thumbnail_url, tracks.source_metadata_updated_at, channels.id, tracks.language_code,
-                                   tracks.original_title, tracks.artist, tracks.remix, tracks.rating_band, tracks.is_original, tracks.parent_track_id, tracks.edit_types
+                                    tracks.original_title, tracks.artist, tracks.rating_band
                             FROM tracks LEFT JOIN channels ON channels.id = tracks.channel_id
                             WHERE ($includeRejected = 1 OR tracks.library_state <> 'Rejected')
                             ORDER BY tracks.downloaded_at DESC";
@@ -1447,7 +1397,7 @@ public class MusicDatabase
                                    tracks.updated_at, tracks.analysis_disabled, tracks.is_public, tracks.library_state,
                                    tracks.source_video_id, tracks.view_count, tracks.like_count,
                                    tracks.source_thumbnail_url, tracks.source_metadata_updated_at, channels.id, tracks.language_code,
-                                   tracks.original_title, tracks.artist, tracks.remix, tracks.rating_band, tracks.is_original, tracks.parent_track_id, tracks.edit_types
+                                    tracks.original_title, tracks.artist, tracks.rating_band
                             FROM tracks LEFT JOIN channels ON channels.id = tracks.channel_id
                             WHERE tracks.id = $trackId";
         cmd.Parameters.AddWithValue("$trackId", trackId);
@@ -1464,7 +1414,7 @@ public class MusicDatabase
                                    tracks.updated_at, tracks.analysis_disabled, tracks.is_public, tracks.library_state,
                                    tracks.source_video_id, tracks.view_count, tracks.like_count,
                                    tracks.source_thumbnail_url, tracks.source_metadata_updated_at, channels.id, tracks.language_code,
-                                   tracks.original_title, tracks.artist, tracks.remix, tracks.rating_band, tracks.is_original, tracks.parent_track_id, tracks.edit_types
+                                    tracks.original_title, tracks.artist, tracks.rating_band
                             FROM tracks LEFT JOIN channels ON channels.id = tracks.channel_id
                             WHERE tracks.canonical_url = $canonicalUrl";
         cmd.Parameters.AddWithValue("$canonicalUrl", canonicalUrl);
@@ -1503,7 +1453,7 @@ public class MusicDatabase
                                    tracks.updated_at, tracks.analysis_disabled, tracks.is_public, tracks.library_state,
                                    tracks.source_video_id, tracks.view_count, tracks.like_count,
                                    tracks.source_thumbnail_url, tracks.source_metadata_updated_at, channels.id, tracks.language_code,
-                                   tracks.original_title, tracks.artist, tracks.remix, tracks.rating_band, tracks.is_original, tracks.parent_track_id, tracks.edit_types
+                                    tracks.original_title, tracks.artist, tracks.rating_band
                             FROM tracks
                             LEFT JOIN channels ON channels.id = tracks.channel_id
                             LEFT JOIN track_analysis analysis ON analysis.track_id = tracks.id
@@ -1538,7 +1488,7 @@ public class MusicDatabase
                                    tracks.updated_at, tracks.analysis_disabled, tracks.is_public, tracks.library_state,
                                    tracks.source_video_id, tracks.view_count, tracks.like_count,
                                    tracks.source_thumbnail_url, tracks.source_metadata_updated_at, channels.id, tracks.language_code,
-                                   tracks.original_title, tracks.artist, tracks.remix, tracks.rating_band, tracks.is_original, tracks.parent_track_id, tracks.edit_types
+                                    tracks.original_title, tracks.artist, tracks.rating_band
                             FROM tracks LEFT JOIN channels ON channels.id = tracks.channel_id
                             WHERE tracks.rating_id IS NULL AND tracks.library_state <> 'Rejected'
                             ORDER BY tracks.downloaded_at DESC";
@@ -1557,8 +1507,8 @@ public class MusicDatabase
             libraryState = parsedState;
 
         RatingBand? ratingBand = null;
-        if (!reader.IsDBNull(25)
-            && Enum.TryParse<RatingBand>(reader.GetString(25), ignoreCase: true, out var parsedBand))
+        if (!reader.IsDBNull(24)
+            && Enum.TryParse<RatingBand>(reader.GetString(24), ignoreCase: true, out var parsedBand))
             ratingBand = parsedBand;
 
         return new MusicTrack(
@@ -1587,11 +1537,7 @@ public class MusicDatabase
             reader.IsDBNull(21) ? null : reader.GetString(21),
             reader.GetString(22),
             reader.IsDBNull(23) ? null : reader.GetString(23),
-            reader.IsDBNull(24) ? null : reader.GetString(24),
-            ratingBand,
-            reader.GetInt32(26) != 0,
-            reader.IsDBNull(27) ? null : reader.GetInt32(27),
-            (TrackEditTypes)reader.GetInt32(28));
+            ratingBand);
     }
 
     public void SetTrackLanguage(int trackId, string? languageCode)
@@ -2166,60 +2112,10 @@ public class MusicDatabase
         return name;
     }
 
-    internal static void EnsureTrackVersionSchema(SqliteConnection conn)
-    {
-        EnsureColumn(conn, "tracks", "is_original", "INTEGER NOT NULL DEFAULT 1");
-        EnsureColumn(conn, "tracks", "parent_track_id", "INTEGER NULL REFERENCES tracks(id) ON DELETE SET NULL");
-        EnsureColumn(conn, "tracks", "edit_types", "INTEGER NOT NULL DEFAULT 0");
-        ExecuteNonQuery(conn, "CREATE INDEX IF NOT EXISTS ix_tracks_parent ON tracks(parent_track_id)");
-    }
-
-    public void SetTrackVersion(int id, bool isOriginal, int? parentTrackId, TrackEditTypes editTypes)
-    {
-        using var conn = Open();
-        using var tx = conn.BeginTransaction();
-        SetTrackVersion(conn, tx, id, isOriginal, parentTrackId, editTypes);
-        tx.Commit();
-    }
-
-    private static void SetTrackVersion(SqliteConnection conn, SqliteTransaction tx,
-        int id, bool isOriginal, int? parentTrackId, TrackEditTypes editTypes)
-    {
-        if (isOriginal)
-        {
-            parentTrackId = null;
-            editTypes = TrackEditTypes.None;
-        }
-        if (parentTrackId is int parent)
-        {
-            using var command = conn.CreateCommand();
-            command.Transaction = tx;
-            command.CommandText = "SELECT COUNT(*) FROM tracks WHERE id = $parent AND is_original = 1 AND id <> $id";
-            command.Parameters.AddWithValue("$parent", parent);
-            command.Parameters.AddWithValue("$id", id);
-            if ((long)command.ExecuteScalar()! != 1)
-                throw new InvalidOperationException("Choose an existing original track as parent.");
-        }
-        if (!isOriginal)
-        {
-            using var command = conn.CreateCommand();
-            command.Transaction = tx;
-            command.CommandText = "SELECT COUNT(*) FROM tracks WHERE parent_track_id = $id";
-            command.Parameters.AddWithValue("$id", id);
-            if ((long)command.ExecuteScalar()! > 0)
-                throw new InvalidOperationException("Reassign this original's versions before changing it to an edit.");
-        }
-        ExecuteInsert(conn, tx, @"UPDATE tracks SET is_original = $original,
-            parent_track_id = $parent, edit_types = $types, updated_at = $now WHERE id = $id",
-            ("$id", id), ("$original", isOriginal ? 1 : 0), ("$parent", parentTrackId),
-            ("$types", (int)editTypes), ("$now", DateTime.UtcNow.ToString("O")));
-    }
-
     public void UpdateTrack(
         int id,
         string title,
         string? artist,
-        string? remix,
         List<int> genreIds,
         int? ratingId,
         List<int> styleIds,
@@ -2233,7 +2129,6 @@ public class MusicDatabase
             @"UPDATE tracks
               SET title = $title,
                   artist = $artist,
-                  remix = $remix,
                   rating_band = CASE WHEN rating_id IS $ratingId THEN rating_band ELSE NULL END,
                   rating_id = $ratingId,
                   library_state = CASE WHEN $ratingId IS NULL THEN 'PendingRating' ELSE 'Active' END,
@@ -2241,7 +2136,7 @@ public class MusicDatabase
                   updated_at = $updatedAt,
                   needs_reevaluation = CASE WHEN $ratingId IS NULL THEN 1 ELSE 0 END
               WHERE id = $id",
-            ("$id", id), ("$title", title), ("$artist", artist), ("$remix", remix),
+            ("$id", id), ("$title", title), ("$artist", artist),
             ("$ratingId", ratingId), ("$isPublic", isPublic ? 1 : 0), ("$updatedAt", now));
 
         SetTrackStyles(conn, tx, id, styleIds);

@@ -24,7 +24,6 @@ public static class Values
     // Retained as the common application-state directory for existing callers.
     public static readonly string LocalDirectory = ConfigurationDirectory;
     public static readonly string FilterPresetsPath = Path.Combine(LocalDirectory, "filter-presets.json");
-    public static readonly string BackupSettingsPath = Path.Combine(LocalDirectory, "backup-settings.json");
     public static readonly string WindowPlacementPath = Path.Combine(LocalDirectory, "window-placement.json");
     public static readonly string AppSettingsPath = Path.Combine(LocalDirectory, "app-settings.json");
     public static readonly string LibraryLocationsPath = Path.Combine(LocalDirectory, "library-locations.json");

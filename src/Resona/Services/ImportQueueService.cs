@@ -144,35 +144,9 @@ public sealed class ImportQueueService
             null,
             null,
             ImportQueueStatus.Queued,
-            IsOriginal: request.IsOriginal,
-            ParentTrackId: request.ParentTrackId,
-            EditTypes: request.EditTypes,
             Request: request);
         MusicLibraryService.Current.CreateImportBatch(canonicalUrl, [item], rejectDuplicates: true);
         EnsureWorker();
-    }
-
-    public void QueueVersion(MusicTrack original, TrackEditTypes type, string rawUrl)
-    {
-        var item = CreateVersionPreview(original, type, rawUrl);
-        MusicLibraryService.Current.CreateImportBatch(item.SourceUrl, [item], rejectDuplicates: true);
-        EnsureWorker();
-    }
-
-    internal static ImportPreviewItem CreateVersionPreview(MusicTrack original, TrackEditTypes type, string rawUrl)
-    {
-        if (!original.IsOriginal)
-            throw new InvalidOperationException("Choose an original track before adding a version.");
-        var allowedTypes = TrackVersions.Types.Aggregate(TrackEditTypes.None, (all, entry) => all | entry.Type);
-        if (type == TrackEditTypes.None || (type & ~allowedTypes) != 0)
-            throw new InvalidOperationException("Choose a version type first.");
-        var source = YouTubeUrlNormalizer.ParseImportSource(rawUrl.Trim());
-        if (source is not { Kind: YouTubeImportSourceKind.SingleTrack })
-            throw new InvalidOperationException("Enter a YouTube link to a single track.");
-        var label = TrackVersions.Label(original with { IsOriginal = false, EditTypes = type });
-        return new ImportPreviewItem(source.Value.Url, source.Value.Url,
-            $"{original.DisplayTitle} · {label}", null, null, ImportQueueStatus.Queued,
-            IsOriginal: false, ParentTrackId: original.Id, EditTypes: type);
     }
 
     public ImportQueueSummary GetSummary() => MusicLibraryService.Current.GetImportQueueSummary();

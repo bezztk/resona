@@ -9,24 +9,24 @@ public sealed class TrackTitleFormatterTests
     [Fact]
     public void Empty_optional_components_preserve_the_existing_title()
     {
-        Assert.Equal("Rightfully", TrackTitleFormatter.Format(null, "Rightfully", null));
+        Assert.Equal("Rightfully", TrackTitleFormatter.Format(null, "Rightfully"));
     }
 
     [Fact]
-    public void Components_are_formatted_with_remix_parentheses()
+    public void Artist_is_prefixed_to_the_title()
     {
         Assert.Equal(
-            "Mili — Rightfully (Zenkaso Remix)",
-            TrackTitleFormatter.Format(" Mili ", " Rightfully ", " Zenkaso Remix "));
+            "Mili — Rightfully",
+            TrackTitleFormatter.Format(" Mili ", " Rightfully "));
     }
 
     [Fact]
-    public void Search_matches_artist_and_remix_through_the_display_title()
+    public void Search_matches_artist_through_the_display_title()
     {
         var track = new MusicTrack(
             1, string.Empty, "Rightfully", "1.mp3", null, "2026-01-01T00:00:00Z", null,
             false, null, null, null, "2026-01-01T00:00:00Z",
-            Artist: "Mili", Remix: "Zenkaso Remix");
+            Artist: "Mili");
 
         List<MusicTrack> Search(string term) => TrackFilter.Apply(
             [track],
@@ -39,7 +39,6 @@ public sealed class TrackTitleFormatterTests
             term);
 
         Assert.Single(Search("Mili"));
-        Assert.Single(Search("Zenkaso"));
     }
 }
 

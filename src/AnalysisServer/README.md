@@ -24,6 +24,5 @@ Configuration is read from environment variables:
 - `ANALYSIS_TIMEOUT_SECONDS` (default: `1800`)
 - `MAX_UPLOAD_BYTES` (default: 1 GiB)
 - `RESONA_MODELS_ROOT` and `RESONA_TEMP_DIRECTORY`
-- optional `MUSIC_API_KEY`, expected as the `X-Api-Key` header
 
 Only the models currently used by Resona are executed: Discogs MAEST for genres and MusicNN MIREX for emotional character. BPM and EBU R128 values are calculated directly with Essentia.

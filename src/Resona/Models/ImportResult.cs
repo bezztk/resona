@@ -19,9 +19,6 @@ public record ImportPreviewItem(
     long? EstimatedSizeBytes,
     ImportQueueStatus Status,
     string? Detail = null,
-    bool IsOriginal = true,
-    int? ParentTrackId = null,
-    TrackEditTypes EditTypes = TrackEditTypes.None,
     DownloadRequest? Request = null);
 
 public record ImportPreview(
@@ -44,17 +41,11 @@ public record ImportQueueItem(
     ImportQueueStatus Status,
     string? Detail,
     int? TrackId,
-    bool IsOriginal = true,
-    int? ParentTrackId = null,
-    TrackEditTypes EditTypes = TrackEditTypes.None,
     DownloadRequest? Request = null)
 {
     public DownloadRequest DownloadRequest => Request ?? new()
     {
-        RawUrl = CanonicalUrl,
-        IsOriginal = IsOriginal,
-        ParentTrackId = ParentTrackId,
-        EditTypes = EditTypes
+        RawUrl = CanonicalUrl
     };
 }
 

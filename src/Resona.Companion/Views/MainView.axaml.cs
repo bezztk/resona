@@ -57,7 +57,6 @@ public partial class MainView : UserControl
     {
         Default,
         Review,
-        Declined,
         Preset,
         Collection
     }
@@ -293,12 +292,9 @@ public partial class MainView : UserControl
     {
         BuiltInViewRows.Children.Clear();
         BuiltInViewRows.Children.Add(CreateLibrarySourceButton(
-            "Default", "Rated tracks without review flags", MobileLibrarySource.Default));
+            "Default", "All tracks, including review flags", MobileLibrarySource.Default));
         BuiltInViewRows.Children.Add(CreateLibrarySourceButton(
             "Needs review", "Tracks marked for desktop review", MobileLibrarySource.Review));
-        BuiltInViewRows.Children.Add(CreateLibrarySourceButton(
-            "Declined", "Declined desktop downloads", MobileLibrarySource.Declined));
-
         PresetRows.Children.Clear();
         foreach (var preset in (_loadedLibrary.Library.FilterPresets ?? [])
                      .OrderBy(item => item.Name, StringComparer.OrdinalIgnoreCase))
@@ -414,14 +410,9 @@ public partial class MainView : UserControl
             MobileLibrarySource.Review => _filteredTracks
                 .Where(track => !IsRejected(track) && track.NeedsReview)
                 .ToList(),
-            MobileLibrarySource.Declined => _filteredTracks
-                .Where(IsRejected)
-                .ToList(),
             MobileLibrarySource.Preset => FilterForPresetCompletion(_filteredTracks),
             _ => _filteredTracks
-                .Where(track => !IsRejected(track)
-                                && !track.NeedsReview
-                                && !string.IsNullOrWhiteSpace(track.Rating))
+                .Where(track => !IsRejected(track))
                 .ToList()
         };
 
@@ -1045,7 +1036,6 @@ public partial class MainView : UserControl
         LibraryContextTitleText.Text = _activeLibrarySource switch
         {
             MobileLibrarySource.Review => "REVIEW",
-            MobileLibrarySource.Declined => "DECLINED",
             MobileLibrarySource.Preset => $"PRESET · {_activeLibrarySourceId?.ToUpperInvariant()}",
             MobileLibrarySource.Collection => $"COLLECTION · {(_loadedLibrary.Library.Collections ?? [])
                 .FirstOrDefault(item => string.Equals(item.StableId, _activeLibrarySourceId, StringComparison.OrdinalIgnoreCase))

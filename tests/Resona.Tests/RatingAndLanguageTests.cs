@@ -67,7 +67,7 @@ public sealed class RatingAndLanguageTests : IDisposable
         database.SetTrackRating(trackId, goodId);
         Assert.Equal("High", Scalar<string>("SELECT rating_band FROM tracks WHERE id = $id", ("$id", trackId)));
 
-        database.UpdateTrack(trackId, "Track", null, null, [], greatId, [], true);
+        database.UpdateTrack(trackId, "Track", null, [], greatId, [], true);
         Assert.Equal(0L, Scalar<long>("SELECT COUNT(rating_band) FROM tracks WHERE id = $id", ("$id", trackId)));
 
         database.SetTrackRatingBand(trackId, RatingBand.Low);

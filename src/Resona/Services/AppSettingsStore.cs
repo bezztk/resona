@@ -51,11 +51,10 @@ public static class AppSettingsStore
         Save(settings);
     }
 
-    public static void SaveMusicAnalysisServerConfiguration(string serverUrl, string? apiKey)
+    public static void SaveMusicAnalysisServerConfiguration(string serverUrl)
     {
         var settings = Load();
         settings.MusicAnalysisServerUrl = serverUrl;
-        settings.MusicAnalysisApiKey = string.IsNullOrWhiteSpace(apiKey) ? null : apiKey.Trim();
         Save(settings);
     }
 
@@ -120,7 +119,6 @@ public sealed class AppSettings
 {
     public float Volume { get; set; } = 0.53030306f;
     public string MusicAnalysisServerUrl { get; set; } = "https://analyzer.resona-music.de";
-    public string? MusicAnalysisApiKey { get; set; }
     public AppearanceSettings Appearance { get; set; } = new();
     public string LastSettingsPage { get; set; } = "genres";
     public PlayerSessionSettings PlayerSession { get; set; } = new();

@@ -55,20 +55,16 @@ public class MusicLibraryService
     public List<int> GetTrackGenreIds(int trackId) => _db.GetTrackGenreIds(trackId);
     public List<TrackModelGenre> GetTrackModelGenres(int trackId) => _db.GetTrackModelGenres(trackId);
     public void SetTrackModelGenreEnabled(int trackId, int genreId, bool isEnabled) => _db.SetTrackModelGenreEnabled(trackId, genreId, isEnabled);
-    public void SetTrackVersion(int id, bool isOriginal, int? parentTrackId, TrackEditTypes editTypes)
-        => _db.SetTrackVersion(id, isOriginal, parentTrackId, editTypes);
-
     public void UpdateTrack(
         int id,
         string title,
         string? artist,
-        string? remix,
         List<int> genreIds,
         int? ratingId,
         List<int> styleIds,
         bool isPublic)
     {
-        _db.UpdateTrack(id, title, artist, remix, genreIds, ratingId, styleIds, isPublic);
+        _db.UpdateTrack(id, title, artist, genreIds, ratingId, styleIds, isPublic);
         if (ratingId is not null)
             BackgroundAnalysisService.Current.EnqueueTrack(id);
     }
@@ -308,7 +304,7 @@ public class MusicLibraryService
         string rawUrl,
         IProgress<string>? progress = null,
         Action<int>? trackCreated = null,
-        DownloadRequest? version = null)
+        DownloadRequest? request = null)
     {
         var videoId = YouTubeUrlNormalizer.ExtractVideoId(rawUrl);
         if (videoId is null)
@@ -321,11 +317,11 @@ public class MusicLibraryService
         var result = await DownloadAndPersistYouTubeTrackAsync(
             videoId,
             canonicalUrl,
-            version?.GenreIds ?? [],
-            version?.RatingId,
-            version?.StyleIds ?? [],
+            request?.GenreIds ?? [],
+            request?.RatingId,
+            request?.StyleIds ?? [],
             progress,
-            version);
+            request);
         if (result.Success && result.Track is not null)
             trackCreated?.Invoke(result.Track.Id);
         return result;
@@ -338,7 +334,7 @@ public class MusicLibraryService
         int? ratingId,
         List<int> styleIds,
         IProgress<string>? progress,
-        DownloadRequest? version = null)
+        DownloadRequest? request = null)
     {
         _downloader.DeleteDownloadArtifacts(videoId);
 
@@ -387,11 +383,7 @@ public class MusicLibraryService
                 fileSizeBytes,
                 (int)downloadStopwatch.ElapsedMilliseconds,
                 metadata,
-                thumbnail,
-                version?.IsOriginal ?? true,
-                version?.ParentTrackId,
-                version?.EditTypes ?? TrackEditTypes.None,
-                version?.VersionName);
+                thumbnail);
             var track = GetTrackById(trackId)
                 ?? throw new InvalidOperationException($"Track {trackId} was inserted but could not be reloaded.");
             WorkflowLog.Info("download", $"Persisted track {trackId} from a YouTube download.");

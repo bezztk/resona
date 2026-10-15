@@ -2,13 +2,12 @@ import asyncio
 import json
 import logging
 import os
-import secrets
 import sys
 import tempfile
 from pathlib import Path
 
 import uvicorn
-from fastapi import FastAPI, File, Header, HTTPException, UploadFile
+from fastapi import FastAPI, File, HTTPException, UploadFile
 from fastapi.responses import JSONResponse
 
 
@@ -20,7 +19,6 @@ MODELS_ROOT = Path(
 TEMP_DIRECTORY = Path(os.environ.get("RESONA_TEMP_DIRECTORY", tempfile.gettempdir())).resolve()
 SUPPORTED_EXTENSIONS = {".flac", ".m4a", ".mp3", ".wav"}
 UPLOAD_CHUNK_SIZE = 1024 * 1024
-API_KEY = os.environ.get("MUSIC_API_KEY", "").strip()
 MAX_UPLOAD_BYTES = int(os.environ.get("MAX_UPLOAD_BYTES", str(1024 * 1024 * 1024)))
 ANALYSIS_TIMEOUT_SECONDS = int(os.environ.get("ANALYSIS_TIMEOUT_SECONDS", "1800"))
 MAX_CONCURRENT_ANALYSES = max(1, int(os.environ.get("MAX_CONCURRENT_ANALYSES", "1")))
@@ -60,13 +58,7 @@ def health() -> dict:
 
 
 @app.post("/analyze")
-async def analyze(
-    file: UploadFile = File(...),
-    x_api_key: str | None = Header(default=None),
-):
-    if API_KEY and not secrets.compare_digest(x_api_key or "", API_KEY):
-        raise HTTPException(status_code=401, detail="Invalid API key")
-
+async def analyze(file: UploadFile = File(...)):
     suffix = Path(file.filename or "").suffix.lower()
     if suffix not in SUPPORTED_EXTENSIONS:
         raise HTTPException(status_code=415, detail="Unsupported audio format")

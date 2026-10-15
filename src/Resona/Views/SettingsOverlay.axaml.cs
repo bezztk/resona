@@ -12,7 +12,6 @@ using Avalonia.Input;
 using Avalonia.Interactivity;
 using Avalonia.Layout;
 using Avalonia.Media;
-using Avalonia.Platform.Storage;
 using Avalonia.Threading;
 using Avalonia.Svg.Skia;
 using Resona.Models;
@@ -62,7 +61,6 @@ public partial class SettingsOverlay : UserControl
     {
         var appSettings = AppSettingsStore.Load();
         MusicAnalysisServerUrlBox.Text = appSettings.MusicAnalysisServerUrl;
-        MusicAnalysisApiKeyBox.Text = appSettings.MusicAnalysisApiKey;
         _loadingDiscordPresenceSettings = true;
         DiscordPresenceToggle.IsChecked = appSettings.DiscordRichPresenceEnabled;
         DiscordLargeImageTextBox.Text = appSettings.DiscordLargeImageText;
@@ -79,8 +77,7 @@ public partial class SettingsOverlay : UserControl
         _loadingBrowserCookieSettings = false;
         ApplyBrowserCookieSettings(save: false);
         RefreshLinuxDependencies();
-        RebuildBackupDirectoryRows();
-        SelectPage(SettingsPage.Profile);
+        SelectPage(SettingsPage.General);
         IsVisible = true;
     }
 
@@ -352,13 +349,9 @@ public partial class SettingsOverlay : UserControl
         if (sender is not ToggleButton { Tag: string value }) return;
         var page = value switch
         {
-            "health" => SettingsPage.Health,
             "appearance" => SettingsPage.Appearance,
-            "backup" => SettingsPage.Backup,
             "updates" => SettingsPage.Updates,
-            "discord" => SettingsPage.Discord,
-            "profile" => SettingsPage.Profile,
-            "servers" => SettingsPage.Servers,
+            "general" => SettingsPage.General,
             "tags" => SettingsPage.Tags,
             "styles" => SettingsPage.Styles,
             "tag_rules" => SettingsPage.TagRules,
@@ -374,45 +367,29 @@ public partial class SettingsOverlay : UserControl
 
         _selectedPage = page;
         var isGenreVocabularyPage = page == SettingsPage.GenreVocabulary;
-        var isHealthPage = page == SettingsPage.Health;
-        var isBackupPage = page == SettingsPage.Backup;
         var isUpdatesPage = page == SettingsPage.Updates;
         var isAppearancePage = page == SettingsPage.Appearance;
-        var isDiscordPage = page == SettingsPage.Discord;
-        var isProfilePage = page == SettingsPage.Profile;
-        var isServersPage = page == SettingsPage.Servers;
+        var isGeneralPage = page == SettingsPage.General;
         GenreVocabularyPage.IsVisible = isGenreVocabularyPage;
-        HealthPage.IsVisible = isHealthPage;
-        BackupPage.IsVisible = isBackupPage;
         UpdatesPage.IsVisible = isUpdatesPage;
         AppearancePage.IsVisible = isAppearancePage;
-        DiscordPage.IsVisible = isDiscordPage;
-        ProfilePage.IsVisible = isProfilePage;
-        ServersPage.IsVisible = isServersPage;
+        GeneralPage.IsVisible = isGeneralPage;
         TagsPage.IsVisible = page == SettingsPage.Tags;
         StylesPage.IsVisible = page == SettingsPage.Styles;
         TagRulesPage.IsVisible = page == SettingsPage.TagRules;
         GenreVocabularyNavButton.IsChecked = isGenreVocabularyPage;
-        HealthNavButton.IsChecked = isHealthPage;
-        BackupNavButton.IsChecked = isBackupPage;
         UpdatesNavButton.IsChecked = isUpdatesPage;
         AppearanceNavButton.IsChecked = isAppearancePage;
-        DiscordNavButton.IsChecked = isDiscordPage;
-        ProfileNavButton.IsChecked = isProfilePage;
-        ServersNavButton.IsChecked = isServersPage;
+        GeneralNavButton.IsChecked = isGeneralPage;
         TagsNavButton.IsChecked = page == SettingsPage.Tags;
         StylesNavButton.IsChecked = page == SettingsPage.Styles;
         TagRulesNavButton.IsChecked = page == SettingsPage.TagRules;
 
         PageTitleText.Text = page switch
         {
-            SettingsPage.Health => "Health check",
-            SettingsPage.Backup => "Backup",
             SettingsPage.Updates => "Updates",
             SettingsPage.Appearance => "Appearance",
-            SettingsPage.Discord => "Discord presence",
-            SettingsPage.Profile => "Account",
-            SettingsPage.Servers => "Connections",
+            SettingsPage.General => "General",
             SettingsPage.Tags => "Tags",
             SettingsPage.Styles => "Styles",
             SettingsPage.TagRules => "Tag rules",
@@ -420,30 +397,21 @@ public partial class SettingsOverlay : UserControl
         };
         PageDescriptionText.Text = isGenreVocabularyPage
             ? "Review the genre categories and subgenres used directly by the library."
-            : isHealthPage
-                    ? "Check database integrity, workflow consistency, channel mappings and local audio files."
-                : isBackupPage
-                    ? "Keep daily database snapshots in your backup locations."
-                    : isAppearancePage
-                            ? "Tune artwork, blur, color and audio-reactive visuals. Changes are applied live."
-                            : isDiscordPage
-                                ? "Customize the text Discord displays while Resona is playing music."
-                            : isProfilePage
-                                ? "Manage your local identity and temporary session behavior."
-                            : isServersPage
-                                ? "Configure the track analysis service."
+            : isAppearancePage
+                ? "Tune artwork, blur, color and audio-reactive visuals. Changes are applied live."
+                : isGeneralPage
+                    ? "Configure downloads, analysis and optional Discord integration."
                             : isUpdatesPage
                                 ? "Check, download and install application releases from GitHub."
                             : page == SettingsPage.Tags
                                 ? "Maintain your curated labels. Tags can describe mood, themes, situations or workflow states without turning them into genres."
                                 : page == SettingsPage.Styles
-                                    ? "Maintain track-version styles such as Nightcore, Reverb, Sped Up or Slowed."
+                                    ? "Maintain descriptive styles such as Nightcore, Reverb, Sped Up or Slowed."
                                 : page == SettingsPage.TagRules
                                     ? "Turn model signals into reviewable tag suggestions. Rules never assign tags automatically in this first version."
                                     : "Compare current system interpretations before turning them into filters.";
         SummaryText.Text = isGenreVocabularyPage ? BuildSummaryText() : "";
         if (isGenreVocabularyPage) RebuildGenreVocabularyRows();
-        if (isBackupPage) RebuildBackupDirectoryRows();
         if (page == SettingsPage.Tags) ReloadTagManagement();
         if (page == SettingsPage.Styles) ReloadStyleManagement();
         if (page == SettingsPage.TagRules) ReloadTagRules();
@@ -521,7 +489,7 @@ public partial class SettingsOverlay : UserControl
             return;
         }
 
-        AppSettingsStore.SaveMusicAnalysisServerConfiguration(serverUrl, MusicAnalysisApiKeyBox.Text);
+        AppSettingsStore.SaveMusicAnalysisServerConfiguration(serverUrl);
         BackgroundAnalysisService.Current.NotifyServerConfigurationChanged();
         MusicAnalysisServerUrlBox.Text = serverUrl;
         ShowAnalysisServerStatus("Configuration saved", isSuccess: true);
@@ -540,13 +508,11 @@ public partial class SettingsOverlay : UserControl
         ShowAnalysisServerStatus("Testing connection…", isSuccess: null);
         try
         {
-            using var service = new TrackAnalysisService(
-                serverUrlProvider: () => serverUrl,
-                apiKeyProvider: () => MusicAnalysisApiKeyBox.Text);
+            using var service = new TrackAnalysisService(serverUrlProvider: () => serverUrl);
             var isHealthy = await service.CheckHealthAsync();
             if (isHealthy)
             {
-                AppSettingsStore.SaveMusicAnalysisServerConfiguration(serverUrl, MusicAnalysisApiKeyBox.Text);
+                AppSettingsStore.SaveMusicAnalysisServerConfiguration(serverUrl);
                 MusicAnalysisServerUrlBox.Text = serverUrl;
                 BackgroundAnalysisService.Current.NotifyServerConfigurationChanged();
             }
@@ -611,94 +577,6 @@ public partial class SettingsOverlay : UserControl
 
         if (save)
             AppSettingsStore.SaveYtDlpBrowserCookies(enabled, browser);
-    }
-
-    private async void OnAddBackupDirectoryClicked(object? sender, RoutedEventArgs e)
-    {
-        var topLevel = TopLevel.GetTopLevel(this);
-        if (topLevel == null) return;
-
-        var folders = await topLevel.StorageProvider.OpenFolderPickerAsync(new FolderPickerOpenOptions
-        {
-            Title = "Choose database backup folder",
-            AllowMultiple = false
-        });
-        if (folders.Count == 0) return;
-
-        try
-        {
-            DatabaseBackupService.Current.AddBackupDirectory(folders[0].Path.LocalPath);
-            var backupResult = DatabaseBackupService.Current.EnsureTodayBackups();
-            RebuildBackupDirectoryRows();
-            ToastRequested?.Invoke(backupResult.Errors.Count > 0
-                ? $"Backup folder added, but backup failed: {backupResult.Errors[0]}"
-                : backupResult.Created.Count > 0
-                    ? "Backup folder added; today's backup was created."
-                    : "Backup folder added.");
-        }
-        catch (Exception exception)
-        {
-            ToastRequested?.Invoke($"Could not add backup folder: {exception.Message}");
-        }
-    }
-
-    private void RebuildBackupDirectoryRows()
-    {
-        if (!IsInitialized) return;
-
-        BackupDirectoryRows.Children.Clear();
-        var directories = DatabaseBackupService.Current.GetBackupDirectories();
-        if (directories.Count == 0)
-        {
-            BackupDirectoryRows.Children.Add(new TextBlock
-            {
-                Text = "No backup folder selected yet.",
-                FontSize = 12,
-                Opacity = 0.55
-            });
-            return;
-        }
-
-        foreach (var directory in directories)
-            BackupDirectoryRows.Children.Add(CreateBackupDirectoryRow(directory));
-    }
-
-    private Control CreateBackupDirectoryRow(string directory)
-    {
-        var row = new Border
-        {
-            Background = ThemeResources.Brush("Theme.Brush.SurfaceTranslucent"),
-            BorderBrush = ThemeResources.Brush("Theme.Brush.BorderSubtle"),
-            BorderThickness = new Avalonia.Thickness(1),
-            CornerRadius = new Avalonia.CornerRadius(7),
-            Padding = new Avalonia.Thickness(12, 9)
-        };
-        var grid = new Grid { ColumnDefinitions = new ColumnDefinitions("*,Auto"), ColumnSpacing = 12 };
-        grid.Children.Add(new TextBlock
-        {
-            Text = directory,
-            FontSize = 12,
-            TextWrapping = TextWrapping.Wrap,
-            VerticalAlignment = VerticalAlignment.Center
-        });
-
-        var removeButton = new Button
-        {
-            Content = "Remove",
-            Classes = { "settings-action" },
-            Padding = new Avalonia.Thickness(10, 5),
-            VerticalAlignment = VerticalAlignment.Center
-        };
-        removeButton.Click += (_, _) =>
-        {
-            DatabaseBackupService.Current.RemoveBackupDirectory(directory);
-            RebuildBackupDirectoryRows();
-            ToastRequested?.Invoke("Backup folder removed.");
-        };
-        Grid.SetColumn(removeButton, 1);
-        grid.Children.Add(removeButton);
-        row.Child = grid;
-        return row;
     }
 
     private void ReloadTagManagement()
@@ -1494,133 +1372,6 @@ public partial class SettingsOverlay : UserControl
         _ => modelName
     };
 
-    private async void OnRunHealthCheckClicked(object? sender, RoutedEventArgs e)
-    {
-        if (!RunHealthCheckButton.IsEnabled)
-            return;
-
-        RunHealthCheckButton.IsEnabled = false;
-        RunHealthCheckButton.Content = "Checking…";
-        HealthResultPanel.IsVisible = true;
-        HealthStatusDot.Background = new SolidColorBrush(Color.Parse("#7895AE"));
-        HealthSummaryText.Text = "Checking database and files…";
-        HealthCountsText.Text = "This can take a moment for a large library.";
-        HealthLastRunText.Text = string.Empty;
-        HealthIssueRows.Children.Clear();
-        try
-        {
-            var report = await DatabaseHealthService.Current.CheckAsync();
-            RenderHealthReport(report);
-        }
-        catch (Exception exception)
-        {
-            WorkflowLog.Error("database-health", "Database health check failed.", exception);
-            HealthStatusDot.Background = new SolidColorBrush(Color.Parse("#E87878"));
-            HealthSummaryText.Text = "Health check could not finish";
-            HealthCountsText.Text = exception.Message;
-            HealthLastRunText.Text = DateTime.Now.ToString("g", CultureInfo.CurrentCulture);
-        }
-        finally
-        {
-            RunHealthCheckButton.IsEnabled = true;
-            RunHealthCheckButton.Content = "Run health check";
-        }
-    }
-
-    private void RenderHealthReport(DatabaseHealthReport report)
-    {
-        HealthIssueRows.Children.Clear();
-        var statusColor = report.ErrorCount > 0
-            ? "#E87878"
-            : report.WarningCount > 0 ? "#E6BF55" : "#79C994";
-        HealthStatusDot.Background = new SolidColorBrush(Color.Parse(statusColor));
-        HealthSummaryText.Text = report.IsHealthy
-            ? "No health issues found"
-            : $"{report.ErrorCount} error{(report.ErrorCount == 1 ? string.Empty : "s")} · "
-              + $"{report.WarningCount} warning{(report.WarningCount == 1 ? string.Empty : "s")}";
-        HealthCountsText.Text = $"{report.TrackCount:N0} database tracks · "
-                                + $"{report.ReferencedFileCount:N0} referenced filenames · "
-                                + $"{report.AudioFileCount:N0} audio files on disk";
-        HealthLastRunText.Text = $"Finished {report.FinishedAtUtc.ToLocalTime():g} · read-only";
-
-        foreach (var issue in report.Issues)
-            HealthIssueRows.Children.Add(CreateHealthIssueRow(issue));
-    }
-
-    private static Control CreateHealthIssueRow(DatabaseHealthIssue issue)
-    {
-        var color = issue.Severity switch
-        {
-            DatabaseHealthSeverity.Error => Color.Parse("#E87878"),
-            DatabaseHealthSeverity.Warning => Color.Parse("#E6BF55"),
-            _ => Color.Parse("#78AEE8")
-        };
-        var row = new Border
-        {
-            Background = new SolidColorBrush(Color.FromArgb(0x18, color.R, color.G, color.B)),
-            BorderBrush = new SolidColorBrush(Color.FromArgb(0x4A, color.R, color.G, color.B)),
-            BorderThickness = new Thickness(1),
-            CornerRadius = new CornerRadius(7),
-            Padding = new Thickness(11, 9)
-        };
-        var grid = new Grid
-        {
-            ColumnDefinitions = new ColumnDefinitions("Auto,*,Auto"),
-            ColumnSpacing = 10
-        };
-        grid.Children.Add(new Border
-        {
-            Width = 7,
-            Height = 7,
-            CornerRadius = new CornerRadius(4),
-            Background = new SolidColorBrush(color),
-            VerticalAlignment = VerticalAlignment.Top,
-            Margin = new Thickness(0, 5, 0, 0)
-        });
-
-        var content = new StackPanel { Spacing = 3 };
-        content.Children.Add(new TextBlock
-        {
-            Text = issue.Title,
-            FontSize = 11.5,
-            FontWeight = FontWeight.SemiBold,
-            TextWrapping = TextWrapping.Wrap
-        });
-        content.Children.Add(new TextBlock
-        {
-            Text = $"{issue.Category} · {issue.Detail}",
-            FontSize = 10.5,
-            Opacity = 0.68,
-            TextWrapping = TextWrapping.Wrap
-        });
-        if (issue.Examples is { Count: > 0 })
-        {
-            content.Children.Add(new TextBlock
-            {
-                Text = string.Join(Environment.NewLine, issue.Examples),
-                FontSize = 9.5,
-                Foreground = new SolidColorBrush(Color.Parse("#9EABB7")),
-                TextWrapping = TextWrapping.Wrap,
-                MaxLines = 5
-            });
-        }
-        Grid.SetColumn(content, 1);
-        grid.Children.Add(content);
-
-        var count = new TextBlock
-        {
-            Text = issue.Count > 1 ? issue.Count.ToString("N0", CultureInfo.CurrentCulture) : string.Empty,
-            FontSize = 10,
-            FontWeight = FontWeight.SemiBold,
-            Foreground = new SolidColorBrush(color),
-            Margin = new Thickness(6, 1, 0, 0)
-        };
-        Grid.SetColumn(count, 2);
-        grid.Children.Add(count);
-        row.Child = grid;
-        return row;
-    }
-
     private void BuildAppearanceControls()
     {
         AddAppearanceSlider(PlayerAppearanceRows, "Song fade duration", "Crossfade duration when playback advances automatically. Set to 0 to disable crossfading.",
@@ -1832,5 +1583,5 @@ public partial class SettingsOverlay : UserControl
         public override string ToString() => Name;
     }
 
-    private enum SettingsPage { GenreVocabulary, Health, Appearance, Discord, Profile, Servers, Backup, Updates, Tags, Styles, TagRules }
+    private enum SettingsPage { General, GenreVocabulary, Appearance, Updates, Tags, Styles, TagRules }
 }

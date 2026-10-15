@@ -290,14 +290,7 @@
                                                TextTrimming="CharacterEllipsis" />
                                 </Grid>
 
-                                <Expander Header="Version / original assignment" HorizontalAlignment="Stretch">
-                                    <StackPanel Spacing="8" Margin="0,8">
-                                        <views:TrackVersionFields x:Name="VersionFields" />
-                                        <Button Content="Save version" Click="OnSaveVersionClicked" Padding="10,5" />
-                                        <TextBlock x:Name="VersionStatusText" FontSize="11" TextWrapping="Wrap" />
-                                    </StackPanel>
-                                </Expander>
-                                <Grid ColumnDefinitions="104,*,30,30" RowDefinitions="30,30,30,30,30,30,30,30,30,30" ColumnSpacing="6">
+                                <Grid ColumnDefinitions="104,*,30,30" RowDefinitions="30,30,30,30,30,30,30,30,30" ColumnSpacing="6">
                                     <TextBlock Grid.Row="0" Text="Artist" FontSize="10.5" Opacity="0.58" VerticalAlignment="Center" />
                                     <TextBlock x:Name="ArtistDisplayText" Grid.Row="0" Grid.Column="1" FontSize="11.5" FontWeight="SemiBold"
                                                VerticalAlignment="Center" TextTrimming="CharacterEllipsis" />
@@ -321,54 +314,46 @@
                                              Classes="compact-search" Height="26" Margin="0,2" Watermark="Title"
                                              VerticalContentAlignment="Center" Padding="4,2,4,0" />
 
-                                    <TextBlock Grid.Row="2" Text="Remix" FontSize="10.5" Opacity="0.58" VerticalAlignment="Center" />
-                                    <TextBlock x:Name="RemixDisplayText" Grid.Row="2" Grid.Column="1" FontSize="10.5"
+                                    <TextBlock Grid.Row="2" Text="Original title" FontSize="10.5" Opacity="0.58" VerticalAlignment="Center" />
+                                    <TextBlock x:Name="OriginalTitleDisplayText" Grid.Row="2" Grid.Column="1" FontSize="10.5"
                                                Foreground="{DynamicResource Theme.Brush.TextSecondary}"
                                                VerticalAlignment="Center" TextTrimming="CharacterEllipsis" />
-                                    <TextBox x:Name="RemixBox" Grid.Row="2" Grid.Column="1" IsVisible="False"
-                                             Classes="compact-search" Height="26" Margin="0,2" Watermark="Remix (without parentheses)"
-                                             VerticalContentAlignment="Center" Padding="4,2,4,0" />
-
-                                    <TextBlock Grid.Row="3" Text="Original title" FontSize="10.5" Opacity="0.58" VerticalAlignment="Center" />
-                                    <TextBlock x:Name="OriginalTitleDisplayText" Grid.Row="3" Grid.Column="1" FontSize="10.5"
-                                               Foreground="{DynamicResource Theme.Brush.TextSecondary}"
-                                               VerticalAlignment="Center" TextTrimming="CharacterEllipsis" />
-                                    <Button x:Name="CopyOriginalTitleButton" Grid.Row="3" Grid.Column="3"
+                                    <Button x:Name="CopyOriginalTitleButton" Grid.Row="2" Grid.Column="3"
                                             Click="OnCopyOriginalTitleClicked" ToolTip.Tip="Copy original title"
                                             Width="26" Height="24" Padding="0" Background="Transparent" BorderThickness="0" Opacity="0.76">
                                         <Image Source="{SvgImage /Assets/copy.svg}" Width="13" Height="13" />
                                     </Button>
-                                    <TextBlock Grid.Row="4" Text="Channel" FontSize="10.5" Opacity="0.58" VerticalAlignment="Center" />
-                                    <TextBlock x:Name="ChannelDisplayText" Grid.Row="4" Grid.Column="1" FontSize="11.5"
+                                    <TextBlock Grid.Row="3" Text="Channel" FontSize="10.5" Opacity="0.58" VerticalAlignment="Center" />
+                                    <TextBlock x:Name="ChannelDisplayText" Grid.Row="3" Grid.Column="1" FontSize="11.5"
                                                VerticalAlignment="Center" TextTrimming="CharacterEllipsis" />
-                                    <TextBlock Grid.Row="5" Text="YouTube URL" FontSize="10.5" Opacity="0.58" VerticalAlignment="Center" />
-                                    <TextBlock x:Name="YouTubeUrlDisplayText" Grid.Row="5" Grid.Column="1" FontSize="10.5" Foreground="{DynamicResource Theme.Brush.TextSecondary}"
+                                    <TextBlock Grid.Row="4" Text="YouTube URL" FontSize="10.5" Opacity="0.58" VerticalAlignment="Center" />
+                                    <TextBlock x:Name="YouTubeUrlDisplayText" Grid.Row="4" Grid.Column="1" FontSize="10.5" Foreground="{DynamicResource Theme.Brush.TextSecondary}"
                                                VerticalAlignment="Center" TextTrimming="CharacterEllipsis" />
-                                    <Button x:Name="CopyYouTubeUrlButton" Grid.Row="5" Grid.Column="3"
+                                    <Button x:Name="CopyYouTubeUrlButton" Grid.Row="4" Grid.Column="3"
                                             Click="OnCopyYouTubeUrlClicked" ToolTip.Tip="Copy YouTube URL"
                                             Width="26" Height="24" Padding="0" Background="Transparent" BorderThickness="0" Opacity="0.76">
                                         <Image Source="{SvgImage /Assets/copy.svg}" Width="13" Height="13" />
                                     </Button>
 
-                                    <TextBlock Grid.Row="6" Text="Channel URL" FontSize="10.5" Opacity="0.58" VerticalAlignment="Center" />
-                                    <TextBlock x:Name="ChannelUrlDisplayText" Grid.Row="6" Grid.Column="1" FontSize="10.5" Foreground="{DynamicResource Theme.Brush.TextSecondary}"
+                                    <TextBlock Grid.Row="5" Text="Channel URL" FontSize="10.5" Opacity="0.58" VerticalAlignment="Center" />
+                                    <TextBlock x:Name="ChannelUrlDisplayText" Grid.Row="5" Grid.Column="1" FontSize="10.5" Foreground="{DynamicResource Theme.Brush.TextSecondary}"
                                                VerticalAlignment="Center" TextTrimming="CharacterEllipsis" />
-                                    <Button x:Name="CopyChannelUrlButton" Grid.Row="6" Grid.Column="3"
+                                    <Button x:Name="CopyChannelUrlButton" Grid.Row="5" Grid.Column="3"
                                             Click="OnCopyChannelUrlClicked" ToolTip.Tip="Copy channel URL"
                                             Width="26" Height="24" Padding="0" Background="Transparent" BorderThickness="0" Opacity="0.76">
                                         <Image Source="{SvgImage /Assets/copy.svg}" Width="13" Height="13" />
                                     </Button>
 
-                                    <TextBlock Grid.Row="7" Text="Uploaded" FontSize="10.5" Opacity="0.58" VerticalAlignment="Center" />
-                                    <TextBlock x:Name="UploadedDisplayText" Grid.Row="7" Grid.Column="1" Grid.ColumnSpan="3"
+                                    <TextBlock Grid.Row="6" Text="Uploaded" FontSize="10.5" Opacity="0.58" VerticalAlignment="Center" />
+                                    <TextBlock x:Name="UploadedDisplayText" Grid.Row="6" Grid.Column="1" Grid.ColumnSpan="3"
                                                FontSize="10.5" VerticalAlignment="Center" />
 
-                                    <TextBlock Grid.Row="8" Text="YouTube activity" FontSize="10.5" Opacity="0.58" VerticalAlignment="Center" />
-                                    <TextBlock x:Name="YouTubeActivityDisplayText" Grid.Row="8" Grid.Column="1" Grid.ColumnSpan="3"
+                                    <TextBlock Grid.Row="7" Text="YouTube activity" FontSize="10.5" Opacity="0.58" VerticalAlignment="Center" />
+                                    <TextBlock x:Name="YouTubeActivityDisplayText" Grid.Row="7" Grid.Column="1" Grid.ColumnSpan="3"
                                                FontSize="10.5" VerticalAlignment="Center" />
 
-                                    <TextBlock Grid.Row="9" Text="Metadata updated" FontSize="10.5" Opacity="0.58" VerticalAlignment="Center" />
-                                    <TextBlock x:Name="MetadataUpdatedDisplayText" Grid.Row="9" Grid.Column="1" Grid.ColumnSpan="3"
+                                    <TextBlock Grid.Row="8" Text="Metadata updated" FontSize="10.5" Opacity="0.58" VerticalAlignment="Center" />
+                                    <TextBlock x:Name="MetadataUpdatedDisplayText" Grid.Row="8" Grid.Column="1" Grid.ColumnSpan="3"
                                                FontSize="10.5" Opacity="0.72" VerticalAlignment="Center" />
                                 </Grid>
 
