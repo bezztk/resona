@@ -137,42 +137,6 @@ public sealed class MusicDatabaseImportWorkflowTests : IDisposable
     }
 
     [Fact]
-    public void Unchecked_channel_video_blocks_analysis_until_review_is_complete()
-    {
-        var trackId = InsertTrack(ratingId: null, state: "PendingRating", needsReview: 1);
-        var canonicalUrl = $"https://youtu.be/{Guid.NewGuid():N}";
-        using (var connection = Open())
-        using (var transaction = connection.BeginTransaction())
-        {
-            using var updateTrack = connection.CreateCommand();
-            updateTrack.Transaction = transaction;
-            updateTrack.CommandText = "UPDATE tracks SET canonical_url = $url WHERE id = $id";
-            updateTrack.Parameters.AddWithValue("$url", canonicalUrl);
-            updateTrack.Parameters.AddWithValue("$id", trackId);
-            updateTrack.ExecuteNonQuery();
-
-            Insert(connection, transaction, @"
-                INSERT INTO channel_videos
-                    (canonical_url, is_checked, download_status, updated_at)
-                VALUES ($url, 0, 'Ready', $now)",
-                ("$url", canonicalUrl), ("$now", DateTime.UtcNow.ToString("O")));
-            transaction.Commit();
-        }
-
-        Assert.True(_database.IsTrackWaitingForChannelReview(trackId));
-
-        using (var connection = Open())
-        using (var command = connection.CreateCommand())
-        {
-            command.CommandText = "UPDATE channel_videos SET is_checked = 1 WHERE canonical_url = $url";
-            command.Parameters.AddWithValue("$url", canonicalUrl);
-            command.ExecuteNonQuery();
-        }
-
-        Assert.False(_database.IsTrackWaitingForChannelReview(trackId));
-    }
-
-    [Fact]
     public void Production_guards_reject_invalid_track_states()
     {
         using var connection = Open();
@@ -210,95 +174,6 @@ public sealed class MusicDatabaseImportWorkflowTests : IDisposable
         Assert.Equal(1L, Scalar<long>("SELECT analysis_disabled FROM tracks WHERE id = $id", ("$id", rejectedId)));
     }
 
-    [Fact]
-    public void Retrying_metadata_failure_preserves_duration_skip()
-    {
-        var videoId = InsertChannelVideo("Skipped", "Failed", null, "metadata error", 0);
-
-        Assert.True(_database.RetryChannelVideoIssue(videoId));
-
-        Assert.Equal("Queued", Scalar<string>("SELECT metadata_status FROM channel_videos WHERE id = $id", ("$id", videoId)));
-        Assert.Equal(200L, Scalar<long>("SELECT metadata_priority FROM channel_videos WHERE id = $id", ("$id", videoId)));
-        Assert.Equal(0L, Scalar<long>("SELECT metadata_attempts FROM channel_videos WHERE id = $id", ("$id", videoId)));
-        Assert.Equal(0L, Scalar<long>("SELECT COUNT(metadata_error) FROM channel_videos WHERE id = $id", ("$id", videoId)));
-        Assert.Equal("Skipped", Scalar<string>("SELECT download_status FROM channel_videos WHERE id = $id", ("$id", videoId)));
-    }
-
-    [Fact]
-    public void Failed_channel_metadata_stays_terminal_across_recovery_and_channel_refresh()
-    {
-        using var connection = Open();
-        using var transaction = connection.BeginTransaction();
-        var channelId = Insert(connection, transaction, @"
-            INSERT INTO channels
-                (name, source_channel_id, source_url, subscribed, created_at, updated_at, last_checked_at)
-            VALUES ('Restricted channel', 'channel-1', 'https://youtube.test/channel-1', 1, $now, $now, $now)",
-            ("$now", "2026-01-01T00:00:00Z"));
-        var videoId = Insert(connection, transaction, @"
-            INSERT INTO channel_videos
-                (channel_id, video_id, canonical_url, title, discovered_at, updated_at,
-                 download_status, metadata_status, metadata_updated_at, metadata_error, metadata_attempts)
-            VALUES ($channelId, 'restricted-1', 'https://youtube.test/watch/restricted-1', 'Restricted track',
-                    $now, $now, 'NotQueued', 'Failed', $now, 'Sign in to confirm your age', 4)",
-            ("$channelId", channelId), ("$now", "2026-01-01T00:00:00Z"));
-        transaction.Commit();
-
-        _database.RecoverChannelMetadataQueue();
-        var refresh = _database.SaveChannelSnapshot(new YouTubeChannelSnapshot(
-            "https://youtube.test/channel-1",
-            "channel-1",
-            "Restricted channel",
-            "https://youtube.test/channel-1",
-            [new YouTubeChannelVideoEntry(
-                "restricted-1",
-                "https://youtube.test/watch/restricted-1",
-                "Restricted track",
-                180,
-                "2025-12-01")]));
-
-        Assert.True(refresh.Success);
-        Assert.Equal(0, _database.QueueBackgroundChannelVideoMetadata(10));
-        Assert.Equal(0, _database.CountBackgroundChannelVideoMetadataWork());
-        Assert.Equal("Failed", Scalar<string>("SELECT metadata_status FROM channel_videos WHERE id = $id", ("$id", videoId)));
-        Assert.Equal("Sign in to confirm your age", Scalar<string>("SELECT metadata_error FROM channel_videos WHERE id = $id", ("$id", videoId)));
-        Assert.Equal(4L, Scalar<long>("SELECT metadata_attempts FROM channel_videos WHERE id = $id", ("$id", videoId)));
-    }
-
-    [Fact]
-    public void Explicit_video_details_can_be_loaded_for_an_unfollowed_channel()
-    {
-        using (var connection = Open())
-        using (var transaction = connection.BeginTransaction())
-        {
-            var channelId = Insert(connection, transaction, @"
-                INSERT INTO channels (name, subscribed, created_at, updated_at)
-                VALUES ('Unfollowed channel', 0, $now, $now)",
-                ("$now", "2026-01-01T00:00:00Z"));
-            for (var index = 1; index <= 2; index++)
-            {
-                Insert(connection, transaction, @"
-                    INSERT INTO channel_videos
-                        (channel_id, video_id, canonical_url, title, discovered_at, updated_at,
-                         download_status, metadata_status)
-                    VALUES ($channelId, $videoId, $url, $title, $now, $now, 'NotQueued', 'Pending')",
-                    ("$channelId", channelId),
-                    ("$videoId", $"video-{index}"),
-                    ("$url", $"https://youtube.test/watch/video-{index}"),
-                    ("$title", $"Video {index}"),
-                    ("$now", "2026-01-01T00:00:00Z"));
-            }
-            transaction.Commit();
-
-            Assert.Equal(2, _database.QueueAllChannelVideoMetadata(channelId));
-        }
-
-        Assert.True(_database.HasQueuedChannelVideoMetadata());
-        Assert.Equal(2, _database.CountBackgroundChannelVideoMetadataWork());
-        var claimed = _database.ClaimNextChannelVideoMetadata();
-        Assert.NotNull(claimed);
-        Assert.Equal(ChannelMetadataStatus.Loading, claimed.MetadataStatus);
-    }
-
     private int InsertQueueItem(string status, string suffix, string createdAt = "2026-01-01T00:00:00Z")
     {
         using var connection = Open();
@@ -330,33 +205,6 @@ public sealed class MusicDatabaseImportWorkflowTests : IDisposable
         command.Parameters.AddWithValue("$state", state);
         command.Parameters.AddWithValue("$needsReview", needsReview);
         return Convert.ToInt32(command.ExecuteScalar());
-    }
-
-    private int InsertChannelVideo(
-        string downloadStatus,
-        string metadataStatus,
-        string? downloadError,
-        string? metadataError,
-        int downloadAttempts)
-    {
-        using var connection = Open();
-        using var transaction = connection.BeginTransaction();
-        var suffix = Guid.NewGuid().ToString("N");
-        var id = Insert(connection, transaction, @"INSERT INTO channel_videos
-            (canonical_url, download_status, download_error, download_attempts,
-             manual_download_requested, metadata_status, metadata_error,
-             metadata_attempts, metadata_priority, updated_at)
-            VALUES ($url, $downloadStatus, $downloadError, $downloadAttempts,
-                    0, $metadataStatus, $metadataError, 4, 0, $now)",
-            ("$url", $"https://youtu.be/{suffix}"),
-            ("$downloadStatus", downloadStatus),
-            ("$downloadError", (object?)downloadError ?? DBNull.Value),
-            ("$downloadAttempts", downloadAttempts),
-            ("$metadataStatus", metadataStatus),
-            ("$metadataError", (object?)metadataError ?? DBNull.Value),
-            ("$now", DateTime.UtcNow.ToString("O")));
-        transaction.Commit();
-        return id;
     }
 
     private void CreateMinimalSchema()
@@ -420,41 +268,6 @@ public sealed class MusicDatabaseImportWorkflowTests : IDisposable
                 created_at TEXT NOT NULL,
                 updated_at TEXT NOT NULL
             );
-            CREATE TABLE channel_videos (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
-                channel_id INTEGER NULL REFERENCES channels(id) ON DELETE CASCADE,
-                video_id TEXT NULL UNIQUE,
-                canonical_url TEXT NOT NULL UNIQUE,
-                title TEXT NOT NULL DEFAULT '',
-                duration_seconds INTEGER NULL,
-                uploaded_at TEXT NULL,
-                discovered_at TEXT NOT NULL DEFAULT '',
-                is_checked INTEGER NOT NULL DEFAULT 0,
-                download_status TEXT NOT NULL,
-                download_error TEXT NULL,
-                download_attempts INTEGER NOT NULL DEFAULT 0,
-                manual_download_requested INTEGER NOT NULL DEFAULT 0,
-                metadata_status TEXT NOT NULL DEFAULT 'Pending',
-                metadata_updated_at TEXT NULL,
-                metadata_error TEXT NULL,
-                metadata_attempts INTEGER NOT NULL DEFAULT 0,
-                metadata_priority INTEGER NOT NULL DEFAULT 0,
-                view_count INTEGER NULL,
-                like_count INTEGER NULL,
-                thumbnail_url TEXT NULL,
-                updated_at TEXT NOT NULL
-            );
-            CREATE TABLE channel_notifications (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
-                channel_id INTEGER NOT NULL REFERENCES channels(id) ON DELETE CASCADE,
-                channel_video_id INTEGER NULL REFERENCES channel_videos(id) ON DELETE CASCADE,
-                kind TEXT NOT NULL,
-                title TEXT NOT NULL,
-                created_at TEXT NOT NULL,
-                is_read INTEGER NOT NULL DEFAULT 0,
-                is_archived INTEGER NOT NULL DEFAULT 0,
-                UNIQUE(channel_video_id, kind)
-            );";
         command.ExecuteNonQuery();
     }
 

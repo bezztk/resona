@@ -216,13 +216,6 @@ public sealed class RatingAndLanguageTests : IDisposable
                 needs_reevaluation INTEGER NOT NULL DEFAULT 0,
                 is_public INTEGER NOT NULL DEFAULT 1
             );
-            CREATE TABLE channel_videos (
-                canonical_url TEXT NOT NULL UNIQUE,
-                is_checked INTEGER NOT NULL DEFAULT 0,
-                download_status TEXT NOT NULL DEFAULT 'Queued',
-                download_error TEXT NULL,
-                updated_at TEXT NOT NULL
-            );
             INSERT INTO ratings(name, sort_order) VALUES
                 ('Avoid', 1), ('Okay', 2), ('Good', 3), ('Great', 4), ('Favorite', 5);");
     }

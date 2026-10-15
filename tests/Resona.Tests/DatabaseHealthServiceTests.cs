@@ -39,7 +39,7 @@ public sealed class DatabaseHealthServiceTests : IDisposable
     }
 
     [Fact]
-    public async Task Finds_relationship_workflow_mapping_and_file_problems()
+    public async Task Finds_relationship_workflow_and_file_problems()
     {
         File.WriteAllBytes(Path.Combine(TracksDirectory, "Same.mp3"), []);
         var unownedPath = Path.Combine(TracksDirectory, "old-unowned.mp3");
@@ -51,9 +51,6 @@ public sealed class DatabaseHealthServiceTests : IDisposable
             INSERT INTO channels (id, source_url) VALUES
                 (1, 'https://youtube.com/@example'),
                 (2, 'HTTPS://YOUTUBE.COM/@EXAMPLE');
-            INSERT INTO channel_videos
-                (id, channel_id, canonical_url, download_status, metadata_status)
-            VALUES (1, 2, 'https://youtu.be/video', 'BrokenDownloadState', 'BrokenMetadataState');
             INSERT INTO tracks
                 (id, title, file_name, canonical_url, library_state, rating_id,
                  needs_reevaluation, analysis_disabled, channel_id)
@@ -71,11 +68,8 @@ public sealed class DatabaseHealthServiceTests : IDisposable
         Assert.Contains("tracks.workflow", codes);
         Assert.Contains("tracks.duplicate_file", codes);
         Assert.Contains("tracks.duplicate_url", codes);
-        Assert.Contains("channels.mapping", codes);
         Assert.Contains("channels.duplicate_url", codes);
         Assert.Contains("queue.status", codes);
-        Assert.Contains("channels.download_status", codes);
-        Assert.Contains("channels.metadata_status", codes);
         Assert.Contains("files.missing", codes);
         Assert.Contains("files.empty", codes);
         Assert.Contains("files.unowned", codes);
@@ -127,13 +121,6 @@ public sealed class DatabaseHealthServiceTests : IDisposable
                 needs_reevaluation INTEGER NOT NULL DEFAULT 0,
                 analysis_disabled INTEGER NOT NULL DEFAULT 0,
                 channel_id INTEGER NULL REFERENCES channels(id)
-            );
-            CREATE TABLE channel_videos (
-                id INTEGER PRIMARY KEY,
-                channel_id INTEGER NOT NULL REFERENCES channels(id),
-                canonical_url TEXT NOT NULL,
-                download_status TEXT NOT NULL,
-                metadata_status TEXT NOT NULL
             );
             CREATE TABLE import_queue_items (
                 id INTEGER PRIMARY KEY,

@@ -260,31 +260,6 @@ public sealed class DatabaseHealthService
         List<DatabaseHealthIssue> issues,
         CancellationToken cancellationToken)
     {
-        TryDatabaseCheck(issues, "channels.mapping.check", "Channels", "Channel mappings could not be checked", () =>
-        {
-            using var command = connection.CreateCommand();
-            command.CommandText = @"
-                SELECT tracks.id, tracks.title
-                FROM tracks
-                LEFT JOIN channel_videos videos ON videos.canonical_url = tracks.canonical_url
-                WHERE tracks.canonical_url IS NOT NULL
-                  AND ((videos.id IS NOT NULL AND (tracks.channel_id IS NULL OR tracks.channel_id <> videos.channel_id))
-                    OR (tracks.channel_id IS NOT NULL AND videos.id IS NULL))";
-            using var reader = command.ExecuteReader();
-            var mismatches = new List<string>();
-            while (reader.Read())
-            {
-                cancellationToken.ThrowIfCancellationRequested();
-                mismatches.Add($"#{reader.GetInt32(0)} · {reader.GetString(1)}");
-            }
-            if (mismatches.Count > 0)
-                issues.Add(Issue("channels.mapping", DatabaseHealthSeverity.Warning, "Channels",
-                    "Track and Channel Hub mappings disagree",
-                    "The track and its matching channel video do not point to the same channel.",
-                    mismatches.Count,
-                    mismatches.Take(5).ToList()));
-        });
-
         TryDatabaseCheck(issues, "channels.duplicates.check", "Channels", "Channel duplicates could not be checked", () =>
         {
             using var command = connection.CreateCommand();
@@ -320,12 +295,6 @@ public sealed class DatabaseHealthService
         CheckUnknownStatus(connection, issues, cancellationToken,
             "queue.status", "Import queue", "import_queue_items", "status",
             ["Queued", "Downloading", "Analyzing", "ReadyForReview", "Failed", "Skipped"]);
-        CheckUnknownStatus(connection, issues, cancellationToken,
-            "channels.download_status", "Channel downloads", "channel_videos", "download_status",
-            ["NotQueued", "Queued", "Downloading", "Ready", "Failed", "Skipped"]);
-        CheckUnknownStatus(connection, issues, cancellationToken,
-            "channels.metadata_status", "Channel metadata", "channel_videos", "metadata_status",
-            ["Pending", "Queued", "Loading", "Ready", "Failed"]);
     }
 
     private static void CheckUnknownStatus(

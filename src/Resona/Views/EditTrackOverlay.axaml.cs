@@ -67,7 +67,6 @@ public partial class EditTrackOverlay : UserControl
 
     public event Action<int>? TrackSaved;
     public event Action? CollectionsChanged;
-    public event Action<int>? ChannelRequested;
     public event Action<MusicTrack>? PreviewRequested;
     public event Action? PreviewClosed;
     public event Action<string>? ToastRequested;
@@ -369,7 +368,6 @@ public partial class EditTrackOverlay : UserControl
         CopyYouTubeUrlButton.IsEnabled = !string.IsNullOrWhiteSpace(track.CanonicalUrl);
         CopyChannelUrlButton.IsEnabled = !string.IsNullOrWhiteSpace(track.ChannelUrl);
         CopyOriginalTitleButton.IsEnabled = !string.IsNullOrWhiteSpace(originalTitle);
-        OpenChannelButton.IsEnabled = track.ChannelId is not null;
         ToolTip.SetTip(TitleDisplayText, TitleBox.Text);
         ToolTip.SetTip(ArtistDisplayText, ArtistBox.Text);
         ToolTip.SetTip(RemixDisplayText, RemixBox.Text);
@@ -392,12 +390,6 @@ public partial class EditTrackOverlay : UserControl
             return "—";
         var local = parsed.ToLocalTime();
         return includeTime ? local.ToString("dd MMM yyyy · HH:mm") : local.ToString("dd MMM yyyy");
-    }
-
-    private void OnOpenChannelClicked(object? sender, RoutedEventArgs e)
-    {
-        if (_track?.ChannelId is int channelId)
-            ChannelRequested?.Invoke(channelId);
     }
 
     private async void OnCopyYouTubeUrlClicked(object? sender, RoutedEventArgs e) =>

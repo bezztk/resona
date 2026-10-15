@@ -44,8 +44,7 @@ public class MusicLibraryService
         && TrackWorkflowPolicy.ShouldAnalyze(
             track.LibraryState,
             track.AnalysisDisabled,
-            GetTrackAudioAnalysis(id) is not null,
-            _db.IsTrackWaitingForChannelReview(id));
+            GetTrackAudioAnalysis(id) is not null);
     public MusicTrack? GetTrackByCanonicalUrl(string canonicalUrl) =>
         _db.GetTrackByCanonicalUrl(canonicalUrl);
 
@@ -80,7 +79,6 @@ public class MusicLibraryService
     {
         _db.SetTrackRating(id, ratingId);
         BackgroundAnalysisService.Current.EnqueueTrack(id);
-        ChannelHubBackgroundService.Current.RequestRefresh();
     }
     public void SetTrackRatingBand(int id, RatingBand? ratingBand) => _db.SetTrackRatingBand(id, ratingBand);
     public void SetTrackNeedsReview(int id, bool needsReview) => _db.SetTrackNeedsReview(id, needsReview);
@@ -309,126 +307,7 @@ public class MusicLibraryService
 
     public Task<string?> GetRemoteTitleAsync(string canonicalUrl) => _downloader.GetTitleAsync(canonicalUrl);
 
-    public List<ChannelSubscription> GetChannelSubscriptions() => _db.GetChannelSubscriptions();
-    public List<ChannelHubItem> GetChannelHubItems() => _db.GetChannelHubItems();
-    public List<ChannelVideo> GetChannelVideos(int channelId) => _db.GetChannelVideos(channelId);
-    public void RecoverChannelMetadataQueue() => _db.RecoverChannelMetadataQueue();
-    public void PrepareLibraryMetadataBackfill() => _db.PrepareLibraryMetadataBackfill();
-    public void EnsureChannelMetadataQueueIndexes() => _db.EnsureChannelMetadataQueueIndexes();
-    public int QueueChannelVideoMetadata(int channelId, int limit) => _db.QueueChannelVideoMetadata(channelId, limit);
-    public int QueueAllChannelVideoMetadata(int channelId) => _db.QueueAllChannelVideoMetadata(channelId);
-    public bool QueueSpecificChannelVideoMetadata(int videoId) => _db.QueueSpecificChannelVideoMetadata(videoId);
-    public int QueueBackgroundChannelVideoMetadata(int limit) => _db.QueueBackgroundChannelVideoMetadata(limit);
-    public int CountBackgroundChannelVideoMetadataWork() => _db.CountBackgroundChannelVideoMetadataWork();
-    public ChannelVideo? ClaimNextChannelVideoMetadata() => _db.ClaimNextChannelVideoMetadata();
-    public bool HasQueuedChannelVideoMetadata() => _db.HasQueuedChannelVideoMetadata();
-    public int ResetChannelMetadataIssues(int channelId) => _db.ResetChannelMetadataIssues(channelId);
-    public bool RetryChannelVideoIssue(int videoId)
-    {
-        if (!_db.RetryChannelVideoIssue(videoId))
-            return false;
-
-        ChannelMetadataService.Current.NotifyQueueChanged();
-        return true;
-    }
-    public Task<YouTubeTrackMetadata?> GetChannelVideoMetadataAsync(
-        string canonicalUrl,
-        CancellationToken cancellationToken = default) =>
-        _downloader.GetMetadataAsync(canonicalUrl, cancellationToken);
-    public void CompleteChannelVideoMetadata(int videoId, YouTubeTrackMetadata? metadata, string? error) =>
-        _db.CompleteChannelVideoMetadata(videoId, metadata, error);
-    public void SetChannelFollowed(int channelId, bool followed)
-    {
-        _db.SetChannelFollowed(channelId, followed);
-        if (followed)
-            ChannelMetadataService.Current.RequestAllChannels();
-    }
-    public void MarkChannelBasicMetadataChecked(int channelId) => _db.MarkChannelBasicMetadataChecked(channelId);
-    public List<ChannelNotification> GetChannelNotifications() => _db.GetChannelNotifications();
-    public int GetUnreadChannelNotificationCount() => _db.GetUnreadChannelNotificationCount();
-    public void MarkChannelNotificationRead(int notificationId) => _db.MarkChannelNotificationRead(notificationId);
-    public void ArchiveChannelNotification(int notificationId) => _db.ArchiveChannelNotification(notificationId);
-    public bool DeleteChannel(int channelId) => _db.DeleteChannel(channelId);
-
-    public MusicTrack? ConfirmChannelVideo(int videoId)
-    {
-        var trackId = _db.CompleteChannelVideoReview(videoId, skip: false);
-        if (trackId is not int id)
-            return null;
-        BackgroundAnalysisService.Current.EnqueueTrack(id);
-        return GetTrackById(id);
-    }
-
-    public MusicTrack? SkipChannelVideo(int videoId)
-    {
-        var trackId = _db.CompleteChannelVideoReview(videoId, skip: true);
-        return trackId is int id ? GetTrackById(id) : null;
-    }
-
-    public bool DismissChannelVideo(int videoId) => _db.DismissChannelVideo(videoId);
-
     public HashSet<int> GetTrackIdsMissingAnalysis() => _db.GetTrackIdsMissingAnalysis();
-
-    public async Task<ChannelRefreshResult> AddOrRefreshChannelAsync(
-        string rawUrl,
-        IProgress<string>? progress = null,
-        CancellationToken cancellationToken = default)
-    {
-        if (string.IsNullOrWhiteSpace(rawUrl))
-            return new ChannelRefreshResult(false, 0, 0, "Channel URL is required.");
-
-        progress?.Report("Reading channel…");
-        var (snapshot, error) = await _downloader.GetChannelSnapshotAsync(
-            rawUrl.Trim(),
-            cancellationToken);
-        if (snapshot is null)
-            return new ChannelRefreshResult(false, 0, 0, error ?? "Could not read channel.");
-        if (snapshot.Videos.Count == 0)
-            return new ChannelRefreshResult(false, 0, 0, "Channel was read, but no videos were returned.");
-
-        if (!string.IsNullOrWhiteSpace(snapshot.ThumbnailUrl))
-        {
-            progress?.Report("Downloading channel icon…");
-            var artwork = await _downloader.DownloadImageAsync(snapshot.ThumbnailUrl, cancellationToken);
-            snapshot = snapshot with
-            {
-                Thumbnail = artwork is { Length: > 0 }
-                    ? ThumbnailService.CreateChannelThumbnail(artwork)
-                    : null
-            };
-        }
-
-        progress?.Report($"Saving {snapshot.Videos.Count} videos…");
-        var result = await Task.Run(
-            () => _db.SaveChannelSnapshot(snapshot),
-            cancellationToken);
-        ChannelMetadataService.Current.RequestAllChannels();
-        return result;
-    }
-
-    public async Task<ChannelRefreshResult> RefreshChannelAsync(
-        ChannelSubscription channel,
-        IProgress<string>? progress = null,
-        CancellationToken cancellationToken = default) =>
-        await AddOrRefreshChannelAsync(
-            channel.SourceUrl,
-            progress,
-            cancellationToken);
-
-    public async Task<int> RefreshSubscribedChannelsAsync(CancellationToken cancellationToken = default)
-    {
-        var added = 0;
-        foreach (var channel in GetChannelSubscriptions())
-        {
-            cancellationToken.ThrowIfCancellationRequested();
-            var result = await RefreshChannelAsync(
-                channel,
-                cancellationToken: cancellationToken);
-            if (result.Success)
-                added += result.AddedCount;
-        }
-        return added;
-    }
 
     public async Task<ImportResult> ImportFromYouTubeAsync(
         string rawUrl,
@@ -520,7 +399,6 @@ public class MusicLibraryService
                 version?.VersionName);
             var track = GetTrackById(trackId)
                 ?? throw new InvalidOperationException($"Track {trackId} was inserted but could not be reloaded.");
-            ChannelHubBackgroundService.Current.RequestRefresh();
             CloudLibrarySyncService.Current.RequestSynchronization();
             WorkflowLog.Info("download", $"Persisted track {trackId} from a YouTube download.");
             return new ImportResult(true, track);

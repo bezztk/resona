@@ -218,7 +218,6 @@ public partial class MusicView : UserControl
         PlayerBar.SizeChanged += (_, _) => UpdateSettingsLayout();
         PlayerBar.SizeChanged += (_, _) => UpdateEditorBounds();
         PlayerBar.SizeChanged += (_, _) => UpdateImportBounds();
-        PlayerBar.SizeChanged += (_, _) => UpdateChannelOverlayBounds();
 
         // Volume
         Values.Volume = AppSettingsStore.Load().Volume;
@@ -259,8 +258,6 @@ public partial class MusicView : UserControl
         // are intentionally started only after the initial UI data is ready.
         ImportQueueService.Current.Initialize();
         BackgroundAnalysisService.Current.Initialize();
-        ChannelMetadataService.Current.Initialize();
-        ChannelHubBackgroundService.Current.Initialize();
         CloudLibrarySyncService.Current.Initialize();
         _restoringPlayerSession = false;
         UpdateShuffleButton();
@@ -280,23 +277,6 @@ public partial class MusicView : UserControl
             ImportOverlay.RefreshQueue();
             ShowToast("Version added to Current Queue");
         };
-        ChannelOverlay.CloseRequested += () =>
-        {
-            StopTrackPreview();
-            ChannelOverlay.IsVisible = false;
-        };
-        ChannelOverlay.ToastRequested += ShowToast;
-        ChannelOverlay.PreviewRequested += StartTrackPreview;
-        ChannelOverlay.PreviewClosed += StopTrackPreview;
-        ChannelOverlay.TrackChanged += trackId =>
-        {
-            UpdateTrackInList(trackId);
-        };
-        ChannelOverlay.EditRequested += track =>
-        {
-            StopTrackPreview();
-            OpenTrackEditor(track);
-        };
         ImportOverlay.QueueSubmitted += count =>
         {
             ShowToast($"{count} track{(count == 1 ? string.Empty : "s")} added to the import queue");
@@ -305,7 +285,6 @@ public partial class MusicView : UserControl
         ImportQueueService.Current.ItemUpdated += _ => Avalonia.Threading.Dispatcher.UIThread.Post(() =>
         {
             if (ImportOverlay.IsVisible) ImportOverlay.RefreshQueue();
-            if (ChannelOverlay.IsVisible) ChannelOverlay.UpdateDownloadSummary();
         });
         ImportQueueService.Current.TrackImported += (track, warning) => Avalonia.Threading.Dispatcher.UIThread.Post(() =>
         {
@@ -329,30 +308,14 @@ public partial class MusicView : UserControl
                 if (error is null && _engine.ActiveTrackId == track.Id)
                     PrepareTrackEditor(track, force: true);
             });
-        ChannelMetadataService.Current.MetadataUpdated += (channelId, videoId, updatedTrack) =>
-            Avalonia.Threading.Dispatcher.UIThread.Post(() =>
-            {
-                if (updatedTrack is not null)
-                    ApplyRemoteMetadataToTrackList(updatedTrack);
-                if (ChannelOverlay.IsVisible)
-                    ChannelOverlay.OnMetadataUpdated(channelId, videoId);
-            });
         EditTrackOverlay.TrackSaved += trackId =>
         {
             UpdateTrackInList(trackId);
-            if (ChannelOverlay.IsVisible)
-                ChannelOverlay.RefreshChannels();
         };
         EditTrackOverlay.CollectionsChanged += RefreshCollectionsAfterMembershipChange;
         EditTrackOverlay.PreviewRequested += StartTrackPreview;
         EditTrackOverlay.PreviewClosed += StopTrackPreview;
         EditTrackOverlay.ToastRequested += ShowToast;
-        EditTrackOverlay.ChannelRequested += channelId =>
-        {
-            EditTrackOverlay.RequestClose();
-            UpdateChannelOverlayBounds();
-            ChannelOverlay.OpenChannel(channelId);
-        };
         EditTrackOverlay.DeleteRequested += DeleteTrackFromEditorAsync;
         EditTrackOverlay.Closed += PrepareActiveTrackEditor;
         SettingsOverlay.ToastRequested += ShowToast;
@@ -373,9 +336,6 @@ public partial class MusicView : UserControl
 
     private void UpdateImportBounds() =>
         ImportOverlay.Margin = new Thickness(0, 0, 0, PlayerBar.Bounds.Height);
-
-    private void UpdateChannelOverlayBounds() =>
-        ChannelOverlay.Margin = new Thickness(0, 0, 0, PlayerBar.Bounds.Height);
 
     public void EnableSystemMediaControls()
     {
@@ -3896,12 +3856,6 @@ public partial class MusicView : UserControl
         ImportOverlay.Open();
     }
 
-    private void OnChannelsClicked(object? sender, RoutedEventArgs e)
-    {
-        UpdateChannelOverlayBounds();
-        ChannelOverlay.Open();
-    }
-
     private void OnRefreshLibraryClicked(object? sender, RoutedEventArgs e)
     {
         RefreshTrackList();
@@ -4018,7 +3972,6 @@ public partial class MusicView : UserControl
                 _previewPlaybackSnapshot = null;
                 _isTrackPreviewActive = false;
                 _previewTrackId = -1;
-                ChannelOverlay.ClearActivePreview();
                 _engine.Stop();
                 NowPlayingText.Text = string.Empty;
                 PlaybackInfoPanel.IsVisible = false;
@@ -4524,7 +4477,6 @@ public partial class MusicView : UserControl
 
     private void StopTrackPreview()
     {
-        ChannelOverlay.ClearActivePreview();
         if (!_isTrackPreviewActive) return;
 
         var snapshot = _previewPlaybackSnapshot;
@@ -4593,7 +4545,6 @@ public partial class MusicView : UserControl
     {
         if (_isTrackPreviewActive)
         {
-            ChannelOverlay.ClearActivePreview();
             _nextTrackIndex = -1;
             UpdateUpcomingBar();
             return;

@@ -4,7 +4,7 @@ using Resona.Models;
 namespace Resona.Services;
 
 /// <summary>
-/// Defines the invariants shared by imports, channel downloads, review, rating and analysis.
+/// Defines the invariants shared by imports, review, rating and analysis.
 /// Database transitions remain the source of truth; this policy keeps their meaning explicit
 /// and gives workers and tests one place to make eligibility decisions.
 /// </summary>
@@ -13,12 +13,10 @@ public static class TrackWorkflowPolicy
     public static bool ShouldAnalyze(
         TrackLibraryState libraryState,
         bool analysisDisabled,
-        bool hasAnalysis,
-        bool isWaitingForChannelReview = false) =>
+        bool hasAnalysis) =>
         libraryState != TrackLibraryState.Rejected
         && !analysisDisabled
-        && !hasAnalysis
-        && !isWaitingForChannelReview;
+        && !hasAnalysis;
 
     public static IReadOnlyList<string> Validate(
         TrackLibraryState libraryState,

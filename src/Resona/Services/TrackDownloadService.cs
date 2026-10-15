@@ -4,7 +4,6 @@ using System.Collections.Generic;
 using System.Globalization;
 using System.IO;
 using System.Linq;
-using System.Net.Http;
 using System.Threading;
 using System.Text.Json;
 using Resona.Models;
@@ -14,7 +13,6 @@ namespace Resona.Services;
 
 public class TrackDownloadService
 {
-    private static readonly HttpClient ImageClient = new() { Timeout = TimeSpan.FromSeconds(15) };
     public async Task<(bool Success, string ErrorOutput)> RunYtDlpAsync(
         string url,
         CancellationToken cancellationToken = default)
@@ -149,67 +147,6 @@ public class TrackDownloadService
         catch (Exception exception) { return ([], exception.Message); }
     }
 
-    public async Task<(YouTubeChannelSnapshot? Snapshot, string? Error)> GetChannelSnapshotAsync(
-        string url,
-        CancellationToken cancellationToken = default)
-    {
-        try
-        {
-            var result = await RunYouTubeProcessAsync(
-                YtDlpArgs(
-                    "--js-runtimes", "node",
-                    "--ignore-errors",
-                    "--flat-playlist",
-                    "--dump-single-json",
-                    "--no-warnings",
-                    NormalizeChannelVideosUrl(url)
-                ),
-                cancellationToken);
-
-            if (result.ExitCode != 0 && string.IsNullOrWhiteSpace(result.Output))
-                return (null, CleanYtDlpError(result.Error));
-
-            using var document = JsonDocument.Parse(result.Output);
-            var root = document.RootElement;
-            var name = StringValue(root, "channel")
-                       ?? StringValue(root, "uploader")
-                       ?? StringValue(root, "title")
-                       ?? "YouTube channel";
-            var channelUrl = StringValue(root, "channel_url") ?? StringValue(root, "uploader_url") ?? url;
-            var sourceUrl = StringValue(root, "webpage_url") ?? url;
-            var videos = new List<YouTubeChannelVideoEntry>();
-            if (root.TryGetProperty("entries", out var entries) && entries.ValueKind == JsonValueKind.Array)
-            {
-                foreach (var entry in entries.EnumerateArray())
-                    AddChannelVideoEntry(entry, videos);
-            }
-
-            return (new YouTubeChannelSnapshot(
-                sourceUrl,
-                StringValue(root, "channel_id") ?? StringValue(root, "uploader_id"),
-                name,
-                channelUrl,
-                videos,
-                ThumbnailUrl(root),
-                FollowerCount: IntegerValue(root, "channel_follower_count")), null);
-        }
-        catch (OperationCanceledException) { throw; }
-        catch (Exception exception) { return (null, exception.Message); }
-    }
-
-    public async Task<byte[]?> DownloadImageAsync(string? url, CancellationToken cancellationToken = default)
-    {
-        if (!Uri.TryCreate(url, UriKind.Absolute, out var uri))
-            return null;
-        try
-        {
-            var bytes = await ImageClient.GetByteArrayAsync(uri, cancellationToken);
-            return bytes.Length is > 0 and <= 5_000_000 ? bytes : null;
-        }
-        catch (OperationCanceledException) when (!cancellationToken.IsCancellationRequested) { return null; }
-        catch { return null; }
-    }
-
     private static List<YouTubePlaylistEntry> ParsePlaylistEntries(string sourceUrl, string output)
     {
         var entries = new List<YouTubePlaylistEntry>();
@@ -250,27 +187,6 @@ public class TrackDownloadService
         entries.Add(new YouTubePlaylistEntry(sourceUrl, canonicalUrl, title, duration));
     }
 
-    private static void AddChannelVideoEntry(JsonElement root, List<YouTubeChannelVideoEntry> entries)
-    {
-        if (IsUnavailablePlaylistEntry(root)) return;
-
-        var id = StringValue(root, "id");
-        if (string.IsNullOrWhiteSpace(id) || id.Length != 11)
-            id = YouTubeUrlNormalizer.ExtractVideoId(StringValue(root, "url") ?? string.Empty);
-        if (string.IsNullOrWhiteSpace(id)) return;
-
-        var canonicalUrl = YouTubeUrlNormalizer.GetCanonicalUrl(id);
-        if (entries.Any(entry => entry.CanonicalUrl.Equals(canonicalUrl, StringComparison.OrdinalIgnoreCase)))
-            return;
-
-        entries.Add(new YouTubeChannelVideoEntry(
-            id,
-            canonicalUrl,
-            StringValue(root, "title") ?? id,
-            DurationSeconds(root),
-            PublishedDate(root)));
-    }
-
     private static bool IsUnavailablePlaylistEntry(JsonElement root)
     {
         var title = StringValue(root, "title");
@@ -297,19 +213,6 @@ public class TrackDownloadService
     private static bool IsForbiddenResponse(string output) =>
         output.Contains("403", StringComparison.OrdinalIgnoreCase)
         || output.Contains("forbidden", StringComparison.OrdinalIgnoreCase);
-
-    private static string NormalizeChannelVideosUrl(string url)
-    {
-        if (!Uri.TryCreate(url, UriKind.Absolute, out var uri)
-            || !uri.Host.Contains("youtube.com", StringComparison.OrdinalIgnoreCase)
-            || uri.AbsolutePath.EndsWith("/videos", StringComparison.OrdinalIgnoreCase)
-            || uri.AbsolutePath.Contains("/playlist", StringComparison.OrdinalIgnoreCase))
-            return url;
-
-        return uri.AbsolutePath.TrimEnd('/').Length > 0
-            ? $"{uri.Scheme}://{uri.Host}{uri.AbsolutePath.TrimEnd('/')}/videos"
-            : url;
-    }
 
     private static string? PublishedDate(JsonElement root)
         => NormalizeDate(StringValue(root, "release_date"))

@@ -21,16 +21,6 @@ public sealed class TrackWorkflowPolicyTests
     }
 
     [Fact]
-    public void Track_waiting_for_channel_review_is_not_analyzed()
-    {
-        Assert.False(TrackWorkflowPolicy.ShouldAnalyze(
-            TrackLibraryState.PendingRating,
-            analysisDisabled: false,
-            hasAnalysis: false,
-            isWaitingForChannelReview: true));
-    }
-
-    [Fact]
     public void Valid_workflow_states_have_no_issues()
     {
         Assert.Empty(TrackWorkflowPolicy.Validate(TrackLibraryState.PendingRating, null, true, false));
