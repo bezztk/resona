@@ -34,6 +34,43 @@ public sealed class MusicDatabaseImportWorkflowTests : IDisposable
     }
 
     [Fact]
+    public void Queue_preserves_the_complete_download_request()
+    {
+        var request = new DownloadRequest
+        {
+            RawUrl = "https://youtu.be/request",
+            GenreIds = [2, 5],
+            RatingId = 4,
+            StyleIds = [7],
+            IsOriginal = false,
+            ParentTrackId = 42,
+            EditTypes = TrackEditTypes.Remix,
+            VersionName = "Club Mix"
+        };
+        var preview = new ImportPreviewItem(
+            request.RawUrl,
+            request.RawUrl,
+            "Queued track",
+            180,
+            1234,
+            ImportQueueStatus.Queued,
+            Request: request);
+
+        _database.CreateImportBatch(request.RawUrl, [preview]);
+        var claimed = _database.ClaimNextQueuedImport();
+
+        Assert.NotNull(claimed);
+        Assert.Equal(request.RawUrl, claimed.DownloadRequest.RawUrl);
+        Assert.Equal(request.GenreIds, claimed.DownloadRequest.GenreIds);
+        Assert.Equal(request.RatingId, claimed.DownloadRequest.RatingId);
+        Assert.Equal(request.StyleIds, claimed.DownloadRequest.StyleIds);
+        Assert.Equal(request.IsOriginal, claimed.DownloadRequest.IsOriginal);
+        Assert.Equal(request.ParentTrackId, claimed.DownloadRequest.ParentTrackId);
+        Assert.Equal(request.EditTypes, claimed.DownloadRequest.EditTypes);
+        Assert.Equal(request.VersionName, claimed.DownloadRequest.VersionName);
+    }
+
+    [Fact]
     public void Invalid_transition_is_rejected_without_mutating_item()
     {
         var itemId = InsertQueueItem("Queued", "one");
@@ -174,21 +211,6 @@ public sealed class MusicDatabaseImportWorkflowTests : IDisposable
     }
 
     [Fact]
-    public void Retrying_download_failure_requeues_only_that_video()
-    {
-        var failedId = InsertChannelVideo("Failed", "Ready", "network error", null, 3);
-        var skippedId = InsertChannelVideo("Skipped", "Ready", null, null, 0);
-
-        Assert.True(_database.RetryChannelVideoIssue(failedId));
-
-        Assert.Equal("Queued", Scalar<string>("SELECT download_status FROM channel_videos WHERE id = $id", ("$id", failedId)));
-        Assert.Equal(0L, Scalar<long>("SELECT download_attempts FROM channel_videos WHERE id = $id", ("$id", failedId)));
-        Assert.Equal(1L, Scalar<long>("SELECT manual_download_requested FROM channel_videos WHERE id = $id", ("$id", failedId)));
-        Assert.Equal(0L, Scalar<long>("SELECT COUNT(download_error) FROM channel_videos WHERE id = $id", ("$id", failedId)));
-        Assert.Equal("Skipped", Scalar<string>("SELECT download_status FROM channel_videos WHERE id = $id", ("$id", skippedId)));
-    }
-
-    [Fact]
     public void Retrying_metadata_failure_preserves_duration_skip()
     {
         var videoId = InsertChannelVideo("Skipped", "Failed", null, "metadata error", 0);
@@ -200,28 +222,6 @@ public sealed class MusicDatabaseImportWorkflowTests : IDisposable
         Assert.Equal(0L, Scalar<long>("SELECT metadata_attempts FROM channel_videos WHERE id = $id", ("$id", videoId)));
         Assert.Equal(0L, Scalar<long>("SELECT COUNT(metadata_error) FROM channel_videos WHERE id = $id", ("$id", videoId)));
         Assert.Equal("Skipped", Scalar<string>("SELECT download_status FROM channel_videos WHERE id = $id", ("$id", videoId)));
-    }
-
-    [Fact]
-    public void Duration_skip_without_real_error_cannot_be_retried_as_issue()
-    {
-        var videoId = InsertChannelVideo("Skipped", "Ready", null, null, 0);
-
-        Assert.False(_database.RetryChannelVideoIssue(videoId));
-
-        Assert.Equal("Skipped", Scalar<string>("SELECT download_status FROM channel_videos WHERE id = $id", ("$id", videoId)));
-    }
-
-    [Fact]
-    public void Manual_download_can_be_queued_when_metadata_failed()
-    {
-        var videoId = InsertChannelVideo("NotQueued", "Failed", null, "YouTube metadata unavailable", 0);
-
-        Assert.True(_database.RequestChannelVideoDownload(videoId));
-
-        Assert.Equal("Queued", Scalar<string>("SELECT download_status FROM channel_videos WHERE id = $id", ("$id", videoId)));
-        Assert.Equal(1L, Scalar<long>("SELECT manual_download_requested FROM channel_videos WHERE id = $id", ("$id", videoId)));
-        Assert.Equal("Failed", Scalar<string>("SELECT metadata_status FROM channel_videos WHERE id = $id", ("$id", videoId)));
     }
 
     [Fact]
@@ -376,14 +376,11 @@ public sealed class MusicDatabaseImportWorkflowTests : IDisposable
                 updated_at TEXT NULL,
                 last_checked_at TEXT NULL,
                 video_count INTEGER NOT NULL DEFAULT 0,
-                auto_download INTEGER NOT NULL DEFAULT 0,
                 follower_count INTEGER NULL,
                 thumbnail_url TEXT NULL,
                 thumbnail BLOB NULL,
                 remote_metadata_updated_at TEXT NULL,
-                basic_metadata_checked_at TEXT NULL,
-                max_duration_minutes INTEGER NULL,
-                auto_download_from TEXT NULL
+                basic_metadata_checked_at TEXT NULL
             );
             CREATE TABLE tracks (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -419,6 +416,7 @@ public sealed class MusicDatabaseImportWorkflowTests : IDisposable
                 is_original INTEGER NOT NULL DEFAULT 1,
                 parent_track_id INTEGER NULL REFERENCES tracks(id) ON DELETE SET NULL,
                 edit_types INTEGER NOT NULL DEFAULT 0,
+                request_json TEXT NULL,
                 created_at TEXT NOT NULL,
                 updated_at TEXT NOT NULL
             );

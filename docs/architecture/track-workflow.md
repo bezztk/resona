@@ -56,15 +56,13 @@ Claiming a queued item is a conditional database update. Completing an import up
 | Responsibility | Owner |
 | --- | --- |
 | URL normalization and media/metadata retrieval | `TrackDownloadService` |
-| deduplicating concurrent URL creation | `CanonicalUrlOperationCoordinator` |
 | shared download-to-track persistence | `MusicLibraryService.DownloadAndPersistYouTubeTrackAsync` |
 | durable queue transitions and track transactions | `MusicDatabase` |
-| import worker orchestration and UI notifications | `ImportQueueService` |
-| ChannelHub download retry orchestration | `ChannelDownloadService` |
+| the single sequential download worker and UI notifications | `ImportQueueService` |
 | analysis eligibility and execution queue | `TrackWorkflowPolicy` / `BackgroundAnalysisService` |
 | bounded diagnostic history | `WorkflowLog` |
 
-Manual imports and ChannelHub downloads share the same canonical-URL coordinator. Within one app process, only one path may perform the check/download/insert sequence for a URL at a time. The database unique constraint on `canonical_url` is the final integrity boundary.
+Manual imports and ChannelHub actions enter the same persistent queue. Its one worker is the only path that performs the check/download/insert sequence. The database unique constraint on `canonical_url` remains the final integrity boundary.
 
 ## Recovery rules
 
@@ -82,7 +80,7 @@ This prevents recovery from deleting a legitimate library track created concurre
 ## Retry and failure behavior
 
 - A YouTube 403 gets one short retry in the shared download path.
-- Channel downloads use bounded exponential delays and stop after three attempts.
+- Failed downloads stay visible in the import queue and can be queued again explicitly.
 - Transient analysis connection/time-out failures remain queued and pause until the server is reachable again.
 - Permanent file/response analysis failures disable further automatic analysis and set the review flag atomically.
 - Subscriber exceptions from UI events are isolated and logged; they cannot fail a completed background operation.
@@ -98,7 +96,7 @@ The `Resona.Tests` project covers:
 
 - track state invariants and analysis eligibility;
 - allowed and forbidden import queue transitions;
-- same-URL serialization, independent URLs and cancellation cleanup;
+- persisted download-request metadata and FIFO queue claiming;
 - SQLite claim behavior, atomic completion and rollback.
 
 Any new persisted state or transition must extend the policy/state-machine tests before it is used by a worker.

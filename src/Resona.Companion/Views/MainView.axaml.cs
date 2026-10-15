@@ -1005,7 +1005,6 @@ public partial class MainView : UserControl
         CloudPage.IsVisible = true;
         ConfigureSystemBars();
         RefreshCloudPage();
-        _ = RefreshServerDownloadsAsync();
     }
 
     private void OnCloseCloudClicked(object? sender, RoutedEventArgs e) => CloudPage.IsVisible = false;
@@ -1279,36 +1278,6 @@ public partial class MainView : UserControl
 
     private void OnCancelCloudDownloadClicked(object? sender, RoutedEventArgs e) => _cloudDownloadCts?.Cancel();
 
-    private async void OnQueueServerDownloadClicked(object? sender, RoutedEventArgs e)
-    {
-        var url = CloudDownloadUrlBox.Text?.Trim();
-        if (string.IsNullOrWhiteSpace(url))
-        {
-            CloudOperationStatusText.Text = "Paste an individual YouTube track link first.";
-            return;
-        }
-        try
-        {
-            SetCloudBusy(true);
-            var job = await _cloud.QueueServerDownloadAsync(url);
-            CloudDownloadUrlBox.Text = string.Empty;
-            CloudOperationStatusText.Text = $"Queued on server · {job.JobId[..8]}";
-            await RefreshServerDownloadsAsync();
-            ShowToast("Server download queued");
-        }
-        catch (Exception ex)
-        {
-            CloudOperationStatusText.Text = $"Could not queue download: {ex.Message}";
-        }
-        finally
-        {
-            SetCloudBusy(false);
-        }
-    }
-
-    private async void OnRefreshServerDownloadsClicked(object? sender, RoutedEventArgs e) =>
-        await RefreshServerDownloadsAsync();
-
     private async void OnRenameCloudPresetClicked(object? sender, RoutedEventArgs e)
     {
         var selected = SelectedPreset();
@@ -1397,43 +1366,16 @@ public partial class MainView : UserControl
         }
     }
 
-    private async Task RefreshServerDownloadsAsync()
-    {
-        if (_cloud.LoadConnection() is null)
-        {
-            CloudServerJobsText.Text = "Connect this device to the server first.";
-            return;
-        }
-        try
-        {
-            var jobs = await _cloud.GetServerDownloadsAsync();
-            CloudServerJobsText.Text = jobs.Count == 0
-                ? "No server downloads yet."
-                : string.Join(Environment.NewLine, jobs.Take(5).Select(job =>
-                    $"{job.Status} · {job.ProgressPercent}% · {job.Title ?? job.TrackKey ?? job.JobId[..8]}"
-                    + (string.IsNullOrWhiteSpace(job.Error) ? string.Empty : $" · {job.Error}")));
-            if (jobs.Any(job => job.Status == "Completed"))
-                _ = RefreshCloudMetadataAndLibraryAsync(isBackground: true);
-        }
-        catch (Exception ex)
-        {
-            CloudServerJobsText.Text = $"Could not load server downloads: {ex.Message}";
-        }
-    }
-
     private void SetCloudBusy(bool busy)
     {
         _cloudBusy = busy;
         CloudConnectButton.IsEnabled = !busy;
         CloudRefreshButton.IsEnabled = !busy && _cloud.LoadConnection() is not null;
         CloudConnectionCodeBox.IsEnabled = !busy;
-        CloudDownloadUrlBox.IsEnabled = !busy;
         CloudPresetNameBox.IsEnabled = !busy;
         CloudRenamePresetButton.IsEnabled = !busy && _cloud.LoadConnection() is not null;
         CloudCopyPresetButton.IsEnabled = !busy && _cloud.LoadConnection() is not null;
         CloudDeletePresetButton.IsEnabled = !busy && _cloud.LoadConnection() is not null;
-        CloudQueueDownloadButton.IsEnabled = !busy && _cloud.LoadConnection() is not null;
-        CloudRefreshJobsButton.IsEnabled = !busy && _cloud.LoadConnection() is not null;
         CloudDownloadButton.IsEnabled = !busy && _cloudSnapshot is not null
                                       && _cloud.FindMissingAudio(_cloudSnapshot).Count > 0;
         CloudCancelDownloadButton.IsVisible = _cloudDownloadCts is not null;
@@ -1448,8 +1390,6 @@ public partial class MainView : UserControl
         if (connection is not null && !CloudConnectionCodeBox.IsFocused)
             CloudConnectionCodeBox.Text = connection.ServerUrl;
         CloudRefreshButton.IsEnabled = !_cloudBusy && connection is not null;
-        CloudQueueDownloadButton.IsEnabled = !_cloudBusy && connection is not null;
-        CloudRefreshJobsButton.IsEnabled = !_cloudBusy && connection is not null;
         CloudRenamePresetButton.IsEnabled = !_cloudBusy && connection is not null;
         CloudCopyPresetButton.IsEnabled = !_cloudBusy && connection is not null;
         CloudDeletePresetButton.IsEnabled = !_cloudBusy && connection is not null;

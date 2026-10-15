@@ -2,7 +2,7 @@
 
 **Your music, your library, your decisions.**
 
-Resona is a server-backed, local-first music library for people who want to collect, understand, and curate their music instead of handing that job to a streaming service. The self-hosted server is the authoritative library and performs new downloads and analysis. Windows, Linux, and Android keep fast local metadata caches and can retain audio for offline playback.
+Resona is a local-first music library for people who want to collect, understand, and curate their music instead of handing that job to a streaming service. The desktop application downloads new tracks through one local queue, while the self-hosted analyzer handles audio analysis. Windows, Linux, and Android can retain audio for offline playback.
 
 Paste a YouTube video, playlist, mix, or radio link and Resona expands it into a persistent import queue. New tracks can be analyzed with Essentia-based models for genre suggestions, BPM, loudness, dynamics, and emotional character. Ratings, tags, languages, styles, collections, presets, and reusable views make even a large library manageable without taking control away from you.
 
@@ -11,7 +11,7 @@ Resona also includes a dedicated track editor, channel discovery, public profile
 ## How the system fits together
 
 - **Resona Desktop** owns and edits the library.
-- **Resona Cloud API** stores the shared, revisioned library, uploaded audio, presets, and server download jobs.
+- **Resona Cloud API** stores the shared, revisioned library, uploaded audio, and presets.
 - **Resona Analyzer** processes audio for the desktop app.
 - **Resona Android** reads the synchronized snapshot and downloads missing tracks for offline playback.
 
@@ -156,7 +156,7 @@ Then open **Settings → Cloud sync**:
 2. Watch **Local audio**, **In cloud**, and **Pending** during the initial upload.
 3. Leave the desktop app running until the desired files have been uploaded.
 
-Resona also starts synchronization automatically and requests another synchronization after relevant library changes. The first upload may take a long time for a large collection; subsequent runs merge current metadata and transfer only audio that is still missing on the server. With a cloud server configured, new desktop downloads are queued on the server, where yt-dlp, FFmpeg, and the analyzer process them.
+Resona also starts synchronization automatically and requests another synchronization after relevant library changes. The first upload may take a long time for a large collection; subsequent runs merge current metadata and transfer only audio that is still missing on the server. New YouTube imports always run locally through the desktop application's single persistent download queue.
 
 The Cloud API creates its database schema automatically. PostgreSQL data is stored in the `postgres-data` Docker volume, while uploaded audio is stored in `resona-media`. Back up both before server migrations or destructive maintenance.
 
@@ -180,7 +180,7 @@ To connect Android to your private library:
 5. Select **Sync metadata & presets**. On later launches, the cached library opens immediately and this check runs automatically in the background.
 6. Review the number and size of missing tracks, then start **Download missing audio**.
 
-The private server exposes one shared library to devices on your home network or VPN. Android only stores the server URL; it can edit shared track metadata and presets with conflict protection, submit server downloads, and choose which tracks remain offline on the phone.
+The private server exposes one shared library to devices on your home network or VPN. Android stores the server URL and can choose which synchronized tracks remain offline on the phone.
 
 For a server inside the home network, the phone must be connected to that network or VPN. Do not use `localhost` as the Android server address: on the phone, `localhost` refers to the phone itself.
 

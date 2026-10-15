@@ -186,25 +186,7 @@ public record ChannelSubscription(
     string? SourceChannelId,
     string? LastCheckedAt,
     int VideoCount,
-    int UncheckedCount,
-    bool AutoDownload,
-    int QueuedDownloadCount,
-    int ReadyDownloadCount,
-    int DownloadingCount,
-    int FailedDownloadCount,
-    int SkippedDownloadCount,
-    int NotQueuedDownloadCount)
-{
-    public string DownloadStateText => UncheckedCount == 0
-        ? $"✓ All reviewed · {ReadyDownloadCount} ready"
-        : DownloadingCount > 0 || QueuedDownloadCount > 0
-            ? $"↓ Downloading · {ReadyDownloadCount} ready · {DownloadingCount} active · {QueuedDownloadCount} queued"
-            : FailedDownloadCount > 0
-                ? $"! Download stopped · {ReadyDownloadCount} ready · {FailedDownloadCount} failed"
-                : NotQueuedDownloadCount > 0
-                    ? $"○ Auto-download off · {NotQueuedDownloadCount} not downloaded"
-                    : $"✓ Downloads complete · {ReadyDownloadCount} ready · {SkippedDownloadCount} skipped";
-}
+    int UncheckedCount);
 public sealed record ChannelHubItem(
     int Id,
     string Name,
@@ -212,7 +194,6 @@ public sealed record ChannelHubItem(
     string? SourceChannelId,
     bool IsFollowed,
     bool NotificationsEnabled,
-    bool AutoDownload,
     string? LastCheckedAt,
     int LocalTrackCount,
     int RatedTrackCount,
@@ -228,8 +209,6 @@ public sealed record ChannelHubItem(
     int ReviewVideoCount,
     long? FollowerCount,
     long? TotalViewCount,
-    int? MaxDurationMinutes,
-    string? AutoDownloadFrom,
     IReadOnlyList<string> TopTracks,
     byte[]? Thumbnail = null,
     string? BasicMetadataCheckedAt = null)
@@ -322,10 +301,6 @@ public sealed record ChannelHubItem(
     public string FollowGlyph => IsFollowed ? "×" : "+";
     public string FollowToolTip => IsFollowed ? "Unfollow channel" : "Follow channel";
     public bool CanSubscribe => !IsFollowed;
-    public string AutomationText => AutoDownload ? "Auto-download on" : "Manual downloads";
-    public string DurationLimitText => MaxDurationMinutes is int minutes
-        ? $"{minutes} min channel limit"
-        : "Uses global duration limit";
     public string FollowerText => FollowerCount is long followers
         ? $"{FormatCompactNumber(followers)} subscribers"
         : string.Empty;
@@ -351,10 +326,6 @@ public sealed record ChannelHubItem(
             return $"{followerText} · checked {checkedAt.ToLocalTime():dd MMM yyyy}";
         }
     }
-    public string AutomationSummaryText => AutoDownload
-        ? $"Auto-download on · {DurationLimitText}"
-        : $"Auto-download off · {DurationLimitText}";
-
     public string RecommendationReason => TimelessCount > 0
         ? TimelessCount == 1 ? "1 timeless track in your library" : $"{TimelessCount} timeless tracks in your library"
         : GreatOrBetterCount > 0
@@ -425,7 +396,6 @@ public record ChannelVideo(
     int ListenCount = 0,
     int ListenedSeconds = 0,
     int SkipCount = 0);
-public record ChannelDownloadSummary(int Queued, int Downloading, int Ready, int Failed, int Skipped);
 public record ChannelRefreshResult(bool Success, int AddedCount, int UpdatedCount, string? Error = null);
 public record ModelGenre(int Id, string Name);
 public record ModelSubgenre(

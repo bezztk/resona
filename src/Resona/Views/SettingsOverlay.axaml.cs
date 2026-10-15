@@ -102,7 +102,6 @@ public partial class SettingsOverlay : UserControl
         BrowserCookiesToggle.IsChecked = appSettings.UseYtDlpBrowserCookies;
         _loadingBrowserCookieSettings = false;
         ApplyBrowserCookieSettings(save: false);
-        ChannelDownloadDurationBox.Text = appSettings.ChannelDownloadMaxDurationMinutes.ToString(CultureInfo.InvariantCulture);
         RefreshLinuxDependencies();
         RebuildBackupDirectoryRows();
         CloudServerUrlBox.Text = appSettings.CloudServerUrl;
@@ -149,41 +148,6 @@ public partial class SettingsOverlay : UserControl
             null,
             DiscordLargeImageTextBox.Text);
         DiscordPresenceChanged?.Invoke();
-    }
-
-    private void OnChannelDownloadDurationLostFocus(object? sender, RoutedEventArgs e) =>
-        SaveChannelDownloadDuration();
-
-    private void OnChannelDownloadDurationKeyDown(object? sender, KeyEventArgs e)
-    {
-        if (e.Key != Key.Enter)
-            return;
-
-        SaveChannelDownloadDuration();
-        e.Handled = true;
-    }
-
-    private void SaveChannelDownloadDuration()
-    {
-        var current = MusicLibraryService.Current.GetChannelMaxDownloadDurationMinutes();
-        if (!int.TryParse(ChannelDownloadDurationBox.Text, NumberStyles.Integer,
-                CultureInfo.InvariantCulture, out var minutes))
-        {
-            ChannelDownloadDurationBox.Text = current.ToString(CultureInfo.InvariantCulture);
-            ToastRequested?.Invoke("Enter a duration between 1 and 180 minutes");
-            return;
-        }
-
-        minutes = Math.Clamp(
-            minutes,
-            AppSettingsStore.ChannelDownloadMinDurationMinutes,
-            AppSettingsStore.ChannelDownloadMaxDurationMinutes);
-        ChannelDownloadDurationBox.Text = minutes.ToString(CultureInfo.InvariantCulture);
-        if (minutes == current)
-            return;
-
-        MusicLibraryService.Current.SetGlobalChannelMaxDownloadDuration(minutes);
-        ToastRequested?.Invoke($"Automatic channel downloads are limited to {minutes} min");
     }
 
     public void PreloadGenreVocabulary() => EnsureGenreVocabularyLoaded();

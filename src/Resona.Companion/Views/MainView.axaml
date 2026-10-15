@@ -487,31 +487,6 @@
 
                         <Border Height="1" Background="{DynamicResource Mobile.Brush.Divider}"/>
 
-                        <StackPanel Spacing="8">
-                            <TextBlock Text="SERVER DOWNLOAD" FontSize="9.5" FontWeight="SemiBold"
-                                       Foreground="{DynamicResource Mobile.Brush.TextMuted}"/>
-                            <TextBlock Text="Paste one YouTube track. The server downloads and analyzes it; this phone only fetches the audio when you choose to."
-                                       FontSize="10.5" Foreground="{DynamicResource Mobile.Brush.TextSecondary}"
-                                       TextWrapping="Wrap"/>
-                            <TextBox x:Name="CloudDownloadUrlBox"
-                                     Watermark="https://www.youtube.com/watch?v=…"
-                                     MinHeight="40"/>
-                            <Grid ColumnDefinitions="*,Auto" ColumnSpacing="8">
-                                <Button x:Name="CloudQueueDownloadButton"
-                                        Content="Download on server"
-                                        Click="OnQueueServerDownloadClicked"
-                                        HorizontalAlignment="Stretch" Padding="12,8"/>
-                                <Button Grid.Column="1" x:Name="CloudRefreshJobsButton"
-                                        Content="Refresh" Click="OnRefreshServerDownloadsClicked" Padding="12,8"/>
-                            </Grid>
-                            <TextBlock x:Name="CloudServerJobsText"
-                                       Text="No server downloads loaded."
-                                       FontSize="10.5" Foreground="{DynamicResource Mobile.Brush.TextMuted}"
-                                       TextWrapping="Wrap"/>
-                        </StackPanel>
-
-                        <Border Height="1" Background="{DynamicResource Mobile.Brush.Divider}"/>
-
                         <StackPanel Spacing="12">
                             <TextBlock Text="OFFLINE AUDIO" FontSize="9.5" FontWeight="SemiBold"
                                        Foreground="{DynamicResource Mobile.Brush.TextMuted}"/>

@@ -134,21 +134,5 @@ public static class CloudSchema
             PRIMARY KEY (user_id, track_key)
         );
 
-        CREATE TABLE IF NOT EXISTS library_download_jobs (
-            id                  uuid PRIMARY KEY,
-            user_id             uuid NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-            url                 varchar(2048) NOT NULL,
-            status              varchar(30) NOT NULL,
-            progress_percent    integer NOT NULL DEFAULT 0 CHECK (progress_percent BETWEEN 0 AND 100),
-            track_key           varchar(128) NULL,
-            title               varchar(500) NULL,
-            error               text NULL,
-            created_at          timestamptz NOT NULL DEFAULT now(),
-            updated_at          timestamptz NOT NULL DEFAULT now()
-        );
-        ALTER TABLE library_download_jobs
-            ADD COLUMN IF NOT EXISTS request_json jsonb NULL;
-        CREATE INDEX IF NOT EXISTS ix_library_download_jobs_queue
-            ON library_download_jobs(status, created_at);
         """;
 }

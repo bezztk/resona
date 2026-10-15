@@ -7,7 +7,7 @@ using Resona.Models;
 
 namespace Resona.Services;
 
-/// <summary>Persists import plans and downloads one item at a time without blocking the UI.</summary>
+/// <summary>The single persistent YouTube download queue. Exactly one worker processes it.</summary>
 public sealed class ImportQueueService
 {
     public static readonly ImportQueueService Current = new();
@@ -53,12 +53,7 @@ public sealed class ImportQueueService
             {
                 var result = await _downloader.GetPlaylistEntriesAsync(
                     sourceUrl,
-                    sourceTimeout.Token,
-                    new BackgroundJobOptions(
-                        BackgroundJobKind.YouTubePlaylist,
-                        "Read import links",
-                        "Import preview",
-                        BackgroundJobPriority.UserInitiated));
+                    sourceTimeout.Token);
                 entries = result.Entries;
                 readError = result.Error;
             }
@@ -137,6 +132,26 @@ public sealed class ImportQueueService
         EnsureWorker();
     }
 
+    public void Queue(DownloadRequest request, string title)
+    {
+        var videoId = YouTubeUrlNormalizer.ExtractVideoId(request.RawUrl)
+                      ?? throw new InvalidOperationException("Could not parse YouTube URL.");
+        var canonicalUrl = YouTubeUrlNormalizer.GetCanonicalUrl(videoId);
+        var item = new ImportPreviewItem(
+            canonicalUrl,
+            canonicalUrl,
+            string.IsNullOrWhiteSpace(title) ? videoId : title.Trim(),
+            null,
+            null,
+            ImportQueueStatus.Queued,
+            IsOriginal: request.IsOriginal,
+            ParentTrackId: request.ParentTrackId,
+            EditTypes: request.EditTypes,
+            Request: request);
+        MusicLibraryService.Current.CreateImportBatch(canonicalUrl, [item], rejectDuplicates: true);
+        EnsureWorker();
+    }
+
     public void QueueVersion(MusicTrack original, TrackEditTypes type, string rawUrl)
     {
         var item = CreateVersionPreview(original, type, rawUrl);
@@ -182,11 +197,8 @@ public sealed class ImportQueueService
     {
         try
         {
-            var workerCount = Math.Max(1, Values.MaxParallelDownloadWorkers);
-            var workers = Enumerable.Range(0, workerCount)
-                .Select(_ => ProcessQueueWorkerAsync())
-                .ToArray();
-            await Task.WhenAll(workers);
+            while (ClaimNextQueuedImport() is { } item)
+                await ProcessQueueItemAsync(item);
         }
         finally
         {
@@ -197,12 +209,6 @@ public sealed class ImportQueueService
                     _workerTask = Task.Run(ProcessQueueAsync);
             }
         }
-    }
-
-    private async Task ProcessQueueWorkerAsync()
-    {
-        while (ClaimNextQueuedImport() is { } item)
-            await ProcessQueueItemAsync(item);
     }
 
     private ImportQueueItem? ClaimNextQueuedImport()

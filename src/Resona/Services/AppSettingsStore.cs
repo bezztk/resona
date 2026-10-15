@@ -10,8 +10,6 @@ namespace Resona.Services;
 
 public static class AppSettingsStore
 {
-    public const int ChannelDownloadMinDurationMinutes = 1;
-    public const int ChannelDownloadMaxDurationMinutes = 180;
     private static readonly HashSet<string> SupportedYtDlpCookieBrowsers = new(StringComparer.OrdinalIgnoreCase)
     {
         "firefox", "chrome", "edge", "brave"
@@ -34,10 +32,6 @@ public static class AppSettingsStore
             var json = File.ReadAllText(Values.AppSettingsPath);
             var settings = JsonSerializer.Deserialize<AppSettings>(json, JsonOptions) ?? new AppSettings();
             settings.Volume = Math.Clamp(settings.Volume, 0f, 1f);
-            settings.ChannelDownloadMaxDurationMinutes = Math.Clamp(
-                settings.ChannelDownloadMaxDurationMinutes,
-                ChannelDownloadMinDurationMinutes,
-                ChannelDownloadMaxDurationMinutes);
             settings.Appearance = (settings.Appearance ?? new AppearanceSettings()).Clamp();
             settings.YtDlpCookiesBrowser = NormalizeYtDlpCookiesBrowser(settings.YtDlpCookiesBrowser);
             settings.PlayerSession ??= new PlayerSessionSettings();
@@ -62,16 +56,6 @@ public static class AppSettingsStore
         var settings = Load();
         settings.MusicAnalysisServerUrl = serverUrl;
         settings.MusicAnalysisApiKey = string.IsNullOrWhiteSpace(apiKey) ? null : apiKey.Trim();
-        Save(settings);
-    }
-
-    public static void SaveChannelDownloadMaxDurationMinutes(int minutes)
-    {
-        var settings = Load();
-        settings.ChannelDownloadMaxDurationMinutes = Math.Clamp(
-            minutes,
-            ChannelDownloadMinDurationMinutes,
-            ChannelDownloadMaxDurationMinutes);
         Save(settings);
     }
 
@@ -146,7 +130,6 @@ public sealed class AppSettings
     public float Volume { get; set; } = 0.53030306f;
     public string MusicAnalysisServerUrl { get; set; } = "https://analyzer.resona-music.de";
     public string? MusicAnalysisApiKey { get; set; }
-    public int ChannelDownloadMaxDurationMinutes { get; set; } = 12;
     public AppearanceSettings Appearance { get; set; } = new();
     public string LastSettingsPage { get; set; } = "genres";
     public PlayerSessionSettings PlayerSession { get; set; } = new();

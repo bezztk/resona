@@ -27,9 +27,6 @@ services:
       ASPNETCORE_ENVIRONMENT: Production
       ConnectionStrings__Postgres: Host=postgres;Port=5432;Database=${POSTGRES_DB:-resona};Username=${POSTGRES_USER:-resona};Password=${POSTGRES_PASSWORD}
       MediaStoragePath: /app/data/media
-      AnalyzerBaseUrl: http://analyzer:8000/
-      AnalyzerApiKey: ${MUSIC_API_KEY:-}
-      EnableServerDownloads: "true"
     volumes:
       - resona-media:/app/data/media
     ports:

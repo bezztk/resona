@@ -53,13 +53,11 @@ PUT /api/v1/library-media/{trackKey}
 GET /api/v1/library-media/{trackKey}
 PUT /api/v1/device-library/tracks/{trackKey}
 PUT /api/v1/device-library/presets
-POST /api/v1/downloads
-GET /api/v1/downloads
 ```
 
 Audio uploads are atomic and recorded only after the complete file has been written and hashed. Downloads support HTTP range requests. The desktop compares its local library with `GET /api/v1/library-media` and uploads only missing files, so interrupted initial synchronization resumes on the next application start.
 
-Track and preset updates require the revision last read by the client. Stale writes return HTTP 409 together with the current server value. New YouTube downloads are queued by either client, downloaded as M4A in the API container, analyzed through the internal analyzer service, and then added to the shared library. Existing clients remain usable while a job is running.
+Track and preset updates require the revision last read by the client. Stale writes return HTTP 409 together with the current server value. YouTube downloads run only in the Windows application and enter its single persistent local queue.
 
 The analyzer intentionally runs one analysis at a time by default because TensorFlow inference is memory intensive. It returns MAEST genre scores, BPM, EBU R128 loudness/dynamics, and the MIREX emotional-character clusters used by Resona. Increase `MAX_CONCURRENT_ANALYSES` only after checking memory usage on the server.
 

@@ -114,24 +114,3 @@ public sealed record CloudRevisionConflict(
     long ExpectedRevision,
     long CurrentRevision,
     object CurrentValue);
-
-public sealed record CloudDownloadRequest(
-    string Url,
-    string? Rating = null,
-    IReadOnlyList<string>? Genres = null,
-    IReadOnlyList<string>? Styles = null,
-    bool IsOriginal = true,
-    string? ParentTrackKey = null,
-    IReadOnlyList<string>? EditTypes = null,
-    string? VersionName = null);
-
-public sealed record CloudDownloadJob(
-    string JobId,
-    string Url,
-    string Status,
-    int ProgressPercent,
-    string? TrackKey,
-    string? Title,
-    string? Error,
-    string CreatedAt,
-    string UpdatedAt);

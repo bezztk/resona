@@ -146,9 +146,6 @@ public partial class MusicView : UserControl
     public MusicView()
     {
         InitializeComponent();
-        ActivityCenter.CloseRequested += UpdateActivityCenterButtonVisual;
-        ActivityCenter.SummaryChanged += UpdateActivityCenterSummary;
-        UpdateActivityCenterSummary(ActivityCenter.CurrentSummary);
         MoveFilterDrawerToRootOverlay();
         var appSettings = AppSettingsStore.Load();
         Values.UseYtDlpBrowserCookies = appSettings.UseYtDlpBrowserCookies;
@@ -262,7 +259,6 @@ public partial class MusicView : UserControl
         // are intentionally started only after the initial UI data is ready.
         ImportQueueService.Current.Initialize();
         BackgroundAnalysisService.Current.Initialize();
-        ChannelDownloadService.Current.Initialize();
         ChannelMetadataService.Current.Initialize();
         ChannelHubBackgroundService.Current.Initialize();
         CloudLibrarySyncService.Current.Initialize();
@@ -332,19 +328,6 @@ public partial class MusicView : UserControl
                         : $"Analysis failed for {track.Title}: {error}");
                 if (error is null && _engine.ActiveTrackId == track.Id)
                     PrepareTrackEditor(track, force: true);
-            });
-        ChannelDownloadService.Current.QueueChanged += () => Avalonia.Threading.Dispatcher.UIThread.Post(() =>
-        {
-            if (ChannelOverlay.IsVisible) ChannelOverlay.UpdateDownloadSummary();
-        });
-        ChannelDownloadService.Current.DownloadFinished += (video, track, error) =>
-            Avalonia.Threading.Dispatcher.UIThread.Post(() =>
-            {
-                ChannelOverlay.OnDownloadFinished(video.Id, track, error);
-                if (track is not null)
-                {
-                    MarkLibraryRefreshPending();
-                }
             });
         ChannelMetadataService.Current.MetadataUpdated += (channelId, videoId, updatedTrack) =>
             Avalonia.Threading.Dispatcher.UIThread.Post(() =>
@@ -1676,7 +1659,6 @@ public partial class MusicView : UserControl
 
     private void OpenFilterDrawer()
     {
-        CloseActivityCenter();
         _filterPanelVisible = true;
         UpdateSettingsLayout();
         FilterDrawer.Opacity = 1;
@@ -3911,51 +3893,11 @@ public partial class MusicView : UserControl
 
     private void OnImportClicked(object? sender, RoutedEventArgs e)
     {
-        CloseActivityCenter();
         ImportOverlay.Open();
-    }
-
-    private void OnActivityCenterClicked(object? sender, RoutedEventArgs e)
-    {
-        if (ActivityCenter.IsVisible)
-            ActivityCenter.IsVisible = false;
-        else
-        {
-            ActivityCenter.Open();
-        }
-        UpdateActivityCenterButtonVisual();
-    }
-
-    private void UpdateActivityCenterSummary(ActivityCenterSummary summary)
-    {
-        ActivityBadge.IsVisible = summary.CurrentCount > 0 || summary.Failed > 0;
-        ActivityBadgeText.Text = summary.CurrentCount > 0
-            ? summary.CurrentCount > 99 ? "99+" : summary.CurrentCount.ToString(CultureInfo.InvariantCulture)
-            : "!";
-        ActivityBadge.Background = Brush(summary.Failed > 0 ? "#D75962" : "#587FA8");
-        ToolTip.SetTip(ActivityCenterToggleButton,
-            summary.CurrentCount > 0
-                ? $"Activity Center · {summary.CurrentCount} current"
-                : summary.Failed > 0 ? $"Activity Center · {summary.Failed} failed" : "Activity Center");
-    }
-
-    private void CloseActivityCenter()
-    {
-        ActivityCenter.IsVisible = false;
-        UpdateActivityCenterButtonVisual();
-    }
-
-    private void UpdateActivityCenterButtonVisual()
-    {
-        ActivityCenterToggleButton.Background = ActivityCenter.IsVisible
-            ? Brush("#343E6591")
-            : Brushes.Transparent;
-        ActivityCenterToggleButton.Opacity = ActivityCenter.IsVisible ? 1 : 0.86;
     }
 
     private void OnChannelsClicked(object? sender, RoutedEventArgs e)
     {
-        CloseActivityCenter();
         UpdateChannelOverlayBounds();
         ChannelOverlay.Open();
     }
@@ -3969,7 +3911,6 @@ public partial class MusicView : UserControl
 
     private void OnSettingsClicked(object? sender, RoutedEventArgs e)
     {
-        CloseActivityCenter();
         UpdateSettingsLayout();
         SettingsOverlay.Open();
     }
@@ -4032,7 +3973,6 @@ public partial class MusicView : UserControl
 
     private void OpenTrackEditor(MusicTrack track)
     {
-        CloseActivityCenter();
         UpdateEditorBounds();
         EditTrackOverlay.Open(track);
     }

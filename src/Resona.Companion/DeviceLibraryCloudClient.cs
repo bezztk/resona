@@ -180,33 +180,6 @@ public sealed class DeviceLibraryCloudClient
         return snapshot;
     }
 
-    public async Task<CloudDownloadJob> QueueServerDownloadAsync(
-        string url,
-        CancellationToken cancellationToken = default)
-    {
-        var connection = LoadConnection()
-                         ?? throw new InvalidOperationException("Cloud connection is not configured.");
-        using var request = CreateRequest(connection, HttpMethod.Post, "api/v1/downloads");
-        request.Content = JsonContent.Create(new CloudDownloadRequest(url.Trim()), options: JsonOptions);
-        using var response = await _httpClient.SendAsync(request, cancellationToken);
-        response.EnsureSuccessStatusCode();
-        return await response.Content.ReadFromJsonAsync<CloudDownloadJob>(JsonOptions, cancellationToken)
-               ?? throw new InvalidDataException("Cloud server returned an empty download job.");
-    }
-
-    public async Task<IReadOnlyList<CloudDownloadJob>> GetServerDownloadsAsync(
-        CancellationToken cancellationToken = default)
-    {
-        var connection = LoadConnection()
-                         ?? throw new InvalidOperationException("Cloud connection is not configured.");
-        using var request = CreateRequest(connection, HttpMethod.Get, "api/v1/downloads");
-        using var response = await _httpClient.SendAsync(request, cancellationToken);
-        response.EnsureSuccessStatusCode();
-        return await response.Content.ReadFromJsonAsync<List<CloudDownloadJob>>(
-                   JsonOptions, cancellationToken)
-               ?? [];
-    }
-
     public static bool IsNewer(string candidateTimestamp, string currentTimestamp)
     {
         const DateTimeStyles styles = DateTimeStyles.AssumeUniversal | DateTimeStyles.AdjustToUniversal;

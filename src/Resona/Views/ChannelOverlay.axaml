@@ -898,10 +898,6 @@
                             <Image Source="{SvgImage /Assets/search.svg}" Width="17" Height="17"/>
                         </Button>
                         <Button x:Name="DetailFollowButton" Classes="follow-toggle" Click="OnDetailFollowClicked"/>
-                        <Button x:Name="DetailAutoDownloadButton" Classes="channel-icon"
-                                Click="OnDetailAutoDownloadClicked" ToolTip.Tip="Toggle automatic downloads">
-                            <Image Source="{SvgImage /Assets/download.svg}" Width="16" Height="16"/>
-                        </Button>
                         <Button x:Name="DetailRefreshButton" Classes="channel-icon" Click="OnRefreshSelectedClicked" ToolTip.Tip="Refresh channel">
                             <Image Source="{SvgImage /Assets/reload.svg}" Width="16" Height="16"/>
                         </Button>
@@ -1047,15 +1043,8 @@
                                                    IsVisible="{Binding HasLibraryDetails}"/>
                                     </StackPanel>
                                     <StackPanel Grid.Row="2" Grid.ColumnSpan="2" Spacing="2">
-                                        <TextBlock Text="{Binding AutoDownloadLimitWarningText}"
-                                                   IsVisible="{Binding IsOverAutoDownloadLimit}"
-                                                   FontSize="10" Foreground="{DynamicResource Theme.Brush.Warning}"
-                                                   TextWrapping="Wrap"/>
                                         <TextBlock Text="{Binding MetadataErrorSummary}" IsVisible="{Binding HasMetadataError}"
                                                    ToolTip.Tip="{Binding MetadataErrorDetails}" FontSize="10.5"
-                                                   Foreground="#E87878" Opacity="0.86" TextWrapping="Wrap" MaxHeight="34"/>
-                                        <TextBlock Text="{Binding DownloadErrorSummary}" IsVisible="{Binding HasDownloadError}"
-                                                   ToolTip.Tip="{Binding DownloadErrorDetails}" FontSize="10.5"
                                                    Foreground="#E87878" Opacity="0.86" TextWrapping="Wrap" MaxHeight="34"/>
                                     </StackPanel>
                                 </Grid>

@@ -66,54 +66,6 @@ public sealed class CloudLibrarySyncService
 
     public event Action<CloudSyncStatus>? StatusChanged;
 
-    public bool CanUseServerDownloads =>
-        ServerUrlNormalizer.TryNormalize(AppSettingsStore.Load().CloudServerUrl, out _);
-
-    public async Task<CloudDownloadJob> QueueServerDownloadAsync(
-        DownloadRequest request,
-        CancellationToken cancellationToken = default)
-    {
-        var configuredServerUrl = AppSettingsStore.Load().CloudServerUrl;
-        if (!ServerUrlNormalizer.TryNormalize(configuredServerUrl, out var serverUrl)
-            || !Uri.TryCreate(serverUrl, UriKind.Absolute, out var baseUri))
-            throw new InvalidOperationException("Cloud server is not configured.");
-        var identity = CloudIdentityStore.Current.GetOrCreate();
-        var library = MusicLibraryService.Current;
-        var rating = request.RatingId is int ratingId
-            ? library.GetRatings().FirstOrDefault(item => item.Id == ratingId)?.Name
-            : null;
-        var genres = library.GetGenres().ToDictionary(item => item.Id, item => item.Name);
-        var styles = library.GetStyles().ToDictionary(item => item.Id, item => item.Name);
-        string? parentTrackKey = null;
-        if (request.ParentTrackId is int parentId && library.GetTrackById(parentId) is { } parent)
-            parentTrackKey = string.IsNullOrWhiteSpace(parent.SourceVideoId)
-                ? YouTubeUrlNormalizer.ExtractVideoId(parent.CanonicalUrl)
-                : parent.SourceVideoId;
-        var payload = new CloudDownloadRequest(
-            request.RawUrl,
-            rating,
-            request.GenreIds.Select(id => genres.GetValueOrDefault(id))
-                .Where(name => !string.IsNullOrWhiteSpace(name)).Cast<string>().ToList(),
-            request.StyleIds.Select(id => styles.GetValueOrDefault(id))
-                .Where(name => !string.IsNullOrWhiteSpace(name)).Cast<string>().ToList(),
-            request.IsOriginal,
-            parentTrackKey,
-            TrackVersions.Types.Where(type => request.EditTypes.HasFlag(type.Type))
-                .Select(type => type.Name).ToList(),
-            request.VersionName);
-        using var message = new HttpRequestMessage(
-            HttpMethod.Post,
-            new Uri(EnsureTrailingSlash(baseUri), "api/v1/downloads"))
-        {
-            Content = JsonContent.Create(payload, options: JsonOptions)
-        };
-        AddDeviceHeaders(message, identity);
-        using var response = await _httpClient.SendAsync(message, cancellationToken);
-        response.EnsureSuccessStatusCode();
-        return await response.Content.ReadFromJsonAsync<CloudDownloadJob>(JsonOptions, cancellationToken)
-               ?? throw new InvalidDataException("Cloud server returned an empty download job.");
-    }
-
     public void Initialize()
     {
         if (Interlocked.Exchange(ref _initialized, 1) != 0)

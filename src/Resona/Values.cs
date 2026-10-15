@@ -40,9 +40,6 @@ public static class Values
 
     public static float Volume = 1f;
     public const int ManualFadeDurationSeconds = 2;
-    // Durable domain queues may prepare three items; the central job scheduler is
-    // the final authority that enforces the same global yt-dlp concurrency limit.
-    public const int MaxParallelDownloadWorkers = 3;
     public static bool UseYtDlpBrowserCookies;
     public static string YtDlpCookiesBrowser = "firefox";
 

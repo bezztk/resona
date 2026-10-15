@@ -283,7 +283,7 @@ public partial class AddTrackOverlay : UserControl
 
     // ─── Download ─────────────────────────────────────────────────────────────
 
-    private async void OnDownloadClicked(object? sender, RoutedEventArgs e)
+    private void OnDownloadClicked(object? sender, RoutedEventArgs e)
     {
         if (_validCanonicalUrl is null)
             return;
@@ -304,7 +304,10 @@ public partial class AddTrackOverlay : UserControl
             ParentTrackId = VersionFields.ParentTrackId,
             EditTypes = VersionFields.EditTypes,
             VersionName = VersionNameBox.Text,
-            GenreIds = [],
+            GenreIds = _genreChips
+                .Where(c => c.Btn.IsChecked == true)
+                .Select(c => c.Genre.Id)
+                .ToList(),
             RatingId = _ratings[RatingBox.SelectedIndex].Id,
             StyleIds = _styleChips
                 .Where(c => c.Btn.IsChecked == true)
@@ -312,50 +315,27 @@ public partial class AddTrackOverlay : UserControl
                 .ToList()
         };
 
-        var progress = new Progress<string>(stage => BusyTitleText.Text = stage);
-        DownloadResult result;
         try
         {
-            if (CloudLibrarySyncService.Current.CanUseServerDownloads)
-            {
-                BusyTitleText.Text = "Queueing on music server";
-                var job = await CloudLibrarySyncService.Current.QueueServerDownloadAsync(
-                    request);
-                result = new DownloadResult(
-                    true,
-                    Warning: $"Queued on the music server · {job.JobId[..8]}. It will appear after the next sync.");
-            }
-            else
-            {
-                result = await MusicLibraryService.Current.DownloadTrackAsync(request, progress);
-            }
+            ImportQueueService.Current.Queue(request, _remoteTitle ?? _validCanonicalUrl);
         }
-        catch (OperationCanceledException)
+        catch (Exception exception)
         {
             SetBusy(false);
-            StatusText.Text = "Download canceled.";
+            StatusText.Text = exception.Message;
             UpdateDownloadButton();
             CloseBtn.IsEnabled = true;
             return;
         }
 
-        if (!result.Success)
-        {
-            SetBusy(false);
-            StatusText.Text = result.Error;
-            UpdateDownloadButton();
-            CloseBtn.IsEnabled = true;
-            return;
-        }
-
-        TrackDownloaded?.Invoke(result.Warning);
+        TrackDownloaded?.Invoke("Track added to the download queue");
     }
 
     private void SetBusy(bool isBusy, string detail = "")
     {
         _downloading = isBusy;
         BusyLayer.IsVisible = isBusy;
-        BusyTitleText.Text = "Downloading track";
+        BusyTitleText.Text = "Adding to download queue";
         BusyDetailText.Text = detail;
         DownloadBtn.IsEnabled = !isBusy && DownloadBtn.IsEnabled;
         CloseBtn.IsEnabled = !isBusy;

@@ -90,13 +90,6 @@ public sealed class ChannelMetadataService
         RaiseQueueChanged();
     }
 
-    public void RequestAutoDownloadMetadata(int limit = 1)
-    {
-        MusicLibraryService.Current.QueueAutoDownloadMetadata(limit);
-        EnsureWorker();
-        RaiseQueueChanged();
-    }
-
     public void RequestAllChannels(int limit = BackgroundBatchSize)
     {
         MusicLibraryService.Current.QueueBackgroundChannelVideoMetadata(limit);
@@ -177,7 +170,6 @@ public sealed class ChannelMetadataService
                     ? MusicLibraryService.Current.GetTrackById(trackId)
                     : null;
                 RaiseMetadataUpdated(video.ChannelId, video.Id, updatedTrack);
-                ChannelDownloadService.Current.NotifyQueueChanged();
                 RaiseQueueChanged();
             }
         }

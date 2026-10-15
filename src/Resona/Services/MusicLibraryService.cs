@@ -15,16 +15,13 @@ public class MusicLibraryService
     private readonly MusicDatabase _db = new();
     private readonly TrackDownloadService _downloader = new();
     private readonly TrackAnalysisService _analysis = new();
-    private readonly CanonicalUrlOperationCoordinator _trackOperations = new();
     private readonly Dictionary<int, IReadOnlyList<ExperimentalAnalysisModel>> _experimentalAnalysis = [];
-    private int _channelMaxDownloadDurationMinutes = 12;
 
     public void Initialize()
     {
         if (Values.LibraryLocationsLoadError is not null)
             throw new InvalidOperationException(Values.LibraryLocationsLoadError);
 
-        _channelMaxDownloadDurationMinutes = AppSettingsStore.Load().ChannelDownloadMaxDurationMinutes;
         _db.Initialize();
         var fileNameMigration = TrackFileNameMigration.Run(Values.DbPath, Values.TracksDirectory);
         if (fileNameMigration.Renamed > 0 || fileNameMigration.Recovered > 0)
@@ -310,13 +307,7 @@ public class MusicLibraryService
     public void SetCollectionCoverTrack(int collectionId, int trackId) => _db.SetCollectionCoverTrack(collectionId, trackId);
     public void SetCollectionCustomCover(int collectionId, byte[] cover) => _db.SetCollectionCustomCover(collectionId, cover);
 
-    public Task<string?> GetRemoteTitleAsync(string canonicalUrl) => _downloader.GetTitleAsync(
-        canonicalUrl,
-        YouTubeJob(
-            BackgroundJobKind.YouTubeMetadata,
-            "Read track title",
-            "Add track",
-            BackgroundJobPriority.UserInitiated));
+    public Task<string?> GetRemoteTitleAsync(string canonicalUrl) => _downloader.GetTitleAsync(canonicalUrl);
 
     public List<ChannelSubscription> GetChannelSubscriptions() => _db.GetChannelSubscriptions();
     public List<ChannelHubItem> GetChannelHubItems() => _db.GetChannelHubItems();
@@ -327,7 +318,6 @@ public class MusicLibraryService
     public int QueueChannelVideoMetadata(int channelId, int limit) => _db.QueueChannelVideoMetadata(channelId, limit);
     public int QueueAllChannelVideoMetadata(int channelId) => _db.QueueAllChannelVideoMetadata(channelId);
     public bool QueueSpecificChannelVideoMetadata(int videoId) => _db.QueueSpecificChannelVideoMetadata(videoId);
-    public int QueueAutoDownloadMetadata(int limit) => _db.QueueAutoDownloadMetadata(limit);
     public int QueueBackgroundChannelVideoMetadata(int limit) => _db.QueueBackgroundChannelVideoMetadata(limit);
     public int CountBackgroundChannelVideoMetadataWork() => _db.CountBackgroundChannelVideoMetadataWork();
     public ChannelVideo? ClaimNextChannelVideoMetadata() => _db.ClaimNextChannelVideoMetadata();
@@ -339,26 +329,14 @@ public class MusicLibraryService
             return false;
 
         ChannelMetadataService.Current.NotifyQueueChanged();
-        ChannelDownloadService.Current.NotifyQueueChanged();
         return true;
     }
     public Task<YouTubeTrackMetadata?> GetChannelVideoMetadataAsync(
         string canonicalUrl,
         CancellationToken cancellationToken = default) =>
-        _downloader.GetMetadataAsync(
-            canonicalUrl,
-            cancellationToken,
-            YouTubeJob(
-                BackgroundJobKind.YouTubeMetadata,
-                "Read channel video metadata",
-                "Channel metadata",
-                BackgroundJobPriority.Background));
+        _downloader.GetMetadataAsync(canonicalUrl, cancellationToken);
     public void CompleteChannelVideoMetadata(int videoId, YouTubeTrackMetadata? metadata, string? error) =>
-        _db.CompleteChannelVideoMetadata(
-            videoId,
-            metadata,
-            error,
-            _channelMaxDownloadDurationMinutes);
+        _db.CompleteChannelVideoMetadata(videoId, metadata, error);
     public void SetChannelFollowed(int channelId, bool followed)
     {
         _db.SetChannelFollowed(channelId, followed);
@@ -370,82 +348,7 @@ public class MusicLibraryService
     public int GetUnreadChannelNotificationCount() => _db.GetUnreadChannelNotificationCount();
     public void MarkChannelNotificationRead(int notificationId) => _db.MarkChannelNotificationRead(notificationId);
     public void ArchiveChannelNotification(int notificationId) => _db.ArchiveChannelNotification(notificationId);
-    public void SetChannelAutoDownload(int channelId, bool enabled)
-    {
-        _db.SetChannelAutoDownload(
-            channelId,
-            enabled,
-            _channelMaxDownloadDurationMinutes);
-        if (enabled)
-            ChannelMetadataService.Current.RequestChannel(channelId, 1);
-        ChannelDownloadService.Current.NotifyQueueChanged();
-    }
-
-    public int GetChannelMaxDownloadDurationMinutes() => _channelMaxDownloadDurationMinutes;
-    public void SetChannelMaxDownloadDuration(int channelId, int? maxDurationMinutes)
-    {
-        _db.SetChannelMaxDownloadDuration(channelId, maxDurationMinutes, _channelMaxDownloadDurationMinutes);
-        ChannelDownloadService.Current.NotifyQueueChanged();
-    }
-    public void SetGlobalChannelMaxDownloadDuration(int maxDurationMinutes)
-    {
-        maxDurationMinutes = Math.Clamp(maxDurationMinutes, 1, 24 * 60);
-        _channelMaxDownloadDurationMinutes = maxDurationMinutes;
-        AppSettingsStore.SaveChannelDownloadMaxDurationMinutes(maxDurationMinutes);
-        _db.SetGlobalChannelMaxDownloadDuration(maxDurationMinutes);
-        ChannelDownloadService.Current.NotifyQueueChanged();
-    }
-    public void RecoverChannelDownloads() => _db.RecoverChannelDownloads(_channelMaxDownloadDurationMinutes);
-    public ChannelVideo? ClaimNextChannelDownload() => _db.ClaimNextChannelDownload(_channelMaxDownloadDurationMinutes);
-    public bool IsChannelVideoManualDownloadRequested(int videoId) =>
-        _db.IsChannelVideoManualDownloadRequested(videoId);
-    public void CompleteChannelDownload(int videoId, bool success, string? error) =>
-        _db.CompleteChannelDownload(videoId, success, error);
-    public ChannelDownloadSummary GetChannelDownloadSummary() => _db.GetChannelDownloadSummary();
-    public bool RequestChannelVideoDownload(int videoId)
-    {
-        if (!_db.RequestChannelVideoDownload(videoId))
-            return false;
-        ChannelMetadataService.Current.RequestVideo(videoId);
-        ChannelDownloadService.Current.NotifyQueueChanged();
-        return true;
-    }
     public bool DeleteChannel(int channelId) => _db.DeleteChannel(channelId);
-
-    public async Task<(MusicTrack? Track, string? Error)> PreloadChannelVideoAsync(
-        ChannelVideo video,
-        BackgroundJobPriority jobPriority = BackgroundJobPriority.Background,
-        string jobSource = "Channel auto-download")
-    {
-        using var operation = await _trackOperations.AcquireAsync(video.CanonicalUrl);
-        if (_db.GetTrackByCanonicalUrl(video.CanonicalUrl) is { } existingTrack)
-            return (existingTrack, null);
-
-        var stopwatch = Stopwatch.StartNew();
-        var download = await _downloader.DownloadChannelTrackAsync(
-            video.CanonicalUrl,
-            video.VideoId,
-            jobOptions: YouTubeJob(
-                BackgroundJobKind.YouTubeDownload,
-                $"Download channel track · {video.VideoId}",
-                jobSource,
-                jobPriority));
-        if (!download.Success || download.FilePath is null)
-            return (null, string.IsNullOrWhiteSpace(download.ErrorOutput)
-                ? "Channel audio download failed."
-                : download.ErrorOutput.Trim());
-
-        var duration = video.DurationSeconds ?? await _downloader.GetDurationAsync(download.FilePath);
-        var thumbnail = ThumbnailService.ReadEmbeddedArtworkThumbnail(download.FilePath);
-        var trackId = _db.InsertPreloadedChannelTrack(
-            video,
-            Path.GetFileName(download.FilePath),
-            duration,
-            new FileInfo(download.FilePath).Length,
-            (int)stopwatch.ElapsedMilliseconds,
-            thumbnail);
-        return (GetTrackById(trackId), null);
-    }
 
     public MusicTrack? ConfirmChannelVideo(int videoId)
     {
@@ -469,9 +372,7 @@ public class MusicLibraryService
     public async Task<ChannelRefreshResult> AddOrRefreshChannelAsync(
         string rawUrl,
         IProgress<string>? progress = null,
-        CancellationToken cancellationToken = default,
-        BackgroundJobPriority jobPriority = BackgroundJobPriority.UserInitiated,
-        string jobSource = "Channel Hub")
+        CancellationToken cancellationToken = default)
     {
         if (string.IsNullOrWhiteSpace(rawUrl))
             return new ChannelRefreshResult(false, 0, 0, "Channel URL is required.");
@@ -479,12 +380,7 @@ public class MusicLibraryService
         progress?.Report("Reading channel…");
         var (snapshot, error) = await _downloader.GetChannelSnapshotAsync(
             rawUrl.Trim(),
-            cancellationToken,
-            YouTubeJob(
-                BackgroundJobKind.YouTubeChannelRefresh,
-                "Refresh channel",
-                jobSource,
-                jobPriority));
+            cancellationToken);
         if (snapshot is null)
             return new ChannelRefreshResult(false, 0, 0, error ?? "Could not read channel.");
         if (snapshot.Videos.Count == 0)
@@ -507,22 +403,17 @@ public class MusicLibraryService
             () => _db.SaveChannelSnapshot(snapshot),
             cancellationToken);
         ChannelMetadataService.Current.RequestAllChannels();
-        ChannelDownloadService.Current.NotifyQueueChanged();
         return result;
     }
 
     public async Task<ChannelRefreshResult> RefreshChannelAsync(
         ChannelSubscription channel,
         IProgress<string>? progress = null,
-        CancellationToken cancellationToken = default,
-        BackgroundJobPriority jobPriority = BackgroundJobPriority.UserInitiated,
-        string jobSource = "Channel Hub") =>
+        CancellationToken cancellationToken = default) =>
         await AddOrRefreshChannelAsync(
             channel.SourceUrl,
             progress,
-            cancellationToken,
-            jobPriority,
-            jobSource);
+            cancellationToken);
 
     public async Task<int> RefreshSubscribedChannelsAsync(CancellationToken cancellationToken = default)
     {
@@ -532,46 +423,11 @@ public class MusicLibraryService
             cancellationToken.ThrowIfCancellationRequested();
             var result = await RefreshChannelAsync(
                 channel,
-                cancellationToken: cancellationToken,
-                jobPriority: BackgroundJobPriority.Background,
-                jobSource: "Subscribed channel refresh");
+                cancellationToken: cancellationToken);
             if (result.Success)
                 added += result.AddedCount;
         }
         return added;
-    }
-
-    public async Task<DownloadResult> DownloadTrackAsync(DownloadRequest request, IProgress<string>? progress = null)
-    {
-        if (string.IsNullOrWhiteSpace(request.RawUrl))
-            return new DownloadResult(false, "URL is required.");
-
-        var videoId = YouTubeUrlNormalizer.ExtractVideoId(request.RawUrl);
-        if (videoId == null)
-            return new DownloadResult(false, "Could not parse YouTube URL.");
-
-        var canonicalUrl = YouTubeUrlNormalizer.GetCanonicalUrl(videoId);
-
-        using var operation = await _trackOperations.AcquireAsync(canonicalUrl);
-
-        if (_db.TrackExists(canonicalUrl))
-            return new DownloadResult(false, "Track already exists.");
-
-        var result = await DownloadAndPersistYouTubeTrackAsync(
-            videoId,
-            canonicalUrl,
-            request.GenreIds,
-            request.RatingId,
-            request.StyleIds,
-            progress,
-            BackgroundJobPriority.UserInitiated,
-            "Add track", request);
-        if (!result.Success || result.Track is null)
-            return new DownloadResult(false, result.Error, result.Warning);
-
-        if (ShouldAnalyzeTrack(result.Track.Id))
-            BackgroundAnalysisService.Current.EnqueueTrack(result.Track.Id);
-        return new DownloadResult(true, Warning: result.Warning);
     }
 
     public async Task<ImportResult> ImportFromYouTubeAsync(
@@ -585,19 +441,17 @@ public class MusicLibraryService
             return new ImportResult(false, Error: "Could not parse YouTube URL.");
 
         var canonicalUrl = YouTubeUrlNormalizer.GetCanonicalUrl(videoId);
-        using var operation = await _trackOperations.AcquireAsync(canonicalUrl);
         if (_db.TrackExists(canonicalUrl))
             return new ImportResult(false, Error: "Track already exists.");
 
         var result = await DownloadAndPersistYouTubeTrackAsync(
             videoId,
             canonicalUrl,
-            [],
-            null,
-            [],
+            version?.GenreIds ?? [],
+            version?.RatingId,
+            version?.StyleIds ?? [],
             progress,
-            BackgroundJobPriority.Normal,
-            "Import queue", version);
+            version);
         if (result.Success && result.Track is not null)
             trackCreated?.Invoke(result.Track.Id);
         return result;
@@ -610,34 +464,20 @@ public class MusicLibraryService
         int? ratingId,
         List<int> styleIds,
         IProgress<string>? progress,
-        BackgroundJobPriority jobPriority,
-        string jobSource,
         DownloadRequest? version = null)
     {
         _downloader.DeleteDownloadArtifacts(videoId);
 
         progress?.Report("Checking audio details…");
-        var previewMetadata = await _downloader.GetMetadataAsync(
-            canonicalUrl,
-            jobOptions: YouTubeJob(
-                BackgroundJobKind.YouTubeMetadata,
-                $"Read track metadata · {videoId}",
-                jobSource,
-                jobPriority));
+        var previewMetadata = await _downloader.GetMetadataAsync(canonicalUrl);
         var downloadEstimate = EstimateDownloadDuration(
             previewMetadata?.DurationSeconds,
             previewMetadata?.EstimatedAudioSizeBytes);
         var downloadStopwatch = Stopwatch.StartNew();
-        var downloadJob = YouTubeJob(
-            BackgroundJobKind.YouTubeDownload,
-            $"Download track · {videoId}",
-            jobSource,
-            jobPriority);
         var (success, errorOutput) = await DownloadAudioAsync(
             canonicalUrl,
             progress,
-            downloadEstimate,
-            downloadJob);
+            downloadEstimate);
         if (!success)
             return new ImportResult(false, Error: $"Download failed:\n{errorOutput}");
 
@@ -659,13 +499,7 @@ public class MusicLibraryService
             }
             var fileName = Path.GetFileName(filePath);
             var duration = await _downloader.GetDurationAsync(filePath);
-            var metadata = previewMetadata ?? await _downloader.GetMetadataAsync(
-                canonicalUrl,
-                jobOptions: YouTubeJob(
-                    BackgroundJobKind.YouTubeMetadata,
-                    $"Read track metadata · {videoId}",
-                    jobSource,
-                    jobPriority));
+            var metadata = previewMetadata ?? await _downloader.GetMetadataAsync(canonicalUrl);
             var fileSizeBytes = new FileInfo(filePath).Length;
             var thumbnail = ThumbnailService.ReadEmbeddedArtworkThumbnail(filePath) ?? [];
             var trackId = _db.InsertTrack(
@@ -751,20 +585,12 @@ public class MusicLibraryService
     private async Task<(bool Success, string ErrorOutput)> DownloadAudioAsync(
         string canonicalUrl,
         IProgress<string>? progress,
-        TimeSpan? estimate,
-        BackgroundJobOptions jobOptions)
+        TimeSpan? estimate)
     {
         progress?.Report(estimate is null
             ? "Downloading audio…"
             : $"Downloading audio… usually about {FormatEstimate(estimate.Value)}");
-        return await _downloader.RunYtDlpAsync(canonicalUrl, jobOptions);
+        return await _downloader.RunYtDlpAsync(canonicalUrl);
     }
-
-    private static BackgroundJobOptions YouTubeJob(
-        BackgroundJobKind kind,
-        string title,
-        string source,
-        BackgroundJobPriority priority) =>
-        new(kind, title, source, priority);
 
 }

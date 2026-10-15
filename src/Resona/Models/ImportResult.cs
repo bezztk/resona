@@ -21,7 +21,8 @@ public record ImportPreviewItem(
     string? Detail = null,
     bool IsOriginal = true,
     int? ParentTrackId = null,
-    TrackEditTypes EditTypes = TrackEditTypes.None);
+    TrackEditTypes EditTypes = TrackEditTypes.None,
+    DownloadRequest? Request = null);
 
 public record ImportPreview(
     IReadOnlyList<ImportPreviewItem> Items,
@@ -45,9 +46,10 @@ public record ImportQueueItem(
     int? TrackId,
     bool IsOriginal = true,
     int? ParentTrackId = null,
-    TrackEditTypes EditTypes = TrackEditTypes.None)
+    TrackEditTypes EditTypes = TrackEditTypes.None,
+    DownloadRequest? Request = null)
 {
-    public DownloadRequest DownloadRequest => new()
+    public DownloadRequest DownloadRequest => Request ?? new()
     {
         RawUrl = CanonicalUrl,
         IsOriginal = IsOriginal,

@@ -83,14 +83,6 @@ public sealed class CloudServerContractTests
     }
 
     [Theory]
-    [InlineData("https://www.youtube.com/watch?v=abcdefghijk", "abcdefghijk")]
-    [InlineData("https://youtu.be/abcdefghijk?t=10", "abcdefghijk")]
-    [InlineData("https://example.com/watch?v=abcdefghijk", null)]
-    [InlineData("https://www.youtube.com/playlist?list=abcdefghijk", null)]
-    public void Server_downloads_accept_only_individual_youtube_tracks(string url, string? expected) =>
-        Assert.Equal(expected, CloudDownloadWorker.TrackKey(url));
-
-    [Theory]
     [InlineData(null, null, null, "", 0, PublicLibraryQuery.DefaultLimit)]
     [InlineData("  trance  ", 25, 10, "trance", 25, 10)]
     public void Public_library_query_normalizes_valid_parameters(

@@ -211,9 +211,7 @@ public sealed class ChannelHubBackgroundService
                             total)));
                         await MusicLibraryService.Current.AddOrRefreshChannelAsync(
                             channel.SourceUrl,
-                            progress,
-                            jobPriority: BackgroundJobPriority.Background,
-                            jobSource: "Channel background enrichment");
+                            progress);
                     }
                     finally
                     {
@@ -280,9 +278,7 @@ public sealed class ChannelHubBackgroundService
                         followed.Count)));
                     await MusicLibraryService.Current.RefreshChannelAsync(
                         channel,
-                        progress,
-                        jobPriority: BackgroundJobPriority.Background,
-                        jobSource: "Followed channel refresh");
+                        progress);
                 }
                 catch
                 {

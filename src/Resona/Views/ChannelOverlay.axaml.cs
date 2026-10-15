@@ -111,14 +111,6 @@ public partial class ChannelOverlay : UserControl
         }
     }
 
-    public void OnDownloadFinished(int videoId, MusicTrack? track, string? error)
-    {
-        var item = _currentVideos.FirstOrDefault(video => video.Id == videoId);
-        item?.SetDownloadResult(track?.Id, error);
-        ApplyVideoView();
-        UpdateDownloadSummary();
-    }
-
     public void OnMetadataUpdated(int channelId, int videoId)
     {
         if (_selectedChannelId != channelId || !DetailView.IsVisible)
@@ -865,15 +857,6 @@ public partial class ChannelOverlay : UserControl
         DetailFollowButton.Classes.Remove("following");
         if (channel.IsFollowed)
             DetailFollowButton.Classes.Add("following");
-        DetailAutoDownloadButton.Classes.Remove("active");
-        if (channel.AutoDownload)
-            DetailAutoDownloadButton.Classes.Add("active");
-        DetailAutoDownloadButton.IsEnabled = channel.IsFollowed;
-        DetailAutoDownloadButton.Opacity = channel.IsFollowed ? 1 : 0.4;
-        ToolTip.SetTip(DetailAutoDownloadButton,
-            channel.IsFollowed
-                ? channel.AutoDownload ? "Disable automatic downloads" : "Enable automatic downloads"
-                : "Follow this channel to enable auto-download");
         UpdateRefreshPresentation();
     }
 
@@ -1003,15 +986,6 @@ public partial class ChannelOverlay : UserControl
         if (followed && string.IsNullOrWhiteSpace(channel.LastCheckedAt))
             ChannelHubBackgroundService.Current.RequestEnrichment(channel);
         e.Handled = true;
-    }
-
-    private async void OnDetailAutoDownloadClicked(object? sender, RoutedEventArgs e)
-    {
-        if (_selectedHubChannel is not { IsFollowed: true } channel)
-            return;
-        await Task.Run(() => MusicLibraryService.Current.SetChannelAutoDownload(channel.Id, !channel.AutoDownload));
-        RefreshChannels();
-        ToastRequested?.Invoke(channel.AutoDownload ? "Auto-download disabled" : "Auto-download enabled");
     }
 
     private async void OnUrlTextChanged(object? sender, TextChangedEventArgs e)
@@ -1203,9 +1177,8 @@ public partial class ChannelOverlay : UserControl
             return;
         // ChannelVideoDisplay creates Avalonia brushes and therefore belongs on
         // the UI thread. Only the database read runs in the background.
-        var autoDownloadLimit = MusicLibraryService.Current.GetChannelMaxDownloadDurationMinutes();
         _currentVideos = rawVideos
-            .Select(video => new ChannelVideoDisplay(video, autoDownloadLimit))
+            .Select(video => new ChannelVideoDisplay(video))
             .ToList();
         ApplyActivePreviewMarker();
         ApplyVideoView();
@@ -1331,15 +1304,21 @@ public partial class ChannelOverlay : UserControl
         if (sender is not Button button || button.DataContext is not ChannelVideoDisplay item || !item.CanDownload)
             return;
 
-        if (!await Task.Run(() => MusicLibraryService.Current.RequestChannelVideoDownload(item.Id)))
+        try
         {
-            ToastRequested?.Invoke("Track is already downloaded or queued");
-            return;
+            var preview = await ImportQueueService.Current.PreviewAsync([item.CanonicalUrl]);
+            if (preview.Items.All(candidate => candidate.Status != ImportQueueStatus.Queued))
+            {
+                ToastRequested?.Invoke(preview.Items.FirstOrDefault()?.Detail ?? "Track could not be queued");
+                return;
+            }
+            ImportQueueService.Current.Queue(preview);
+            ToastRequested?.Invoke("Track added to the download queue");
         }
-
-        RefreshVideos();
-        UpdateDownloadSummary();
-        ToastRequested?.Invoke("Track queued for download");
+        catch (Exception exception)
+        {
+            ToastRequested?.Invoke($"Could not queue track: {exception.Message}");
+        }
     }
 
     private async void OnVideoRetryIssueClicked(object? sender, RoutedEventArgs e)
@@ -1643,10 +1622,6 @@ public sealed class ChannelVideoDisplay : INotifyPropertyChanged
     private bool _canPlay;
     private bool _canReview;
     private double _actionOpacity;
-    private ChannelDownloadStatus _downloadStatus;
-    private string _downloadErrorSummary = string.Empty;
-    private string _downloadErrorDetails = string.Empty;
-    private bool _hasDownloadError;
     private bool _isActive;
     private bool _canDismiss;
     private bool _canDownload;
@@ -1656,7 +1631,7 @@ public sealed class ChannelVideoDisplay : INotifyPropertyChanged
     private Thickness _borderThickness;
     private IBrush _titleBrush = ThemeResources.Brush("Theme.Brush.TextPrimary");
 
-    public ChannelVideoDisplay(ChannelVideo video, int autoDownloadLimitMinutes)
+    public ChannelVideoDisplay(ChannelVideo video)
     {
         Id = video.Id;
         CanonicalUrl = video.CanonicalUrl;
@@ -1669,15 +1644,8 @@ public sealed class ChannelVideoDisplay : INotifyPropertyChanged
         MetadataStatus = video.MetadataStatus;
         RatingName = video.RatingName?.Trim() ?? string.Empty;
         LibraryDetailsText = BuildLibraryDetails(video);
-        IsOverAutoDownloadLimit = video.TrackId is null
-            && video.DurationSeconds is int durationSeconds
-            && durationSeconds > autoDownloadLimitMinutes * 60;
-        AutoDownloadLimitWarningText = IsOverAutoDownloadLimit
-            ? $"Excluded from auto-download · exceeds the {autoDownloadLimitMinutes} min limit"
-            : string.Empty;
         _libraryState = video.LibraryState;
         _trackId = video.TrackId;
-        SetDownloadState(video.DownloadStatus, video.DownloadError);
         SetChecked(video.IsChecked);
     }
 
@@ -1713,14 +1681,10 @@ public sealed class ChannelVideoDisplay : INotifyPropertyChanged
         && (_libraryState is null or TrackLibraryState.PendingRating);
     public bool IsInLibrary => TrackId is not null && _libraryState == TrackLibraryState.Active;
     public bool IsRejected => TrackId is not null && _libraryState == TrackLibraryState.Rejected;
-    public bool HasIssue => TrackId is null
-        && (DownloadStatus == ChannelDownloadStatus.Failed
-            || MetadataStatus == ChannelMetadataStatus.Failed);
+    public bool HasIssue => TrackId is null && MetadataStatus == ChannelMetadataStatus.Failed;
     public bool IsAvailable => TrackId is null && !HasIssue;
     public bool IsMissingMetadata => !HasMetadataError
         && MetadataStatus == ChannelMetadataStatus.Pending;
-    public bool IsOverAutoDownloadLimit { get; }
-    public string AutoDownloadLimitWarningText { get; }
     public bool CanOpenEditor => IsInLibrary || IsPendingRating || IsRejected;
     public string StatusText
     {
@@ -1748,20 +1712,9 @@ public sealed class ChannelVideoDisplay : INotifyPropertyChanged
         get => _canDownload;
         private set => SetField(ref _canDownload, value);
     }
-    public bool CanRetryError => MetadataStatus == ChannelMetadataStatus.Failed
-        || DownloadStatus == ChannelDownloadStatus.Failed;
-    public string RetryErrorToolTip => MetadataStatus == ChannelMetadataStatus.Failed
-        && DownloadStatus == ChannelDownloadStatus.Failed
-            ? "Retry metadata and download"
-            : MetadataStatus == ChannelMetadataStatus.Failed
-                ? "Retry metadata"
-                : "Retry download";
-    public string RetryStartedText => MetadataStatus == ChannelMetadataStatus.Failed
-        && DownloadStatus == ChannelDownloadStatus.Failed
-            ? "Metadata and download queued again"
-            : MetadataStatus == ChannelMetadataStatus.Failed
-                ? "Metadata queued again"
-                : "Download queued again";
+    public bool CanRetryError => MetadataStatus == ChannelMetadataStatus.Failed;
+    public string RetryErrorToolTip => "Retry metadata";
+    public string RetryStartedText => "Metadata queued again";
     public string DismissToolTip
     {
         get => _dismissToolTip;
@@ -1782,34 +1735,6 @@ public sealed class ChannelVideoDisplay : INotifyPropertyChanged
     {
         get => _actionOpacity;
         private set => SetField(ref _actionOpacity, value);
-    }
-    public ChannelDownloadStatus DownloadStatus
-    {
-        get => _downloadStatus;
-        private set
-        {
-            if (_downloadStatus == value)
-                return;
-            SetField(ref _downloadStatus, value);
-            PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(CanRetryError)));
-            PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(RetryErrorToolTip)));
-            PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(RetryStartedText)));
-        }
-    }
-    public string DownloadErrorSummary
-    {
-        get => _downloadErrorSummary;
-        private set => SetField(ref _downloadErrorSummary, value);
-    }
-    public string DownloadErrorDetails
-    {
-        get => _downloadErrorDetails;
-        private set => SetField(ref _downloadErrorDetails, value);
-    }
-    public bool HasDownloadError
-    {
-        get => _hasDownloadError;
-        private set => SetField(ref _hasDownloadError, value);
     }
     public double Opacity
     {
@@ -1870,22 +1795,6 @@ public sealed class ChannelVideoDisplay : INotifyPropertyChanged
         UpdateVisualState();
     }
 
-    public void SetDownloadResult(int? trackId, string? error)
-    {
-        TrackId = trackId;
-        if (trackId is not null)
-            _libraryState = TrackLibraryState.PendingRating;
-        SetDownloadState(trackId is not null ? ChannelDownloadStatus.Ready : ChannelDownloadStatus.Failed, error);
-        SetChecked(IsChecked);
-    }
-
-    private void SetDownloadState(ChannelDownloadStatus status, string? error)
-    {
-        DownloadStatus = status;
-        SetDownloadError(status == ChannelDownloadStatus.Failed ? error : null);
-        UpdateState();
-    }
-
     private void UpdateState()
     {
         var hasTrack = TrackId is not null;
@@ -1901,18 +1810,10 @@ public sealed class ChannelVideoDisplay : INotifyPropertyChanged
                     : "In library",
                 _ => "Needs rating"
             }
-            : DownloadStatus switch
-            {
-                ChannelDownloadStatus.Downloading => "Downloading…",
-                ChannelDownloadStatus.Queued => "Queued",
-                ChannelDownloadStatus.Failed => "Download failed",
-                _ => string.Empty
-            };
+            : string.Empty;
         PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(HasStatusText)));
 
-        CanDownload = DownloadStatus != ChannelDownloadStatus.Failed
-            && !hasTrack && DownloadStatus is not ChannelDownloadStatus.Queued
-            and not ChannelDownloadStatus.Downloading
+        CanDownload = !hasTrack
             && MetadataStatus is not ChannelMetadataStatus.Queued
                 and not ChannelMetadataStatus.Loading;
         CanPlay = hasTrack;
@@ -1943,13 +1844,6 @@ public sealed class ChannelVideoDisplay : INotifyPropertyChanged
                 : new SolidColorBrush(Color.Parse("#10203422"));
         BorderBrush = IsActive ? ThemeResources.Brush("Theme.Brush.Accent") : Brushes.Transparent;
         BorderThickness = IsActive ? new Thickness(1) : new Thickness(0);
-    }
-
-    private void SetDownloadError(string? error)
-    {
-        DownloadErrorDetails = TrimErrorDetails(error);
-        DownloadErrorSummary = ErrorSummary(DownloadErrorDetails);
-        HasDownloadError = DownloadErrorSummary.Length > 0;
     }
 
     private static string TrimErrorDetails(string? error)

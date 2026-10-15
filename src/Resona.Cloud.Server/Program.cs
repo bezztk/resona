@@ -14,14 +14,6 @@ builder.Services.AddSingleton<CloudSnapshotRepository>();
 builder.Services.AddSingleton<CloudPublicLibraryRepository>();
 builder.Services.AddSingleton<CloudMediaRepository>();
 builder.Services.AddSingleton<CloudDeviceLibraryRepository>();
-builder.Services.AddSingleton<CloudDownloadRepository>();
-builder.Services.AddHttpClient("analyzer", client =>
-{
-    client.BaseAddress = new Uri(
-        builder.Configuration["AnalyzerBaseUrl"] ?? "http://analyzer:8000/");
-    client.Timeout = TimeSpan.FromMinutes(30);
-});
-builder.Services.AddHostedService<CloudDownloadWorker>();
 
 var app = builder.Build();
 await CloudSchema.InitializeAsync(app.Services.GetRequiredService<NpgsqlDataSource>());
@@ -213,32 +205,6 @@ app.MapPut("/api/v1/device-library/presets", async (
         DeviceLibraryWriteStatus.Conflict => Results.Conflict(result.Conflict),
         _ => Results.Ok(result.Snapshot)
     };
-});
-
-app.MapPost("/api/v1/downloads", async (
-    CloudDownloadRequest download,
-    CloudDeviceLibraryRepository deviceLibrary,
-    CloudDownloadRepository downloads,
-    CancellationToken cancellationToken) =>
-{
-    var userId = await deviceLibrary.GetLibraryOwnerAsync(cancellationToken);
-    if (userId is null)
-        return Results.NotFound();
-    if (CloudDownloadWorker.TrackKey(download.Url) is null)
-        return Results.BadRequest(new { error = "Only individual YouTube video links are supported." });
-    return Results.Accepted(
-        value: await downloads.EnqueueAsync(userId.Value, download, cancellationToken));
-});
-
-app.MapGet("/api/v1/downloads", async (
-    CloudDeviceLibraryRepository deviceLibrary,
-    CloudDownloadRepository downloads,
-    CancellationToken cancellationToken) =>
-{
-    var userId = await deviceLibrary.GetLibraryOwnerAsync(cancellationToken);
-    return userId is null
-        ? Results.NotFound()
-        : Results.Ok(await downloads.ListAsync(userId.Value, cancellationToken));
 });
 
 app.Run();

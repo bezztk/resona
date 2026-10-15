@@ -502,28 +502,6 @@
                                        TextWrapping="Wrap"/>
                         </Grid>
 
-                        <Rectangle Height="1" Fill="{DynamicResource Theme.Brush.Divider}"/>
-
-                        <Grid ColumnDefinitions="*,Auto" ColumnSpacing="18">
-                            <StackPanel Spacing="4">
-                                <TextBlock Text="Channel auto-download"
-                                           FontSize="12.5" FontWeight="SemiBold"/>
-                                <TextBlock Text="Maximum video length for automatic channel downloads. Manual downloads are always allowed."
-                                           FontSize="11" Opacity="0.58" TextWrapping="Wrap"/>
-                            </StackPanel>
-                            <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="7"
-                                        VerticalAlignment="Center">
-                                <TextBox x:Name="ChannelDownloadDurationBox"
-                                         Classes="settings-input"
-                                         Width="58" Height="32"
-                                         TextAlignment="Center"
-                                         VerticalContentAlignment="Center"
-                                         LostFocus="OnChannelDownloadDurationLostFocus"
-                                         KeyDown="OnChannelDownloadDurationKeyDown"/>
-                                <TextBlock Text="min" FontSize="10.5" Opacity="0.58"
-                                           VerticalAlignment="Center"/>
-                            </StackPanel>
-                        </Grid>
                     </StackPanel>
                 </StackPanel>
             </ScrollViewer>
