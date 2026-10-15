@@ -151,16 +151,16 @@
             <Setter Property="Background" Value="#263E6591"/>
             <Setter Property="Foreground" Value="#E7F1FB"/>
         </Style>
-        <Style Selector="Button.preset-delete">
+        <Style Selector="Button.preset-action">
             <Setter Property="Opacity" Value="0"/>
             <Setter Property="IsHitTestVisible" Value="False"/>
             <Setter Property="Cursor" Value="Hand"/>
         </Style>
-        <Style Selector="Grid.preset-card-container:pointerover Button.preset-delete">
+        <Style Selector="Grid.preset-card-container:pointerover Button.preset-action">
             <Setter Property="Opacity" Value="0.72"/>
             <Setter Property="IsHitTestVisible" Value="True"/>
         </Style>
-        <Style Selector="Grid.preset-card-container:pointerover Button.preset-delete:pointerover">
+        <Style Selector="Grid.preset-card-container:pointerover Button.preset-action:pointerover">
             <Setter Property="Opacity" Value="1"/>
             <Setter Property="Background" Value="#18FFFFFF"/>
             <Setter Property="BorderBrush" Value="Transparent"/>

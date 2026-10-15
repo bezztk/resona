@@ -2261,7 +2261,7 @@ public partial class MusicView : UserControl
                 : ThemeResources.Brush("Theme.Brush.TextPrimary"),
             TextTrimming = TextTrimming.CharacterEllipsis,
             VerticalAlignment = VerticalAlignment.Center,
-            Margin = new Thickness(0, 0, 30, 0)
+            Margin = new Thickness(0, 0, 62, 0)
         };
 
         var card = new Button
@@ -2284,6 +2284,94 @@ public partial class MusicView : UserControl
         };
         card.Click += (_, _) => SelectFilterPreset(preset.Name);
 
+        var renameButton = new Button
+        {
+            Content = CreateFilterSvgIcon("/Assets/pencil-simple.svg", 14),
+            Width = 26,
+            Height = 26,
+            Padding = new Thickness(0),
+            Margin = new Thickness(0, 0, 36, 0),
+            Background = Brushes.Transparent,
+            BorderThickness = new Thickness(0),
+            HorizontalAlignment = HorizontalAlignment.Right,
+            VerticalAlignment = VerticalAlignment.Center,
+            HorizontalContentAlignment = HorizontalAlignment.Center,
+            VerticalContentAlignment = VerticalAlignment.Center
+        };
+        renameButton.Classes.Add("preset-action");
+        ToolTip.SetTip(renameButton, $"Rename {preset.Name}");
+
+        var renameBox = new TextBox
+        {
+            Text = preset.Name,
+            Watermark = "Preset name",
+            Width = 210,
+            Height = 34,
+            VerticalContentAlignment = VerticalAlignment.Center
+        };
+        renameBox.Classes.Add("theme-input");
+        var cancelRenameButton = new Button
+        {
+            Content = "Cancel",
+            Padding = new Thickness(10, 5),
+            Background = Brushes.Transparent,
+            BorderBrush = ThemeResources.Brush("Theme.Brush.BorderStrong"),
+            BorderThickness = new Thickness(1),
+            FontSize = 10.5
+        };
+        var saveRenameButton = new Button
+        {
+            Content = "Save",
+            Padding = new Thickness(10, 5),
+            Background = ThemeResources.Brush("Theme.Brush.AccentSurface"),
+            BorderBrush = ThemeResources.Brush("Theme.Brush.Accent"),
+            BorderThickness = new Thickness(1),
+            FontSize = 10.5
+        };
+        var renameActions = new StackPanel
+        {
+            Orientation = Orientation.Horizontal,
+            HorizontalAlignment = HorizontalAlignment.Right,
+            Spacing = 7,
+            Children = { cancelRenameButton, saveRenameButton }
+        };
+        var renameFlyout = new Flyout
+        {
+            Placement = PlacementMode.BottomEdgeAlignedRight,
+            Content = new Border
+            {
+                Padding = new Thickness(13, 11),
+                Background = Brush("#FA1A1B1E"),
+                BorderBrush = Brush("#3EFFFFFF"),
+                BorderThickness = new Thickness(1),
+                CornerRadius = new CornerRadius(8),
+                Child = new StackPanel
+                {
+                    Spacing = 9,
+                    Children = { renameBox, renameActions }
+                }
+            }
+        };
+        renameButton.Flyout = renameFlyout;
+        cancelRenameButton.Click += (_, _) => renameFlyout.Hide();
+        void CommitRename()
+        {
+            if (string.IsNullOrWhiteSpace(renameBox.Text))
+                return;
+
+            renameFlyout.Hide();
+            RenameFilterPreset(preset.Name, renameBox.Text);
+        }
+        saveRenameButton.Click += (_, _) => CommitRename();
+        renameBox.KeyDown += (_, e) =>
+        {
+            if (e.Key != Key.Enter)
+                return;
+
+            CommitRename();
+            e.Handled = true;
+        };
+
         var deleteButton = new Button
         {
             Content = CreateFilterSvgIcon("/Assets/trash.svg", 14),
@@ -2298,7 +2386,7 @@ public partial class MusicView : UserControl
             HorizontalContentAlignment = HorizontalAlignment.Center,
             VerticalContentAlignment = VerticalAlignment.Center
         };
-        deleteButton.Classes.Add("preset-delete");
+        deleteButton.Classes.Add("preset-action");
         ToolTip.SetTip(deleteButton, $"Delete {preset.Name}");
 
         var cancelDeleteButton = new Button
@@ -2373,6 +2461,7 @@ public partial class MusicView : UserControl
         var container = new Grid();
         container.Classes.Add("preset-card-container");
         container.Children.Add(card);
+        container.Children.Add(renameButton);
         container.Children.Add(deleteButton);
         return container;
     }
@@ -2543,6 +2632,26 @@ public partial class MusicView : UserControl
         SelectBuiltInView(LibraryMode.Library);
     }
 
+    private void RenameFilterPreset(string presetName, string? rawName)
+    {
+        var index = _filterPresets.FindIndex(preset =>
+            string.Equals(preset.Name, presetName, StringComparison.OrdinalIgnoreCase));
+        var name = rawName?.Trim();
+        if (index < 0 || string.IsNullOrWhiteSpace(name))
+            return;
+
+        name = UniquePresetName(name, presetName);
+        _filterPresets[index] = _filterPresets[index] with { Name = name };
+
+        if (string.Equals(_activeFilterPresetName, presetName, StringComparison.OrdinalIgnoreCase))
+            _activeFilterPresetName = name;
+
+        FilterPresetStore.Save(_filterPresets);
+        _filterPresets = FilterPresetStore.Load();
+        RebuildPresetRows();
+        PersistPlayerSession();
+    }
+
     private PortableFilterPreset CreatePreset(string name)
     {
         var groups = _filterGroups
@@ -2595,11 +2704,13 @@ public partial class MusicView : UserControl
         ApplyFilter();
     }
 
-    private string UniquePresetName(string name)
+    private string UniquePresetName(string name, string? excludedName = null)
     {
         var reserved = string.Equals(name, "Default", StringComparison.OrdinalIgnoreCase)
                        || string.Equals(name, "Needs review", StringComparison.OrdinalIgnoreCase);
-        if (!reserved && _filterPresets.All(preset => !string.Equals(preset.Name, name, StringComparison.OrdinalIgnoreCase)))
+        if (!reserved && _filterPresets.All(preset =>
+                string.Equals(preset.Name, excludedName, StringComparison.OrdinalIgnoreCase)
+                || !string.Equals(preset.Name, name, StringComparison.OrdinalIgnoreCase)))
             return name;
 
         var suffix = 2;
@@ -2608,7 +2719,9 @@ public partial class MusicView : UserControl
         {
             candidate = $"{name} {suffix++}";
         }
-        while (_filterPresets.Any(preset => string.Equals(preset.Name, candidate, StringComparison.OrdinalIgnoreCase)));
+        while (_filterPresets.Any(preset =>
+            !string.Equals(preset.Name, excludedName, StringComparison.OrdinalIgnoreCase)
+            && string.Equals(preset.Name, candidate, StringComparison.OrdinalIgnoreCase)));
 
         return candidate;
     }

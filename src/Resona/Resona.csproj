@@ -15,7 +15,7 @@
         <RootNamespace>Resona</RootNamespace>
         <Product>Resona</Product>
         <Title>Resona</Title>
-        <Version>1.3.0</Version>
+        <Version>1.4.0</Version>
     </PropertyGroup>
 
     <ItemGroup>
