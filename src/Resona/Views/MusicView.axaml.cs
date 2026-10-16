@@ -2368,12 +2368,9 @@ public partial class MusicView : UserControl
                 ? Brush("#D7E7FF")
                 : ThemeResources.Brush("Theme.Brush.TextPrimary"),
             TextTrimming = TextTrimming.CharacterEllipsis,
-            VerticalAlignment = VerticalAlignment.Center,
-            Margin = new Thickness(0, 0, 126, 0)
+            VerticalAlignment = VerticalAlignment.Center
         };
 
-        var cardContent = new Grid { ColumnDefinitions = new ColumnDefinitions("*,Auto") };
-        cardContent.Children.Add(title);
         var count = new TextBlock
         {
             Text = _startupPresetTrackCounts.TryGetValue(preset.Name, out var trackCount)
@@ -2381,15 +2378,18 @@ public partial class MusicView : UserControl
                 : "0 tracks",
             FontSize = 10,
             Opacity = 0.52,
-            Margin = new Thickness(0, 0, 58, 0),
-            VerticalAlignment = VerticalAlignment.Center
+            TextTrimming = TextTrimming.CharacterEllipsis
         };
-        Grid.SetColumn(count, 1);
-        cardContent.Children.Add(count);
+        var labels = new StackPanel
+        {
+            Spacing = 2,
+            Margin = new Thickness(0, 0, 38, 0),
+            Children = { title, count }
+        };
 
         var card = new Button
         {
-            Content = cardContent,
+            Content = labels,
             MinHeight = 50,
             HorizontalAlignment = HorizontalAlignment.Stretch,
             HorizontalContentAlignment = HorizontalAlignment.Stretch,
@@ -2407,22 +2407,24 @@ public partial class MusicView : UserControl
         };
         card.Click += (_, _) => SelectFilterPreset(preset.Name);
 
-        var renameButton = new Button
+        var menuButton = new Button
         {
-            Content = CreateFilterSvgIcon("/Assets/pencil-simple.svg", 14),
-            Width = 26,
-            Height = 26,
+            Content = "⋯",
+            Width = 30,
+            Height = 30,
             Padding = new Thickness(0),
-            Margin = new Thickness(0, 0, 36, 0),
+            Margin = new Thickness(0, 0, 6, 0),
             Background = Brushes.Transparent,
             BorderThickness = new Thickness(0),
             HorizontalAlignment = HorizontalAlignment.Right,
             VerticalAlignment = VerticalAlignment.Center,
             HorizontalContentAlignment = HorizontalAlignment.Center,
-            VerticalContentAlignment = VerticalAlignment.Center
+            VerticalContentAlignment = VerticalAlignment.Center,
+            FontSize = 18,
+            Opacity = 0.68,
+            Cursor = new Cursor(StandardCursorType.Hand)
         };
-        renameButton.Classes.Add("preset-action");
-        ToolTip.SetTip(renameButton, $"Rename {preset.Name}");
+        ToolTip.SetTip(menuButton, $"Actions for {preset.Name}");
 
         var renameBox = new TextBox
         {
@@ -2475,7 +2477,6 @@ public partial class MusicView : UserControl
                 }
             }
         };
-        renameButton.Flyout = renameFlyout;
         cancelRenameButton.Click += (_, _) => renameFlyout.Hide();
         void CommitRename()
         {
@@ -2494,23 +2495,6 @@ public partial class MusicView : UserControl
             CommitRename();
             e.Handled = true;
         };
-
-        var deleteButton = new Button
-        {
-            Content = CreateFilterSvgIcon("/Assets/trash.svg", 14),
-            Width = 26,
-            Height = 26,
-            Padding = new Thickness(0),
-            Margin = new Thickness(0, 0, 5, 0),
-            Background = Brushes.Transparent,
-            BorderThickness = new Thickness(0),
-            HorizontalAlignment = HorizontalAlignment.Right,
-            VerticalAlignment = VerticalAlignment.Center,
-            HorizontalContentAlignment = HorizontalAlignment.Center,
-            VerticalContentAlignment = VerticalAlignment.Center
-        };
-        deleteButton.Classes.Add("preset-action");
-        ToolTip.SetTip(deleteButton, $"Delete {preset.Name}");
 
         var cancelDeleteButton = new Button
         {
@@ -2573,7 +2557,6 @@ public partial class MusicView : UserControl
                 }
             }
         };
-        deleteButton.Flyout = deleteFlyout;
         cancelDeleteButton.Click += (_, _) => deleteFlyout.Hide();
         confirmDeleteButton.Click += (_, _) =>
         {
@@ -2581,11 +2564,26 @@ public partial class MusicView : UserControl
             DeleteFilterPreset(preset.Name);
         };
 
+        var renameMenuItem = CreateTrackMenuItem("Rename", true, () =>
+            Dispatcher.UIThread.Post(() => renameFlyout.ShowAt(menuButton)));
+        var deleteMenuItem = CreateTrackMenuItem("Delete", true, () =>
+            Dispatcher.UIThread.Post(() => deleteFlyout.ShowAt(menuButton)));
+        var actionsMenu = new ContextMenu
+        {
+            Classes = { "track-context" },
+            Placement = PlacementMode.BottomEdgeAlignedRight,
+            ItemsSource = new object[] { renameMenuItem, deleteMenuItem }
+        };
+        menuButton.Click += (_, e) =>
+        {
+            actionsMenu.Open(menuButton);
+            e.Handled = true;
+        };
+
         var container = new Grid();
         container.Classes.Add("preset-card-container");
         container.Children.Add(card);
-        container.Children.Add(renameButton);
-        container.Children.Add(deleteButton);
+        container.Children.Add(menuButton);
         return container;
     }
 
