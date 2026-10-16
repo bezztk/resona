@@ -89,6 +89,9 @@ public partial class MusicView : UserControl
     private List<TrackDisplayItem> _visibleItems = [];
     private List<int> _loadedPlaylistSourceTrackIds = [];
     private List<PortableFilterPreset> _filterPresets = [];
+    private readonly Dictionary<string, int> _startupPresetTrackCounts = new(StringComparer.OrdinalIgnoreCase);
+    private HashSet<int> _startupUnassignedTrackIds = [];
+    private bool _startupPresetMembershipCalculated;
     private List<TrackCollection> _collections = [];
     private TrackCollection? _activeCollection;
     private Dictionary<int, int> _activeCollectionOrder = [];
@@ -136,7 +139,8 @@ public partial class MusicView : UserControl
     private enum LibraryMode
     {
         Library,
-        Review
+        Review,
+        Unassigned
     }
     private readonly List<FilterGroupControls> _filterGroups = [];
 
@@ -640,6 +644,9 @@ public partial class MusicView : UserControl
 
         _allItems = newItems;
 
+        if (CalculateStartupPresetMembership())
+            RebuildPresetRows();
+
         ApplyFilter();
         if (_engine.ActiveTrackId >= 0
             && _allItems.FirstOrDefault(item => item.Track.Id == _engine.ActiveTrackId)?.Track is { } activeTrack)
@@ -847,6 +854,88 @@ public partial class MusicView : UserControl
                     .ToHashSet()))
             .ToList();
 
+    private List<FilterGroup> FilterGroupsForPreset(PortableFilterPreset preset) =>
+        preset.Groups
+            .Select(group => new FilterGroup(
+                SelectedIds(
+                    group.Genres.ToHashSet(StringComparer.OrdinalIgnoreCase),
+                    Values.Genres,
+                    genre => genre.Name,
+                    genre => genre.Id),
+                SelectedIds(
+                    group.Styles.ToHashSet(StringComparer.OrdinalIgnoreCase),
+                    Values.Styles,
+                    style => style.Name,
+                    style => style.Id),
+                SelectedIds(
+                    (group.Tags ?? []).ToHashSet(StringComparer.OrdinalIgnoreCase),
+                    Values.Tags,
+                    TagFilterName,
+                    tag => tag.Id),
+                (group.Languages ?? []).ToHashSet(StringComparer.OrdinalIgnoreCase),
+                (group.EmotionalCharacters ?? [])
+                    .Select(filter => new EmotionalCharacterRange(
+                        filter.SignalKey,
+                        filter.MinimumPercent,
+                        filter.MaximumPercent))
+                    .ToList(),
+                group.Negate,
+                Values.Genres
+                    .Where(genre => (group.MainGenres ?? []).Contains(
+                        MainGenreName(genre.Name),
+                        StringComparer.OrdinalIgnoreCase))
+                    .Select(genre => genre.Id)
+                    .ToHashSet()))
+            .ToList();
+
+    private bool CalculateStartupPresetMembership()
+    {
+        if (_startupPresetMembershipCalculated)
+            return false;
+
+        _startupPresetMembershipCalculated = true;
+        var eligibleItems = _allItems
+            .Where(item => item.Track.LibraryState != TrackLibraryState.Rejected)
+            .ToList();
+        var presetTrackIds = new HashSet<int>();
+
+        foreach (var preset in _filterPresets)
+        {
+            var matchingIds = TrackIdsForPreset(preset, eligibleItems);
+
+            _startupPresetTrackCounts[preset.Name] = matchingIds.Count;
+            presetTrackIds.UnionWith(matchingIds);
+        }
+
+        var collectionTrackIds = _allTrackCollectionNames
+            .Where(pair => pair.Value.Count > 0)
+            .Select(pair => pair.Key)
+            .ToHashSet();
+        _startupUnassignedTrackIds = eligibleItems
+            .Select(item => item.Track.Id)
+            .Where(trackId => !presetTrackIds.Contains(trackId) && !collectionTrackIds.Contains(trackId))
+            .ToHashSet();
+        return true;
+    }
+
+    private HashSet<int> TrackIdsForPreset(
+        PortableFilterPreset preset,
+        IEnumerable<TrackDisplayItem>? sourceItems = null) =>
+        TrackFilter.Apply(
+                (sourceItems ?? _allItems)
+                    .Where(item => item.Track.LibraryState != TrackLibraryState.Rejected
+                                   && (!preset.ShowNeedsReview || item.NeedsReview))
+                    .Select(item => item.Track),
+                _allTrackGenreIds,
+                _allTrackStyleIds,
+                _allTrackTagIds,
+                _allTrackMirexScores,
+                new HashSet<int>(),
+                FilterGroupsForPreset(preset),
+                null)
+            .Select(track => track.Id)
+            .ToHashSet();
+
     private static string ShortGenreName(string genreName)
     {
         var separator = genreName.LastIndexOf('→');
@@ -971,6 +1060,9 @@ public partial class MusicView : UserControl
 
     private IEnumerable<TrackDisplayItem> CollectionScopedItems()
     {
+        if (_activeBuiltInView == LibraryMode.Unassigned)
+            return _allItems.Where(item => _startupUnassignedTrackIds.Contains(item.Track.Id));
+
         if (_activeCollection is null)
             return _allItems;
 
@@ -2141,6 +2233,10 @@ public partial class MusicView : UserControl
             LibraryMode.Review,
             "Needs review",
             "All tracks marked for review."));
+        BuiltInPresetRows.Children.Add(CreateBuiltInPresetCard(
+            LibraryMode.Unassigned,
+            "Unassigned",
+            $"{_startupUnassignedTrackIds.Count} tracks in no preset or collection."));
         PresetRows.Children.Clear();
 
         if (_isCreatingPreset)
@@ -2202,6 +2298,7 @@ public partial class MusicView : UserControl
         var accent = mode switch
         {
             LibraryMode.Review => "#A8C69A55",
+            LibraryMode.Unassigned => "#A8D89B5A",
             _ => "#A85F7894"
         };
         var button = new Button
@@ -2228,6 +2325,15 @@ public partial class MusicView : UserControl
             _activeFilterPresetName = null;
             _activeBuiltInView = mode;
             _isCreatingPreset = false;
+            if (mode == LibraryMode.Unassigned && _activeCollection is not null)
+            {
+                _activeCollection = null;
+                _activeCollectionOrder.Clear();
+                if (_sortBy == LibrarySortBy.CollectionOrder)
+                    _sortBy = LibrarySortBy.Name;
+                foreach (var item in _allItems)
+                    ApplyCollectionDisplay(item);
+            }
             SearchBox.Text = string.Empty;
             _updatingLibraryMode = true;
             ShowNeedsReviewCheckBox.IsChecked = mode == LibraryMode.Review;
@@ -2243,6 +2349,8 @@ public partial class MusicView : UserControl
             _suppressPresetAutoSave = false;
         }
 
+        InitializeSortControls();
+        RebuildCollectionRows();
         RebuildPresetRows();
         ApplyFilter();
         PersistPlayerSession();
@@ -2261,12 +2369,27 @@ public partial class MusicView : UserControl
                 : ThemeResources.Brush("Theme.Brush.TextPrimary"),
             TextTrimming = TextTrimming.CharacterEllipsis,
             VerticalAlignment = VerticalAlignment.Center,
-            Margin = new Thickness(0, 0, 62, 0)
+            Margin = new Thickness(0, 0, 126, 0)
         };
+
+        var cardContent = new Grid { ColumnDefinitions = new ColumnDefinitions("*,Auto") };
+        cardContent.Children.Add(title);
+        var count = new TextBlock
+        {
+            Text = _startupPresetTrackCounts.TryGetValue(preset.Name, out var trackCount)
+                ? $"{trackCount} track{(trackCount == 1 ? string.Empty : "s")}"
+                : "0 tracks",
+            FontSize = 10,
+            Opacity = 0.52,
+            Margin = new Thickness(0, 0, 58, 0),
+            VerticalAlignment = VerticalAlignment.Center
+        };
+        Grid.SetColumn(count, 1);
+        cardContent.Children.Add(count);
 
         var card = new Button
         {
-            Content = title,
+            Content = cardContent,
             MinHeight = 50,
             HorizontalAlignment = HorizontalAlignment.Stretch,
             HorizontalContentAlignment = HorizontalAlignment.Stretch,
@@ -2549,6 +2672,7 @@ public partial class MusicView : UserControl
         name = UniquePresetName(name);
         var preset = CreatePreset(name);
         _filterPresets.Add(preset);
+        _startupPresetTrackCounts[preset.Name] = TrackIdsForPreset(preset).Count;
 
         FilterPresetStore.Save(_filterPresets);
         _filterPresets = FilterPresetStore.Load();
@@ -2641,6 +2765,8 @@ public partial class MusicView : UserControl
             return;
 
         name = UniquePresetName(name, presetName);
+        if (_startupPresetTrackCounts.Remove(presetName, out var startupTrackCount))
+            _startupPresetTrackCounts[name] = startupTrackCount;
         _filterPresets[index] = _filterPresets[index] with { Name = name };
 
         if (string.Equals(_activeFilterPresetName, presetName, StringComparison.OrdinalIgnoreCase))
@@ -2707,7 +2833,8 @@ public partial class MusicView : UserControl
     private string UniquePresetName(string name, string? excludedName = null)
     {
         var reserved = string.Equals(name, "Default", StringComparison.OrdinalIgnoreCase)
-                       || string.Equals(name, "Needs review", StringComparison.OrdinalIgnoreCase);
+                       || string.Equals(name, "Needs review", StringComparison.OrdinalIgnoreCase)
+                       || string.Equals(name, "Unassigned", StringComparison.OrdinalIgnoreCase);
         if (!reserved && _filterPresets.All(preset =>
                 string.Equals(preset.Name, excludedName, StringComparison.OrdinalIgnoreCase)
                 || !string.Equals(preset.Name, name, StringComparison.OrdinalIgnoreCase)))
@@ -4658,6 +4785,7 @@ public partial class MusicView : UserControl
                 ? _activeBuiltInView switch
                 {
                     LibraryMode.Review => "REVIEW",
+                    LibraryMode.Unassigned => "UNASSIGNED",
                     _ => "LIBRARY"
                 }
                 : $"PRESET · {_activeFilterPresetName.ToUpperInvariant()}";
