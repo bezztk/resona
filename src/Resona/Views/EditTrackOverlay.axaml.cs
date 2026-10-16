@@ -719,42 +719,38 @@ public partial class EditTrackOverlay : UserControl
             var accent = RatingAccentColor(visual.Rating.Name);
             var isSelected = visual.Rating.Id == _selectedRatingId;
             visual.Button.Background = new SolidColorBrush(Color.FromArgb(
-                isSelected ? (byte)42 : (byte)8,
+                isSelected ? (byte)82 : (byte)8,
                 accent.R,
                 accent.G,
                 accent.B));
             visual.Button.BorderBrush = new SolidColorBrush(Color.FromArgb(
-                isSelected ? (byte)155 : (byte)40,
+                isSelected ? (byte)235 : (byte)40,
                 accent.R,
                 accent.G,
                 accent.B));
             visual.Button.BorderThickness = new Thickness(1);
             visual.NameText.Foreground = new SolidColorBrush(Color.FromArgb(
-                isSelected ? (byte)235 : (byte)145,
+                isSelected ? (byte)255 : (byte)145,
                 accent.R,
                 accent.G,
                 accent.B));
-            visual.Button.Opacity = isSelected ? 1 : 0.8;
+            visual.Button.Opacity = isSelected ? 1 : 0.72;
         }
 
         if (selected is null)
         {
-            RatingSummaryNameText.Text = "UNRATED";
-            RatingSummaryNameText.Foreground = new SolidColorBrush(Color.FromArgb(185, 255, 255, 255));
-            RatingSummaryBorder.Background = new SolidColorBrush(Color.FromArgb(14, 255, 255, 255));
-            RatingSummaryBorder.BorderBrush = new SolidColorBrush(Color.FromArgb(42, 255, 255, 255));
-            ClearRatingButton.IsVisible = false;
+            RatingInformationText.Text = "Unrated";
+            RatingInformationText.Foreground = new SolidColorBrush(Color.FromArgb(155, 255, 255, 255));
+            ClearRatingButton.IsEnabled = false;
+            ClearRatingButton.Opacity = 0.35;
             return;
         }
 
         var selectedColor = RatingAccentColor(selected.Name);
-        RatingSummaryNameText.Text = selected.Name.ToUpperInvariant();
-        RatingSummaryNameText.Foreground = new SolidColorBrush(selectedColor);
-        RatingSummaryBorder.Background = new SolidColorBrush(Color.FromArgb(
-            20, selectedColor.R, selectedColor.G, selectedColor.B));
-        RatingSummaryBorder.BorderBrush = new SolidColorBrush(Color.FromArgb(
-            105, selectedColor.R, selectedColor.G, selectedColor.B));
-        ClearRatingButton.IsVisible = true;
+        RatingInformationText.Text = selected.Name;
+        RatingInformationText.Foreground = new SolidColorBrush(selectedColor);
+        ClearRatingButton.IsEnabled = true;
+        ClearRatingButton.Opacity = 0.68;
     }
 
     private static Color RatingAccentColor(string ratingName) => ratingName switch

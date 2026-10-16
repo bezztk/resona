@@ -168,28 +168,15 @@
 
                 <Rectangle Grid.Row="1" Fill="#10808080" />
 
-                <Border Grid.Row="2" Height="78" Background="Transparent">
-                    <Grid RowDefinitions="Auto,*" ColumnDefinitions="*,Auto" Margin="22,5">
-                        <StackPanel Grid.Row="0"
-                                    Grid.Column="0"
+                <Border Grid.Row="2" Height="52" Background="Transparent">
+                    <Grid ColumnDefinitions="*,Auto" Margin="22,0">
+                        <StackPanel Grid.Column="0"
                                     Orientation="Horizontal"
-                                    Spacing="5"
+                                    Spacing="4"
                                     HorizontalAlignment="Left"
                                     VerticalAlignment="Center">
-                            <Border x:Name="RatingSummaryBorder"
-                                    MinWidth="102"
-                                    Padding="9,4"
-                                    CornerRadius="6"
-                                    BorderThickness="1">
-                                <TextBlock x:Name="RatingSummaryNameText"
-                                           Text="UNRATED"
-                                           FontSize="10.5"
-                                           FontWeight="SemiBold"
-                                           TextTrimming="CharacterEllipsis"
-                                           VerticalAlignment="Center"/>
-                            </Border>
                             <Button x:Name="ClearRatingButton"
-                                    Height="26" Padding="9,0"
+                                    Height="32" Padding="10,0"
                                     Background="#0CFFFFFF"
                                     BorderBrush="#28FFFFFF"
                                     BorderThickness="1"
@@ -197,19 +184,17 @@
                                     FontSize="9.5"
                                     Content="Remove Rating"
                                     Opacity="0.68"
+                                    VerticalContentAlignment="Center"
                                     Click="OnClearRatingClicked"
                                     ToolTip.Tip="Remove rating"/>
+                            <StackPanel x:Name="RatingOptionsPanel"
+                                        Orientation="Horizontal"
+                                        Spacing="4"
+                                        Margin="0,0,14,0"
+                                        HorizontalAlignment="Left"
+                                        VerticalAlignment="Center" />
                         </StackPanel>
-                        <StackPanel x:Name="RatingOptionsPanel"
-                                    Grid.Row="1"
-                                    Grid.Column="0"
-                                    Orientation="Horizontal"
-                                    Spacing="4"
-                                    Margin="0,0,14,0"
-                                    HorizontalAlignment="Left"
-                                    VerticalAlignment="Center" />
                         <StackPanel x:Name="RatingBandPanel"
-                                    Grid.RowSpan="2"
                                     Grid.Column="1"
                                     Orientation="Horizontal"
                                     Spacing="4"
@@ -305,6 +290,18 @@
                                                Opacity="0.66"
                                                VerticalAlignment="Center"
                                                HorizontalAlignment="Right"
+                                               TextTrimming="CharacterEllipsis" />
+                                </Grid>
+
+                                <Grid ColumnDefinitions="104,*,30,30" Height="30" ColumnSpacing="6">
+                                    <TextBlock Text="Rating" FontSize="10.5" Opacity="0.58" VerticalAlignment="Center" />
+                                    <TextBlock x:Name="RatingInformationText"
+                                               Grid.Column="1"
+                                               Grid.ColumnSpan="3"
+                                               Text="Unrated"
+                                               FontSize="11.5"
+                                               FontWeight="SemiBold"
+                                               VerticalAlignment="Center"
                                                TextTrimming="CharacterEllipsis" />
                                 </Grid>
 
