@@ -17,7 +17,10 @@ namespace Resona.Views;
 
 public partial class EditTrackOverlay : UserControl
 {
-    private sealed record RatingButtonVisual(Rating Rating, Button Button, TextBlock Icon);
+    private sealed record RatingButtonVisual(
+        Rating Rating,
+        Button Button,
+        TextBlock NameText);
     private MusicTrack? _track;
     private List<Tag> _tags = [];
     private List<Rating> _ratings = [];
@@ -710,18 +713,60 @@ public partial class EditTrackOverlay : UserControl
     private void UpdateRatingVisual()
     {
         var selected = _ratings.FirstOrDefault(rating => rating.Id == _selectedRatingId);
-        var selectedSortOrder = selected?.SortOrder ?? int.MinValue;
 
         foreach (var visual in _ratingButtons)
         {
-            var isFilled = selected is not null && visual.Rating.SortOrder <= selectedSortOrder;
-            visual.Icon.Text = "♪";
-            visual.Icon.Foreground = isFilled
-                ? new SolidColorBrush(Color.FromRgb(235, 194, 83))
-                : new SolidColorBrush(Color.FromArgb(76, 255, 255, 255));
-            visual.Button.Opacity = isFilled ? 1 : 0.72;
+            var accent = RatingAccentColor(visual.Rating.Name);
+            var isSelected = visual.Rating.Id == _selectedRatingId;
+            visual.Button.Background = new SolidColorBrush(Color.FromArgb(
+                isSelected ? (byte)42 : (byte)8,
+                accent.R,
+                accent.G,
+                accent.B));
+            visual.Button.BorderBrush = new SolidColorBrush(Color.FromArgb(
+                isSelected ? (byte)155 : (byte)40,
+                accent.R,
+                accent.G,
+                accent.B));
+            visual.Button.BorderThickness = new Thickness(1);
+            visual.NameText.Foreground = new SolidColorBrush(Color.FromArgb(
+                isSelected ? (byte)235 : (byte)145,
+                accent.R,
+                accent.G,
+                accent.B));
+            visual.Button.Opacity = isSelected ? 1 : 0.8;
         }
+
+        if (selected is null)
+        {
+            RatingSummaryNameText.Text = "UNRATED";
+            RatingSummaryNameText.Foreground = new SolidColorBrush(Color.FromArgb(185, 255, 255, 255));
+            RatingSummaryBorder.Background = new SolidColorBrush(Color.FromArgb(14, 255, 255, 255));
+            RatingSummaryBorder.BorderBrush = new SolidColorBrush(Color.FromArgb(42, 255, 255, 255));
+            ClearRatingButton.IsVisible = false;
+            return;
+        }
+
+        var selectedColor = RatingAccentColor(selected.Name);
+        RatingSummaryNameText.Text = selected.Name.ToUpperInvariant();
+        RatingSummaryNameText.Foreground = new SolidColorBrush(selectedColor);
+        RatingSummaryBorder.Background = new SolidColorBrush(Color.FromArgb(
+            20, selectedColor.R, selectedColor.G, selectedColor.B));
+        RatingSummaryBorder.BorderBrush = new SolidColorBrush(Color.FromArgb(
+            105, selectedColor.R, selectedColor.G, selectedColor.B));
+        ClearRatingButton.IsVisible = true;
     }
+
+    private static Color RatingAccentColor(string ratingName) => ratingName switch
+    {
+        RatingNames.Avoid => Color.FromRgb(255, 75, 75),
+        "Okay" => Color.FromRgb(210, 205, 95),
+        "Good" => Color.FromRgb(45, 190, 240),
+        "Great" => Color.FromRgb(55, 224, 105),
+        RatingNames.Amazing => Color.FromRgb(255, 132, 48),
+        RatingNames.Timeless => Color.FromRgb(255, 215, 64),
+        _ => Color.FromRgb(190, 145, 75)
+    };
 
     private void UpdateRatingBandVisual()
     {
@@ -767,53 +812,62 @@ public partial class EditTrackOverlay : UserControl
 
     private void BuildRatingButtons()
     {
-        RatingStarsPanel.Children.Clear();
+        RatingOptionsPanel.Children.Clear();
         _ratingButtons.Clear();
 
-        foreach (var rating in _ratings.OrderBy(item => item.SortOrder))
+        var orderedRatings = _ratings.OrderBy(item => item.SortOrder).ToList();
+        for (var index = 0; index < orderedRatings.Count; index++)
         {
-            var icon = new TextBlock
+            var rating = orderedRatings[index];
+            var nameText = new TextBlock
             {
-                Text = "♪",
-                FontSize = 27,
-                FontFamily = new FontFamily("Segoe UI Symbol"),
-                Height = 34,
-                LineHeight = 34,
+                Text = rating.Name.ToUpperInvariant(),
+                FontSize = 9,
+                FontWeight = FontWeight.SemiBold,
                 TextAlignment = TextAlignment.Center,
-                HorizontalAlignment = HorizontalAlignment.Center,
-                VerticalAlignment = VerticalAlignment.Center,
-                RenderTransform = new TranslateTransform { Y = -2 }
+                TextTrimming = TextTrimming.CharacterEllipsis,
+                HorizontalAlignment = HorizontalAlignment.Stretch,
+                VerticalAlignment = VerticalAlignment.Center
             };
             var button = new Button
             {
-                Content = icon,
-                Width = 40,
-                Height = 42,
-                Padding = new Thickness(0),
-                Background = Brushes.Transparent,
-                BorderThickness = new Thickness(0),
-                HorizontalContentAlignment = HorizontalAlignment.Center,
+                Content = nameText,
+                Width = 76,
+                Height = 32,
+                Padding = new Thickness(5, 2),
+                CornerRadius = new CornerRadius(5),
+                HorizontalContentAlignment = HorizontalAlignment.Stretch,
                 VerticalContentAlignment = VerticalAlignment.Center,
                 Cursor = new Cursor(StandardCursorType.Hand)
             };
-            button.Classes.Add("rating-star");
             button.Click += (_, _) =>
             {
-                int? nextRatingId = _selectedRatingId == rating.Id ? null : rating.Id;
-                if (nextRatingId != _selectedRatingId)
+                if (_selectedRatingId != rating.Id)
                     _selectedRatingBand = null;
-                _selectedRatingId = nextRatingId;
+                _selectedRatingId = rating.Id;
                 UpdateRatingVisual();
                 UpdateRatingBandVisual();
                 AutoSaveChanges();
             };
-            ToolTip.SetTip(button, rating.Name);
-            _ratingButtons.Add(new RatingButtonVisual(rating, button, icon));
-            RatingStarsPanel.Children.Add(button);
+            ToolTip.SetTip(button, $"Level {index + 1} — {rating.Name}");
+            _ratingButtons.Add(new RatingButtonVisual(rating, button, nameText));
+            RatingOptionsPanel.Children.Add(button);
         }
 
         UpdateRatingVisual();
         UpdateRatingBandVisual();
+    }
+
+    private void OnClearRatingClicked(object? sender, RoutedEventArgs e)
+    {
+        if (_selectedRatingId is null)
+            return;
+
+        _selectedRatingId = null;
+        _selectedRatingBand = null;
+        UpdateRatingVisual();
+        UpdateRatingBandVisual();
+        AutoSaveChanges();
     }
 
     private void OnVisibilityClicked(object? sender, RoutedEventArgs e)
