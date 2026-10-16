@@ -61,6 +61,8 @@ public partial class MusicView : UserControl
     private bool _isCreatingCollection;
     private readonly List<Bitmap> _collectionCardBitmaps = [];
     private Bitmap? _collectionContextBitmap;
+    private Bitmap? _libraryBackgroundBitmap;
+    private int _libraryBackgroundTrackId = -1;
 
     // Crossfade state
     private int _lastKnownActiveId = -1;
@@ -191,6 +193,7 @@ public partial class MusicView : UserControl
             _windowsMediaSession.Dispose();
             _discordPresence.Dispose();
             DisposeCollectionBitmaps();
+            DisposeLibraryBackground();
         };
 
         // Engine events
@@ -2153,6 +2156,44 @@ public partial class MusicView : UserControl
         _collectionCardBitmaps.Clear();
         _collectionContextBitmap?.Dispose();
         _collectionContextBitmap = null;
+    }
+
+    private void UpdateLibraryBackground(int trackId)
+    {
+        if (_libraryBackgroundTrackId == trackId)
+            return;
+
+        DisposeLibraryBackground();
+        if (trackId < 0)
+            return;
+
+        var artwork = MusicLibraryService.Current.GetTrackThumbnail(trackId);
+        if (artwork is not { Length: > 0 })
+            return;
+
+        try
+        {
+            using var stream = new MemoryStream(artwork);
+            _libraryBackgroundBitmap = new Bitmap(stream);
+            _libraryBackgroundTrackId = trackId;
+            LibraryArtworkBackground.Source = _libraryBackgroundBitmap;
+            LibraryArtworkBackground.IsVisible = true;
+            LibraryArtworkScrim.IsVisible = true;
+        }
+        catch
+        {
+            DisposeLibraryBackground();
+        }
+    }
+
+    private void DisposeLibraryBackground()
+    {
+        LibraryArtworkBackground.Source = null;
+        LibraryArtworkBackground.IsVisible = false;
+        LibraryArtworkScrim.IsVisible = false;
+        _libraryBackgroundBitmap?.Dispose();
+        _libraryBackgroundBitmap = null;
+        _libraryBackgroundTrackId = -1;
     }
 
     private void OnAddCollectionClicked(object? sender, RoutedEventArgs e)
@@ -4653,6 +4694,7 @@ public partial class MusicView : UserControl
 
     private void OnEngineStateChanged()
     {
+        UpdateLibraryBackground(_engine.ActiveTrackId);
         _windowsMediaSession.UpdateState(_engine.State);
         UpdateSystemMediaMetadata();
         UpdateButtonStates();

@@ -441,7 +441,22 @@
 
         <!-- Library and player occupy separate rows over one continuous artwork background. -->
         <Grid RowDefinitions="*,Auto">
-            <Panel Grid.Row="0">
+            <Panel Grid.Row="0" ClipToBounds="True">
+
+            <Image x:Name="LibraryArtworkBackground"
+                   Margin="-42"
+                   Stretch="UniformToFill"
+                   Opacity="0.24"
+                   IsVisible="False"
+                   IsHitTestVisible="False">
+                <Image.Effect>
+                    <BlurEffect Radius="28"/>
+                </Image.Effect>
+            </Image>
+            <Rectangle x:Name="LibraryArtworkScrim"
+                       Fill="#660A0B0D"
+                       IsVisible="False"
+                       IsHitTestVisible="False"/>
 
             <ListBox x:Name="FileList"
                      Background="Transparent"
