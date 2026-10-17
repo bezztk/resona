@@ -2943,6 +2943,12 @@ public partial class MusicView : UserControl
         ApplyFilterDefinitionChange();
     }
 
+    private void OnClearConditionBuilderClicked(object? sender, RoutedEventArgs e)
+    {
+        ClearConditionBuilder();
+        e.Handled = true;
+    }
+
     private void InitializeFilterConditionBuilder()
     {
         _conditionGenreCtrl = new MultiSelectFilterControl { Placeholder = "All genres" };
@@ -3153,6 +3159,7 @@ public partial class MusicView : UserControl
         CurrentSetEmptyText.IsVisible = !hasSelection;
         AddFilterGroupButton.IsEnabled = hasSelection;
         AddFilterGroupButton.IsVisible = hasSelection;
+        ClearConditionBuilderButton.IsVisible = hasSelection;
     }
 
     private void RebuildFilterConditionsPanel()

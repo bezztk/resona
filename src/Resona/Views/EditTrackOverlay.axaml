@@ -89,7 +89,10 @@
                 BorderThickness="0,0,0,1"
                 ZIndex="20">
 
-            <Grid RowDefinitions="Auto,1,Auto,1,*">
+            <Grid RowDefinitions="Auto,1,Auto,1,*"
+                  Width="{Binding Bounds.Width, ElementName=EditorSurface}"
+                  MaxWidth="800"
+                  HorizontalAlignment="Center">
                 <Rectangle x:Name="EditorAtmosphereTint"
                            Grid.RowSpan="5"
                            Opacity="0.12"
