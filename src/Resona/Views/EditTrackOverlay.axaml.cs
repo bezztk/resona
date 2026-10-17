@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
 using System.Threading.Tasks;
 using Avalonia;
@@ -353,22 +354,21 @@ public partial class EditTrackOverlay : UserControl
         TitleDisplayText.Text = DisplayValue(TitleBox.Text);
         OriginalTitleDisplayText.Text = DisplayValue(originalTitle);
         ChannelDisplayText.Text = DisplayValue(track.DisplayChannelName);
-        YouTubeUrlDisplayText.Text = DisplayValue(track.CanonicalUrl);
-        ChannelUrlDisplayText.Text = DisplayValue(track.ChannelUrl);
         UploadedDisplayText.Text = FormatMetadataDate(track.UploadedAt);
-        YouTubeActivityDisplayText.Text = track.ViewCount is null && track.LikeCount is null
+        var youtubeActivity = track.ViewCount is null && track.LikeCount is null
             ? "—"
             : $"{FormatMetric(track.ViewCount)} views  ·  {FormatMetric(track.LikeCount)} likes";
-        MetadataUpdatedDisplayText.Text = FormatMetadataDate(track.SourceMetadataUpdatedAt, includeTime: true);
-        CopyYouTubeUrlButton.IsEnabled = !string.IsNullOrWhiteSpace(track.CanonicalUrl);
-        CopyChannelUrlButton.IsEnabled = !string.IsNullOrWhiteSpace(track.ChannelUrl);
+        var metadataDate = FormatMetadataDate(track.SourceMetadataUpdatedAt);
+        YouTubeActivityDisplayText.Text = metadataDate == "—"
+            ? youtubeActivity
+            : $"{youtubeActivity}  (updated {metadataDate})";
+        OriginalTitleLinkButton.IsEnabled = IsValidExternalUrl(track.CanonicalUrl);
+        ChannelLinkButton.IsEnabled = IsValidExternalUrl(track.ChannelUrl);
         CopyOriginalTitleButton.IsEnabled = !string.IsNullOrWhiteSpace(originalTitle);
         ToolTip.SetTip(TitleDisplayText, TitleBox.Text);
         ToolTip.SetTip(ArtistDisplayText, ArtistBox.Text);
-        ToolTip.SetTip(OriginalTitleDisplayText, originalTitle);
-        ToolTip.SetTip(ChannelDisplayText, track.DisplayChannelName);
-        ToolTip.SetTip(YouTubeUrlDisplayText, track.CanonicalUrl);
-        ToolTip.SetTip(ChannelUrlDisplayText, track.ChannelUrl);
+        ToolTip.SetTip(OriginalTitleLinkButton, track.CanonicalUrl);
+        ToolTip.SetTip(ChannelLinkButton, track.ChannelUrl);
     }
 
     private static string DisplayValue(string? value) =>
@@ -378,25 +378,44 @@ public partial class EditTrackOverlay : UserControl
         ? number.ToString("N0", System.Globalization.CultureInfo.CurrentCulture)
         : "—";
 
-    private static string FormatMetadataDate(string? value, bool includeTime = false)
+    private static string FormatMetadataDate(string? value)
     {
         if (!DateTime.TryParse(value, out var parsed))
             return "—";
         var local = parsed.ToLocalTime();
-        return includeTime ? local.ToString("dd MMM yyyy · HH:mm") : local.ToString("dd MMM yyyy");
+        return local.ToString("dd. MMM yyyy", System.Globalization.CultureInfo.GetCultureInfo("de-DE"));
     }
 
-    private async void OnCopyYouTubeUrlClicked(object? sender, RoutedEventArgs e) =>
-        await CopyUrlAsync(_track?.CanonicalUrl, "YouTube URL");
+    private void OnOriginalTitleLinkClicked(object? sender, RoutedEventArgs e) =>
+        OpenExternalUrl(_track?.CanonicalUrl);
 
-    private async void OnCopyChannelUrlClicked(object? sender, RoutedEventArgs e) =>
-        await CopyUrlAsync(_track?.ChannelUrl, "Channel URL");
+    private void OnChannelLinkClicked(object? sender, RoutedEventArgs e) =>
+        OpenExternalUrl(_track?.ChannelUrl);
 
     private async void OnCopyOriginalTitleClicked(object? sender, RoutedEventArgs e) =>
         await CopyUrlAsync(_track is null ? null : OriginalTitle(_track), "Original title");
 
     private static string OriginalTitle(MusicTrack track) =>
         string.IsNullOrWhiteSpace(track.OriginalTitle) ? track.Title : track.OriginalTitle;
+
+    private static bool IsValidExternalUrl(string? url) =>
+        Uri.TryCreate(url, UriKind.Absolute, out var uri)
+        && (uri.Scheme == Uri.UriSchemeHttps || uri.Scheme == Uri.UriSchemeHttp);
+
+    private void OpenExternalUrl(string? url)
+    {
+        if (!IsValidExternalUrl(url))
+            return;
+
+        try
+        {
+            Process.Start(new ProcessStartInfo(url!) { UseShellExecute = true });
+        }
+        catch (Exception exception)
+        {
+            ToastRequested?.Invoke($"Could not open link: {exception.Message}");
+        }
+    }
 
     private async System.Threading.Tasks.Task CopyUrlAsync(string? url, string label)
     {
@@ -1226,27 +1245,27 @@ public partial class EditTrackOverlay : UserControl
 
     private static string GetTempoInsight(double bpm) => bpm switch
     {
-        < 80 => "Slow tempo — unhurried pace.",
-        < 120 => "Moderate tempo — steady mid-tempo pace.",
-        < 140 => "Medium-fast tempo — forward-moving pace.",
-        < 175 => "Fast tempo — energetic pace.",
-        _ => "Very fast tempo — high-energy pace."
+        < 80 => "slow, relaxed pace",
+        < 120 => "moderate, steady pace",
+        < 140 => "brisk, forward-moving pace",
+        < 175 => "fast, energetic pace",
+        _ => "very fast, intense pace"
     };
 
     private static string GetIntegratedLoudnessInsight(double lufs) => lufs switch
     {
-        >= -8 => "Very loud overall — tightly mastered.",
-        >= -11 => "Loud overall — modern, present master.",
-        >= -14 => "Moderate loudness — more breathing room.",
-        _ => "Relatively quiet overall — softer master."
+        >= -8 => "very loud, tightly mastered",
+        >= -11 => "loud, modern master",
+        >= -14 => "moderate with breathing room",
+        _ => "quiet, softer master"
     };
 
     private static string GetLoudnessRangeInsight(double lu) => lu switch
     {
-        <= 3 => "Very even level — little contrast between sections.",
-        <= 6 => "Controlled dynamics — moderate variation.",
-        <= 10 => "Noticeable dynamics — clear quiet/loud contrast.",
-        _ => "High dynamics — strong contrast across the track."
+        <= 3 => "very even, little contrast",
+        <= 6 => "controlled, moderate variation",
+        <= 10 => "clear quiet/loud contrast",
+        _ => "strong contrast"
     };
 
     private void ShowModelSelectedGenres(MusicTrack track)

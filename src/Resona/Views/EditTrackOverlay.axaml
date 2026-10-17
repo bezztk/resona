@@ -108,6 +108,26 @@
                 <Setter Property="Background" Value="{DynamicResource Theme.Brush.SurfaceHover}"/>
                 <Setter Property="BorderBrush" Value="{DynamicResource Theme.Brush.Accent}"/>
             </Style>
+            <Style Selector="Button.edit-link">
+                <Setter Property="Background" Value="Transparent"/>
+                <Setter Property="BorderThickness" Value="0"/>
+                <Setter Property="Padding" Value="0"/>
+                <Setter Property="MinHeight" Value="0"/>
+                <Setter Property="HorizontalAlignment" Value="Left"/>
+                <Setter Property="HorizontalContentAlignment" Value="Left"/>
+                <Setter Property="Foreground" Value="#B8D4EE"/>
+                <Setter Property="Cursor" Value="Hand"/>
+            </Style>
+            <Style Selector="Button.edit-link:pointerover">
+                <Setter Property="Background" Value="Transparent"/>
+                <Setter Property="BorderBrush" Value="Transparent"/>
+                <Setter Property="Foreground" Value="#D7E9F8"/>
+            </Style>
+            <Style Selector="Button.edit-link /template/ ContentPresenter#PART_ContentPresenter">
+                <Setter Property="Background" Value="Transparent"/>
+                <Setter Property="BorderBrush" Value="Transparent"/>
+                <Setter Property="Padding" Value="0"/>
+            </Style>
         </Panel.Styles>
 
         <Border x:Name="EditorSurface"
@@ -308,7 +328,7 @@
                                        ItemHeight="28" />
                         </Border>
 
-                        <Border Classes="edit-section">
+                        <Border Classes="edit-section" BorderThickness="0">
                             <StackPanel Spacing="8">
                                 <Grid ColumnDefinitions="*,Auto" ColumnSpacing="10" Height="28">
                                     <TextBlock Text="Information" FontSize="13" FontWeight="SemiBold" VerticalAlignment="Center" />
@@ -333,7 +353,7 @@
                                                TextTrimming="CharacterEllipsis" />
                                 </Grid>
 
-                                <Grid ColumnDefinitions="104,*,30,30" RowDefinitions="30,30,30,30,30,30,30,30,30" ColumnSpacing="6">
+                                <Grid ColumnDefinitions="104,*,30,30" RowDefinitions="30,30,30,30,30,30" ColumnSpacing="6">
                                     <TextBlock Grid.Row="0" Text="Artist" FontSize="10.5" Opacity="0.58" VerticalAlignment="Center" />
                                     <TextBlock x:Name="ArtistDisplayText" Grid.Row="0" Grid.Column="1" FontSize="11.5" FontWeight="SemiBold"
                                                VerticalAlignment="Center" TextTrimming="CharacterEllipsis" />
@@ -358,46 +378,41 @@
                                              VerticalContentAlignment="Center" Padding="4,2,4,0" />
 
                                     <TextBlock Grid.Row="2" Text="Original title" FontSize="10.5" Opacity="0.58" VerticalAlignment="Center" />
-                                    <TextBlock x:Name="OriginalTitleDisplayText" Grid.Row="2" Grid.Column="1" FontSize="10.5"
-                                               Foreground="{DynamicResource Theme.Brush.TextSecondary}"
-                                               VerticalAlignment="Center" TextTrimming="CharacterEllipsis" />
+                                    <Button x:Name="OriginalTitleLinkButton"
+                                            Grid.Row="2" Grid.Column="1" Grid.ColumnSpan="2"
+                                            Classes="edit-link"
+                                            Click="OnOriginalTitleLinkClicked">
+                                        <TextBlock x:Name="OriginalTitleDisplayText"
+                                                   FontSize="10.5"
+                                                   TextDecorations="Underline"
+                                                   VerticalAlignment="Center"
+                                                   TextTrimming="CharacterEllipsis" />
+                                    </Button>
                                     <Button x:Name="CopyOriginalTitleButton" Grid.Row="2" Grid.Column="3"
                                             Click="OnCopyOriginalTitleClicked" ToolTip.Tip="Copy original title"
                                             Width="26" Height="24" Padding="0" Background="Transparent" BorderThickness="0" Opacity="0.76">
                                         <Image Source="{SvgImage /Assets/copy.svg}" Width="13" Height="13" />
                                     </Button>
                                     <TextBlock Grid.Row="3" Text="Channel" FontSize="10.5" Opacity="0.58" VerticalAlignment="Center" />
-                                    <TextBlock x:Name="ChannelDisplayText" Grid.Row="3" Grid.Column="1" FontSize="11.5"
-                                               VerticalAlignment="Center" TextTrimming="CharacterEllipsis" />
-                                    <TextBlock Grid.Row="4" Text="YouTube URL" FontSize="10.5" Opacity="0.58" VerticalAlignment="Center" />
-                                    <TextBlock x:Name="YouTubeUrlDisplayText" Grid.Row="4" Grid.Column="1" FontSize="10.5" Foreground="{DynamicResource Theme.Brush.TextSecondary}"
-                                               VerticalAlignment="Center" TextTrimming="CharacterEllipsis" />
-                                    <Button x:Name="CopyYouTubeUrlButton" Grid.Row="4" Grid.Column="3"
-                                            Click="OnCopyYouTubeUrlClicked" ToolTip.Tip="Copy YouTube URL"
-                                            Width="26" Height="24" Padding="0" Background="Transparent" BorderThickness="0" Opacity="0.76">
-                                        <Image Source="{SvgImage /Assets/copy.svg}" Width="13" Height="13" />
+                                    <Button x:Name="ChannelLinkButton"
+                                            Grid.Row="3" Grid.Column="1" Grid.ColumnSpan="3"
+                                            Classes="edit-link"
+                                            Click="OnChannelLinkClicked">
+                                        <TextBlock x:Name="ChannelDisplayText"
+                                                   FontSize="11"
+                                                   FontWeight="SemiBold"
+                                                   TextDecorations="Underline"
+                                                   VerticalAlignment="Center"
+                                                   TextTrimming="CharacterEllipsis" />
                                     </Button>
 
-                                    <TextBlock Grid.Row="5" Text="Channel URL" FontSize="10.5" Opacity="0.58" VerticalAlignment="Center" />
-                                    <TextBlock x:Name="ChannelUrlDisplayText" Grid.Row="5" Grid.Column="1" FontSize="10.5" Foreground="{DynamicResource Theme.Brush.TextSecondary}"
-                                               VerticalAlignment="Center" TextTrimming="CharacterEllipsis" />
-                                    <Button x:Name="CopyChannelUrlButton" Grid.Row="5" Grid.Column="3"
-                                            Click="OnCopyChannelUrlClicked" ToolTip.Tip="Copy channel URL"
-                                            Width="26" Height="24" Padding="0" Background="Transparent" BorderThickness="0" Opacity="0.76">
-                                        <Image Source="{SvgImage /Assets/copy.svg}" Width="13" Height="13" />
-                                    </Button>
-
-                                    <TextBlock Grid.Row="6" Text="Uploaded" FontSize="10.5" Opacity="0.58" VerticalAlignment="Center" />
-                                    <TextBlock x:Name="UploadedDisplayText" Grid.Row="6" Grid.Column="1" Grid.ColumnSpan="3"
+                                    <TextBlock Grid.Row="4" Text="Uploaded" FontSize="10.5" Opacity="0.58" VerticalAlignment="Center" />
+                                    <TextBlock x:Name="UploadedDisplayText" Grid.Row="4" Grid.Column="1" Grid.ColumnSpan="3"
                                                FontSize="10.5" VerticalAlignment="Center" />
 
-                                    <TextBlock Grid.Row="7" Text="YouTube activity" FontSize="10.5" Opacity="0.58" VerticalAlignment="Center" />
-                                    <TextBlock x:Name="YouTubeActivityDisplayText" Grid.Row="7" Grid.Column="1" Grid.ColumnSpan="3"
+                                    <TextBlock Grid.Row="5" Text="YouTube activity" FontSize="10.5" Opacity="0.58" VerticalAlignment="Center" />
+                                    <TextBlock x:Name="YouTubeActivityDisplayText" Grid.Row="5" Grid.Column="1" Grid.ColumnSpan="3"
                                                FontSize="10.5" VerticalAlignment="Center" />
-
-                                    <TextBlock Grid.Row="8" Text="Metadata updated" FontSize="10.5" Opacity="0.58" VerticalAlignment="Center" />
-                                    <TextBlock x:Name="MetadataUpdatedDisplayText" Grid.Row="8" Grid.Column="1" Grid.ColumnSpan="3"
-                                               FontSize="10.5" Opacity="0.72" VerticalAlignment="Center" />
                                 </Grid>
 
                                 <Rectangle Height="1" Fill="{DynamicResource Theme.Brush.BorderSubtle}" Margin="0,3" />
@@ -405,28 +420,28 @@
                                 <Grid x:Name="AudioAnalysisSection" RowDefinitions="Auto,Auto,Auto" RowSpacing="3" Margin="0,5,0,0">
                                     <Border x:Name="BpmMetricCard" Background="Transparent" Padding="0,4">
                                         <Grid ColumnDefinitions="*,Auto" ColumnSpacing="16">
-                                            <StackPanel Spacing="1">
-                                                <TextBlock Text="Tempo" FontSize="10.5" FontWeight="SemiBold" />
-                                                <TextBlock x:Name="BpmInsightText" FontSize="9.5" Opacity="0.56" TextWrapping="Wrap" />
-                                            </StackPanel>
+                                            <Grid ColumnDefinitions="Auto,*" ColumnSpacing="5">
+                                                <TextBlock Text="Tempo —" FontSize="10.5" FontWeight="SemiBold" />
+                                                <TextBlock x:Name="BpmInsightText" Grid.Column="1" FontSize="9.5" Opacity="0.56" TextTrimming="CharacterEllipsis" />
+                                            </Grid>
                                             <TextBlock x:Name="BpmText" Grid.Column="1" FontSize="12" FontWeight="SemiBold" VerticalAlignment="Center" />
                                         </Grid>
                                     </Border>
                                     <Border x:Name="LoudnessMetricCard" Grid.Row="1" Background="Transparent" Padding="0,4">
                                         <Grid ColumnDefinitions="*,Auto" ColumnSpacing="16">
-                                            <StackPanel Spacing="1">
-                                                <TextBlock Text="Loudness" FontSize="10.5" FontWeight="SemiBold" />
-                                                <TextBlock x:Name="LoudnessInsightText" FontSize="9.5" Opacity="0.56" TextWrapping="Wrap" />
-                                            </StackPanel>
+                                            <Grid ColumnDefinitions="Auto,*" ColumnSpacing="5">
+                                                <TextBlock Text="Loudness —" FontSize="10.5" FontWeight="SemiBold" />
+                                                <TextBlock x:Name="LoudnessInsightText" Grid.Column="1" FontSize="9.5" Opacity="0.56" TextTrimming="CharacterEllipsis" />
+                                            </Grid>
                                             <TextBlock x:Name="IntegratedLoudnessText" Grid.Column="1" FontSize="12" FontWeight="SemiBold" VerticalAlignment="Center" />
                                         </Grid>
                                     </Border>
                                     <Border x:Name="DynamicsMetricCard" Grid.Row="2" Background="Transparent" Padding="0,4">
                                         <Grid ColumnDefinitions="*,Auto" ColumnSpacing="16">
-                                            <StackPanel Spacing="1">
-                                                <TextBlock Text="Dynamics" FontSize="10.5" FontWeight="SemiBold" />
-                                                <TextBlock x:Name="DynamicsInsightText" FontSize="9.5" Opacity="0.56" TextWrapping="Wrap" />
-                                            </StackPanel>
+                                            <Grid ColumnDefinitions="Auto,*" ColumnSpacing="5">
+                                                <TextBlock Text="Dynamics —" FontSize="10.5" FontWeight="SemiBold" />
+                                                <TextBlock x:Name="DynamicsInsightText" Grid.Column="1" FontSize="9.5" Opacity="0.56" TextTrimming="CharacterEllipsis" />
+                                            </Grid>
                                             <TextBlock x:Name="LoudnessRangeText" Grid.Column="1" FontSize="12" FontWeight="SemiBold" VerticalAlignment="Center" />
                                         </Grid>
                                     </Border>
