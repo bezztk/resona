@@ -2266,11 +2266,11 @@ public partial class MusicView : UserControl
         BuiltInPresetRows.Children.Add(CreateBuiltInPresetCard(
             LibraryMode.Library,
             "Default",
-            "All tracks, including tracks marked for review."));
+            $"{_allItems.Count(item => item.Track.LibraryState != TrackLibraryState.Rejected)} tracks in your library, including tracks marked for review."));
         BuiltInPresetRows.Children.Add(CreateBuiltInPresetCard(
             LibraryMode.Review,
             "Needs review",
-            "All tracks marked for review."));
+            $"{_allItems.Count(item => item.Track.LibraryState != TrackLibraryState.Rejected && item.NeedsReview)} tracks marked for review."));
         BuiltInPresetRows.Children.Add(CreateBuiltInPresetCard(
             LibraryMode.Unassigned,
             "Unassigned",
@@ -4453,6 +4453,9 @@ public partial class MusicView : UserControl
     }
 
     private void OnShuffleToggleClicked(object? sender, RoutedEventArgs e) => SetShuffle(!_shuffle);
+
+    private void OnVolumeSliderPointerReleased(object? sender, PointerReleasedEventArgs e) =>
+        VolumeButton.Flyout?.Hide();
 
     private void SetShuffle(bool shuffle)
     {

@@ -24,25 +24,25 @@
             <Setter Property="VerticalContentAlignment" Value="Center"/>
         </Style>
         <Style Selector="Button.shuffle-toggle">
-            <Setter Property="Opacity" Value="0.18"/>
+            <Setter Property="Opacity" Value="0.22"/>
             <Setter Property="Background" Value="Transparent"/>
             <Setter Property="BorderBrush" Value="Transparent"/>
-            <Setter Property="BorderThickness" Value="0"/>
+            <Setter Property="BorderThickness" Value="1"/>
         </Style>
         <Style Selector="Button.shuffle-toggle:pointerover">
-            <Setter Property="Opacity" Value="0.42"/>
-            <Setter Property="Background" Value="Transparent"/>
-            <Setter Property="BorderBrush" Value="Transparent"/>
+            <Setter Property="Opacity" Value="0.5"/>
+            <Setter Property="Background" Value="#1878A9E6"/>
+            <Setter Property="BorderBrush" Value="#4878A9E6"/>
         </Style>
         <Style Selector="Button.shuffle-toggle.active">
             <Setter Property="Opacity" Value="1"/>
-            <Setter Property="Background" Value="Transparent"/>
-            <Setter Property="BorderBrush" Value="Transparent"/>
+            <Setter Property="Background" Value="#4A78A9E6"/>
+            <Setter Property="BorderBrush" Value="#D078A9E6"/>
         </Style>
         <Style Selector="Button.shuffle-toggle.active:pointerover">
             <Setter Property="Opacity" Value="1"/>
-            <Setter Property="Background" Value="Transparent"/>
-            <Setter Property="BorderBrush" Value="Transparent"/>
+            <Setter Property="Background" Value="#6478A9E6"/>
+            <Setter Property="BorderBrush" Value="#FF8DB9ED"/>
         </Style>
         <Style Selector="ToggleButton.toolbar-icon">
             <Setter Property="Width" Value="38"/>
@@ -369,14 +369,10 @@
                         <Image x:Name="SearchIcon"
                                Source="{SvgImage /Assets/search.svg}"
                                Width="17" Height="17"/>
-                        <Path x:Name="CloseSearchIcon"
-                              IsVisible="False"
-                              Width="17" Height="17"
-                              Stretch="Uniform"
-                              Data="M 3 3 L 17 17 M 17 3 L 3 17"
-                              Stroke="#FFFF5A5F"
-                              StrokeThickness="2.4"
-                              StrokeLineCap="Round"/>
+                        <Image x:Name="CloseSearchIcon"
+                               Source="{SvgImage /Assets/close.svg}"
+                               IsVisible="False"
+                               Width="17" Height="17"/>
                     </Grid>
                 </Button>
 
@@ -482,7 +478,9 @@
                 </ListBox.ItemsPanel>
                 <ListBox.ItemTemplate>
                     <DataTemplate x:DataType="models:TrackDisplayItem">
-                        <Grid RowDefinitions="Auto,Auto" HorizontalAlignment="Stretch">
+                        <Grid RowDefinitions="Auto,Auto"
+                              MaxWidth="800"
+                              HorizontalAlignment="Stretch">
                             <Border Grid.Row="0"
                                     Classes="track-card"
                                     PointerPressed="OnTrackContextMenuPointerPressed"
@@ -860,20 +858,34 @@
                                 <StackPanel Grid.Column="2"
                                             Orientation="Horizontal" Spacing="10"
                                             VerticalAlignment="Center">
-                                    <Border ClipToBounds="False">
-                                        <Slider x:Name="VolumeSlider"
-                                                Classes="playback"
-                                                Minimum="0" Maximum="100" 
-                                                Opacity="0.6"
-                                                Value="100"
-                                                Width="108"
-                                                Height="28"
-                                                Margin="0,-5,0,0"
-                                                VerticalAlignment="Center"/>
-                                    </Border>
+                                    <Button x:Name="VolumeButton"
+                                            Classes="icon"
+                                            ToolTip.Tip="Volume">
+                                        <Button.Flyout>
+                                            <Flyout Placement="Top">
+                                                <Border Padding="7,10"
+                                                        Background="#F2191A1D"
+                                                        BorderBrush="#3EFFFFFF"
+                                                        BorderThickness="1"
+                                                        CornerRadius="9">
+                                                    <Slider x:Name="VolumeSlider"
+                                                            Classes="playback"
+                                                            Orientation="Vertical"
+                                                            Minimum="0" Maximum="100"
+                                                            Value="100"
+                                                            Width="28"
+                                                            Height="130"
+                                                            PointerReleased="OnVolumeSliderPointerReleased"/>
+                                                </Border>
+                                            </Flyout>
+                                        </Button.Flyout>
+                                        <Image Source="{SvgImage /Assets/speaker.svg}"
+                                               Width="18" Height="18"/>
+                                    </Button>
                                     <Button x:Name="ShuffleBtn"
                                             Classes="icon shuffle-toggle"
-                                            Click="OnShuffleToggleClicked">
+                                            Click="OnShuffleToggleClicked"
+                                            ToolTip.Tip="Shuffle">
                                         <Image Source="{SvgImage /Assets/shuffle.svg}"
                                                Width="17" Height="17"/>
                                     </Button>
@@ -932,7 +944,7 @@
                         </Button>
                     </Grid>
 
-                    <Grid Grid.Row="1" ColumnDefinitions="350,49,*">
+                    <Grid Grid.Row="1" ColumnDefinitions="330,49,*">
                         <ScrollViewer Grid.Column="0"
                                       VerticalScrollBarVisibility="Auto"
                                       HorizontalScrollBarVisibility="Disabled">

@@ -352,7 +352,6 @@ public partial class SettingsOverlay : UserControl
         var page = value switch
         {
             "appearance" => SettingsPage.Appearance,
-            "updates" => SettingsPage.Updates,
             "general" => SettingsPage.General,
             "tags" => SettingsPage.Tags,
             "styles" => SettingsPage.Styles,
@@ -369,18 +368,15 @@ public partial class SettingsOverlay : UserControl
 
         _selectedPage = page;
         var isGenreVocabularyPage = page == SettingsPage.GenreVocabulary;
-        var isUpdatesPage = page == SettingsPage.Updates;
         var isAppearancePage = page == SettingsPage.Appearance;
         var isGeneralPage = page == SettingsPage.General;
         GenreVocabularyPage.IsVisible = isGenreVocabularyPage;
-        UpdatesPage.IsVisible = isUpdatesPage;
         AppearancePage.IsVisible = isAppearancePage;
         GeneralPage.IsVisible = isGeneralPage;
         TagsPage.IsVisible = page == SettingsPage.Tags;
         StylesPage.IsVisible = page == SettingsPage.Styles;
         TagRulesPage.IsVisible = page == SettingsPage.TagRules;
         GenreVocabularyNavButton.IsChecked = isGenreVocabularyPage;
-        UpdatesNavButton.IsChecked = isUpdatesPage;
         AppearanceNavButton.IsChecked = isAppearancePage;
         GeneralNavButton.IsChecked = isGeneralPage;
         TagsNavButton.IsChecked = page == SettingsPage.Tags;
@@ -389,7 +385,6 @@ public partial class SettingsOverlay : UserControl
 
         PageTitleText.Text = page switch
         {
-            SettingsPage.Updates => "Updates",
             SettingsPage.Appearance => "Appearance",
             SettingsPage.General => "General",
             SettingsPage.Tags => "Tags",
@@ -402,9 +397,7 @@ public partial class SettingsOverlay : UserControl
             : isAppearancePage
                 ? "Tune artwork, blur, color and audio-reactive visuals. Changes are applied live."
                 : isGeneralPage
-                    ? "Configure downloads, analysis and optional Discord integration."
-                            : isUpdatesPage
-                                ? "Check, download and install application releases from GitHub."
+                    ? "Configure downloads, analysis, Discord integration and application updates."
                             : page == SettingsPage.Tags
                                 ? "Maintain your curated labels. Tags can describe mood, themes, situations or workflow states without turning them into genres."
                                 : page == SettingsPage.Styles
@@ -417,7 +410,7 @@ public partial class SettingsOverlay : UserControl
         if (page == SettingsPage.Tags) ReloadTagManagement();
         if (page == SettingsPage.Styles) ReloadStyleManagement();
         if (page == SettingsPage.TagRules) ReloadTagRules();
-        if (isUpdatesPage) RefreshUpdatePage(AppUpdateService.Current.State);
+        if (isGeneralPage) RefreshUpdatePage(AppUpdateService.Current.State);
     }
 
     private void OnShowCreateSubgenreClicked(object? sender, RoutedEventArgs e)
@@ -1641,5 +1634,5 @@ public partial class SettingsOverlay : UserControl
         public override string ToString() => Name;
     }
 
-    private enum SettingsPage { General, GenreVocabulary, Appearance, Updates, Tags, Styles, TagRules }
+    private enum SettingsPage { General, GenreVocabulary, Appearance, Tags, Styles, TagRules }
 }
