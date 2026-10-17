@@ -1669,13 +1669,13 @@ public partial class MusicView : UserControl
         {
             SearchBox.Text = string.Empty;
             SearchBox.IsVisible = false;
-            SearchToggleBtn.Opacity = 0.86;
+            UpdateSearchVisibility();
             SearchToggleBtn.Focus();
             return;
         }
 
         SearchBox.IsVisible = true;
-        SearchToggleBtn.Opacity = 1.0;
+        UpdateSearchVisibility();
         Dispatcher.UIThread.Post(() => SearchBox.Focus(), DispatcherPriority.Background);
     }
 
@@ -1685,6 +1685,7 @@ public partial class MusicView : UserControl
         {
             SearchBox.Text = string.Empty;
             SearchBox.IsVisible = false;
+            UpdateSearchVisibility();
             SearchToggleBtn.Focus();
             e.Handled = true;
             return;
@@ -1697,18 +1698,14 @@ public partial class MusicView : UserControl
         }
     }
 
-    private void OnSearchBoxLostFocus(object? sender, RoutedEventArgs e) =>
-        Dispatcher.UIThread.Post(UpdateSearchVisibility, DispatcherPriority.Background);
+    private void OnSearchBoxLostFocus(object? sender, RoutedEventArgs e) => UpdateSearchVisibility();
 
     private void UpdateSearchVisibility()
     {
-        var hasSearch = !string.IsNullOrWhiteSpace(SearchBox.Text);
-        if (SearchToggleBtn.IsKeyboardFocusWithin)
-            return;
-
-        if (!SearchBox.IsKeyboardFocusWithin && !hasSearch)
-            SearchBox.IsVisible = false;
-        SearchToggleBtn.Opacity = SearchBox.IsVisible || hasSearch ? 1.0 : 0.86;
+        SearchIcon.IsVisible = !SearchBox.IsVisible;
+        CloseSearchIcon.IsVisible = SearchBox.IsVisible;
+        SearchToggleBtn.Opacity = SearchBox.IsVisible ? 1.0 : 0.86;
+        ToolTip.SetTip(SearchToggleBtn, SearchBox.IsVisible ? "Close search" : "Search");
     }
 
     private void LoadCollections()

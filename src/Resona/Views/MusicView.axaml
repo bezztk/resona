@@ -365,7 +365,19 @@
                         Click="OnSearchToggleClicked"
                         ToolTip.Tip="Search"
                         Opacity="0.86">
-                    <Image Source="{SvgImage /Assets/search.svg}" Width="17" Height="17"/>
+                    <Grid>
+                        <Image x:Name="SearchIcon"
+                               Source="{SvgImage /Assets/search.svg}"
+                               Width="17" Height="17"/>
+                        <Path x:Name="CloseSearchIcon"
+                              IsVisible="False"
+                              Width="17" Height="17"
+                              Stretch="Uniform"
+                              Data="M 3 3 L 17 17 M 17 3 L 3 17"
+                              Stroke="#FFFF5A5F"
+                              StrokeThickness="2.4"
+                              StrokeLineCap="Round"/>
+                    </Grid>
                 </Button>
 
                 <!-- Hidden state controls remain the source for built-in views and filtering. -->
@@ -920,7 +932,7 @@
                         </Button>
                     </Grid>
 
-                    <Grid Grid.Row="1" ColumnDefinitions="280,49,*">
+                    <Grid Grid.Row="1" ColumnDefinitions="350,49,*">
                         <ScrollViewer Grid.Column="0"
                                       VerticalScrollBarVisibility="Auto"
                                       HorizontalScrollBarVisibility="Disabled">

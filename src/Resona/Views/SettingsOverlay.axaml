@@ -154,15 +154,11 @@
                                           Content="General" Tag="general"
                                           FontSize="13" FontWeight="SemiBold"
                                           Click="OnSettingsNavigationClicked"/>
-                        </StackPanel>
-
-                        <Rectangle Height="1" Fill="{DynamicResource Theme.Brush.Divider}" Margin="4,14"/>
-
-                        <StackPanel Spacing="6">
-                            <TextBlock Text="EXPERIENCE" FontSize="10" FontWeight="SemiBold"
-                                       Opacity="0.4" LetterSpacing="0.8" Margin="10,0,0,4"/>
                             <ToggleButton x:Name="AppearanceNavButton" Classes="settings-nav"
                                           Content="Appearance" Tag="appearance"
+                                          Click="OnSettingsNavigationClicked"/>
+                            <ToggleButton x:Name="UpdatesNavButton" Classes="settings-nav"
+                                          Content="Updates" Tag="updates"
                                           Click="OnSettingsNavigationClicked"/>
                         </StackPanel>
 
@@ -183,16 +179,6 @@
                             <ToggleButton x:Name="TagRulesNavButton" Classes="settings-nav"
                                           IsVisible="False"
                                           Content="Tag rules" Tag="tag_rules"
-                                          Click="OnSettingsNavigationClicked"/>
-                        </StackPanel>
-
-                        <Rectangle Height="1" Fill="{DynamicResource Theme.Brush.Divider}" Margin="4,14"/>
-
-                        <StackPanel Spacing="6">
-                            <TextBlock Text="SYSTEM" FontSize="10" FontWeight="SemiBold"
-                                       Opacity="0.4" LetterSpacing="0.8" Margin="10,0,0,4"/>
-                            <ToggleButton x:Name="UpdatesNavButton" Classes="settings-nav"
-                                          Content="Updates" Tag="updates"
                                           Click="OnSettingsNavigationClicked"/>
                         </StackPanel>
                     </StackPanel>
