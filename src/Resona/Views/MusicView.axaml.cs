@@ -139,7 +139,8 @@ public partial class MusicView : UserControl
         Library,
         Review,
         Unassigned,
-        GenreCleanup
+        GenreCleanup,
+        Unanalyzed
     }
     private readonly List<FilterGroupControls> _filterGroups = [];
 
@@ -1115,6 +1116,8 @@ public partial class MusicView : UserControl
             var cleanupTrackIds = MusicLibraryService.Current.GetGenreCleanupTrackIds();
             return _allItems.Where(item => cleanupTrackIds.Contains(item.Track.Id));
         }
+        if (_activeBuiltInView == LibraryMode.Unanalyzed)
+            return _allItems.Where(item => !_allTrackAudioAnalyses.ContainsKey(item.Track.Id));
 
         if (_activeCollection is null)
             return _allItems;
@@ -2340,7 +2343,7 @@ public partial class MusicView : UserControl
 
     private void LoadFilterPresets()
     {
-        _filterPresets = FilterPresetStore.Load();
+        _filterPresets = MusicLibraryService.Current.GetFilterPresets();
         var restoredPreset = _filterPresets.FirstOrDefault(preset =>
             string.Equals(
                 preset.Name,
@@ -2375,6 +2378,13 @@ public partial class MusicView : UserControl
             LibraryMode.GenreCleanup,
             "Genre Cleanup",
             $"{genreCleanupCount} tracks use a non-preferred genre and are not favorites."));
+        var unanalyzedCount = _allItems.Count(item =>
+            item.Track.LibraryState != TrackLibraryState.Rejected
+            && !_allTrackAudioAnalyses.ContainsKey(item.Track.Id));
+        BuiltInPresetRows.Children.Add(CreateBuiltInPresetCard(
+            LibraryMode.Unanalyzed,
+            "Not analyzed",
+            $"{unanalyzedCount} tracks have no completed analysis."));
         PresetRows.Children.Clear();
 
         if (_isCreatingPreset)
@@ -2438,6 +2448,7 @@ public partial class MusicView : UserControl
             LibraryMode.Review => "#A8C69A55",
             LibraryMode.Unassigned => "#A8D89B5A",
             LibraryMode.GenreCleanup => "#A86A91B8",
+            LibraryMode.Unanalyzed => "#A86FA9D2",
             _ => "#A85F7894"
         };
         var button = new Button
@@ -2464,7 +2475,8 @@ public partial class MusicView : UserControl
             _activeFilterPresetName = null;
             _activeBuiltInView = mode;
             _isCreatingPreset = false;
-            if ((mode is LibraryMode.Unassigned or LibraryMode.GenreCleanup) && _activeCollection is not null)
+            if ((mode is LibraryMode.Unassigned or LibraryMode.GenreCleanup or LibraryMode.Unanalyzed)
+                && _activeCollection is not null)
             {
                 _activeCollection = null;
                 _activeCollectionOrder.Clear();
@@ -2811,8 +2823,8 @@ public partial class MusicView : UserControl
         _filterPresets.Add(preset);
         _startupPresetTrackCounts[preset.Name] = TrackIdsForPreset(preset).Count;
 
-        FilterPresetStore.Save(_filterPresets);
-        _filterPresets = FilterPresetStore.Load();
+        MusicLibraryService.Current.SaveFilterPresets(_filterPresets);
+        _filterPresets = MusicLibraryService.Current.GetFilterPresets();
         _activeFilterPresetName = preset.Name;
         _activeBuiltInView = null;
         _isCreatingPreset = false;
@@ -2849,8 +2861,8 @@ public partial class MusicView : UserControl
             return;
 
         _filterPresets[index] = preset;
-        FilterPresetStore.Save(_filterPresets);
-        _filterPresets = FilterPresetStore.Load();
+        MusicLibraryService.Current.SaveFilterPresets(_filterPresets);
+        _filterPresets = MusicLibraryService.Current.GetFilterPresets();
         _activeFilterPresetName = preset.Name;
         RebuildPresetRows();
         PersistPlayerSession();
@@ -2880,8 +2892,8 @@ public partial class MusicView : UserControl
         _filterPresets.RemoveAll(preset =>
             string.Equals(preset.Name, presetName, StringComparison.OrdinalIgnoreCase));
 
-        FilterPresetStore.Save(_filterPresets);
-        _filterPresets = FilterPresetStore.Load();
+        MusicLibraryService.Current.SaveFilterPresets(_filterPresets);
+        _filterPresets = MusicLibraryService.Current.GetFilterPresets();
 
         if (!wasSelected)
         {
@@ -2909,8 +2921,8 @@ public partial class MusicView : UserControl
         if (string.Equals(_activeFilterPresetName, presetName, StringComparison.OrdinalIgnoreCase))
             _activeFilterPresetName = name;
 
-        FilterPresetStore.Save(_filterPresets);
-        _filterPresets = FilterPresetStore.Load();
+        MusicLibraryService.Current.SaveFilterPresets(_filterPresets);
+        _filterPresets = MusicLibraryService.Current.GetFilterPresets();
         RebuildPresetRows();
         PersistPlayerSession();
     }
@@ -4922,6 +4934,7 @@ public partial class MusicView : UserControl
                     LibraryMode.Review => "REVIEW",
                     LibraryMode.Unassigned => "UNASSIGNED",
                     LibraryMode.GenreCleanup => "GENRE CLEANUP",
+                    LibraryMode.Unanalyzed => "NOT ANALYZED",
                     _ => "LIBRARY"
                 }
                 : $"PRESET · {_activeFilterPresetName.ToUpperInvariant()}";

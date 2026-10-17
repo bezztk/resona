@@ -29,6 +29,7 @@ public partial class EditTrackOverlay : UserControl
     private readonly List<(Tag Tag, ToggleButton Btn)> _tagChips = [];
     private readonly List<(TrackLanguage Language, ToggleButton Btn)> _languageChips = [];
     private readonly List<(Style Style, ToggleButton Btn)> _styleChips = [];
+    private sealed record EditChipVisual(TextBlock Label, TextBlock Check);
     private readonly List<RatingButtonVisual> _ratingButtons = [];
 
     private HashSet<int> _modelGenreIds = [];
@@ -428,17 +429,29 @@ public partial class EditTrackOverlay : UserControl
             VerticalAlignment = VerticalAlignment.Center,
             TextAlignment = TextAlignment.Center
         };
+        var check = new TextBlock
+        {
+            Text = "✓",
+            FontSize = 11,
+            Foreground = ThemeResources.Brush("Theme.Brush.Accent"),
+            HorizontalAlignment = HorizontalAlignment.Right,
+            VerticalAlignment = VerticalAlignment.Center,
+            IsVisible = isSelected
+        };
+        var content = new Grid();
+        content.Children.Add(label);
+        content.Children.Add(check);
         var button = new ToggleButton
         {
-            Content = label,
+            Content = content,
             IsChecked = isSelected,
-            Height = 29,
-            Padding = new Thickness(9, 2),
-            CornerRadius = new CornerRadius(0),
+            Height = 34,
+            Padding = new Thickness(9, 3),
+            CornerRadius = new CornerRadius(2),
             HorizontalAlignment = HorizontalAlignment.Stretch,
             HorizontalContentAlignment = HorizontalAlignment.Stretch,
             VerticalContentAlignment = VerticalAlignment.Center,
-            Tag = label
+            Tag = new EditChipVisual(label, check)
         };
         button.Classes.Add("edit-chip");
         ApplyTagVisual(button);
@@ -501,18 +514,30 @@ public partial class EditTrackOverlay : UserControl
             VerticalAlignment = VerticalAlignment.Center,
             TextAlignment = TextAlignment.Center
         };
+        var check = new TextBlock
+        {
+            Text = "✓",
+            FontSize = 11,
+            Foreground = ThemeResources.Brush("Theme.Brush.Accent"),
+            HorizontalAlignment = HorizontalAlignment.Right,
+            VerticalAlignment = VerticalAlignment.Center,
+            IsVisible = isSelected
+        };
+        var content = new Grid();
+        content.Children.Add(label);
+        content.Children.Add(check);
 
         var button = new ToggleButton
         {
-            Content = label,
+            Content = content,
             IsChecked = isSelected,
-            Height = 29,
-            Padding = new Avalonia.Thickness(9, 2),
-            CornerRadius = new Avalonia.CornerRadius(0),
+            Height = 34,
+            Padding = new Avalonia.Thickness(9, 3),
+            CornerRadius = new Avalonia.CornerRadius(2),
             HorizontalAlignment = HorizontalAlignment.Stretch,
             HorizontalContentAlignment = HorizontalAlignment.Stretch,
             VerticalContentAlignment = VerticalAlignment.Center,
-            Tag = label
+            Tag = new EditChipVisual(label, check)
         };
         button.Classes.Add("edit-chip");
         ApplyTagVisual(button);
@@ -523,18 +548,19 @@ public partial class EditTrackOverlay : UserControl
     {
         var selected = button.IsChecked == true;
         button.Background = selected
-            ? new SolidColorBrush(Color.FromArgb(22, 44, 102, 133))
-            : new SolidColorBrush(Color.FromArgb(8, 255, 255, 255));
-        button.BorderBrush = new SolidColorBrush(selected
-            ? Color.FromArgb(192, 111, 169, 210)
-            : Color.FromArgb(54, 255, 255, 255));
-        button.BorderThickness = selected
-            ? new Avalonia.Thickness(2, 1, 1, 1)
-            : new Avalonia.Thickness(1);
-        if (button.Tag is TextBlock label)
-            label.Foreground = selected
-                ? new SolidColorBrush(Color.Parse("#A9D8F2"))
-                : ThemeResources.Brush("Theme.Brush.TextPrimary");
+            ? new SolidColorBrush(Color.Parse("#263E6591"))
+            : Brushes.Transparent;
+        button.BorderBrush = new SolidColorBrush(Color.Parse(selected
+            ? "#7A78A9E6"
+            : "#36FFFFFF"));
+        button.BorderThickness = new Avalonia.Thickness(1);
+        if (button.Tag is EditChipVisual visual)
+        {
+            visual.Label.Foreground = ThemeResources.Brush(selected
+                ? "Theme.Brush.TextStrong"
+                : "Theme.Brush.TextPrimary");
+            visual.Check.IsVisible = selected;
+        }
     }
 
     private void RebuildLanguageChips(string? selectedLanguageCode)
@@ -655,17 +681,33 @@ public partial class EditTrackOverlay : UserControl
         EditStylesPanel.Children.Clear();
         _styleChips.Clear();
 
-        foreach (var style in sorted)
+        var rowCount = Math.Max(1, (int)Math.Ceiling(sorted.Count / 4d));
+        var styleIndex = 0;
+        for (var rowIndex = 0; rowIndex < rowCount && styleIndex < sorted.Count; rowIndex++)
         {
-            var selected = selectedStyleIds.Contains(style.Id);
-            var btn = CreateStyleButton(style.Name, selected);
-            btn.IsCheckedChanged += (_, _) =>
+            var remainingStyles = sorted.Count - styleIndex;
+            var remainingRows = rowCount - rowIndex;
+            var stylesInRow = (int)Math.Ceiling(remainingStyles / (double)remainingRows);
+            var row = new Grid { ColumnSpacing = 7 };
+            for (var column = 0; column < stylesInRow; column++)
             {
-                ApplyTagVisual(btn);
-                AutoSaveChanges();
-            };
-            _styleChips.Add((style, btn));
-            EditStylesPanel.Children.Add(btn);
+                var style = sorted[styleIndex++];
+                row.ColumnDefinitions.Add(new ColumnDefinition
+                {
+                    Width = new GridLength(Math.Max(6, style.Name.Length + 4), GridUnitType.Star)
+                });
+                var selected = selectedStyleIds.Contains(style.Id);
+                var btn = CreateStyleButton(style.Name, selected);
+                btn.IsCheckedChanged += (_, _) =>
+                {
+                    ApplyTagVisual(btn);
+                    AutoSaveChanges();
+                };
+                _styleChips.Add((style, btn));
+                Grid.SetColumn(btn, column);
+                row.Children.Add(btn);
+            }
+            EditStylesPanel.Children.Add(row);
         }
     }
 

@@ -128,7 +128,7 @@ public static class ObsidianMusicExportService
         var exportedAt = DateTime.UtcNow.ToString("O");
         var snapshot = new PortableMusicLibrary(
             portableTracks,
-            FilterPresetStore.Load(),
+            library.GetFilterPresets(),
             ExportId: Guid.NewGuid().ToString("N"),
             ExportedAt: exportedAt,
             MediaMode: "full",

@@ -6,6 +6,10 @@ namespace Resona.Tests;
 
 public sealed class TrackAnalysisServiceTests
 {
+    [Fact]
+    public void Upload_duration_is_limited_to_seven_minutes() =>
+        Assert.Equal(420, TrackAnalysisService.MaximumUploadDurationSeconds);
+
     [Theory]
     [InlineData("http://192.168.178.102:5081/health", "http://192.168.178.102:5081")]
     [InlineData("https://analyzer.example.test/HEALTH/", "https://analyzer.example.test")]

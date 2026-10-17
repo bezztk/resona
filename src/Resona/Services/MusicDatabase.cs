@@ -5,6 +5,7 @@ using System.Linq;
 using System.Text.Json;
 using Avalonia.Platform;
 using Microsoft.Data.Sqlite;
+using Resona.Core;
 using Resona.Models;
 
 namespace Resona.Services;
@@ -60,6 +61,7 @@ public class MusicDatabase
         tx.Commit();
         EnsureGenreCurationSchema(conn);
         EnsureTrackWorkflowGuards(conn);
+        EnsureFilterPresetSchema(conn);
     }
 
     private static void EnableConcurrentReads(SqliteConnection connection)
@@ -316,6 +318,91 @@ public class MusicDatabase
         RemoveLegacyNightcoreGenre(conn);
         DropLegacyEditsColumn(conn);
         CreateCollectionSchema(conn);
+        EnsureFilterPresetSchema(conn);
+    }
+
+    private static readonly JsonSerializerOptions PresetJsonOptions = new()
+    {
+        PropertyNameCaseInsensitive = true,
+        PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
+        WriteIndented = false
+    };
+
+    internal static void EnsureFilterPresetSchema(SqliteConnection conn) =>
+        ExecuteNonQuery(conn, @"
+            CREATE TABLE IF NOT EXISTS filter_presets (
+                id           INTEGER PRIMARY KEY AUTOINCREMENT,
+                name         TEXT NOT NULL COLLATE NOCASE UNIQUE,
+                preset_json  TEXT NOT NULL,
+                position     INTEGER NOT NULL
+            );
+            CREATE INDEX IF NOT EXISTS ix_filter_presets_position
+                ON filter_presets(position, name);");
+
+    public List<PortableFilterPreset> GetFilterPresets()
+    {
+        using var conn = Open();
+        using var command = conn.CreateCommand();
+        command.CommandText = "SELECT preset_json FROM filter_presets ORDER BY position, name";
+        using var reader = command.ExecuteReader();
+        var presets = new List<PortableFilterPreset>();
+        while (reader.Read())
+        {
+            try
+            {
+                var preset = JsonSerializer.Deserialize<PortableFilterPreset>(
+                    reader.GetString(0), PresetJsonOptions);
+                if (preset is not null && !string.IsNullOrWhiteSpace(preset.Name))
+                    presets.Add(preset);
+            }
+            catch (JsonException exception)
+            {
+                WorkflowLog.Error("filter-presets", "A stored filter preset could not be read.", exception);
+            }
+        }
+        return presets;
+    }
+
+    public void SaveFilterPresets(IReadOnlyCollection<PortableFilterPreset> presets)
+    {
+        using var conn = Open();
+        SaveFilterPresets(conn, presets);
+    }
+
+    private static void SaveFilterPresets(
+        SqliteConnection conn,
+        IReadOnlyCollection<PortableFilterPreset> presets)
+    {
+        var sortedPresets = presets
+            .Where(preset => !string.IsNullOrWhiteSpace(preset.Name))
+            .GroupBy(preset => preset.Name.Trim(), StringComparer.OrdinalIgnoreCase)
+            .Select(group => group.Last() with { Name = group.Key })
+            .OrderBy(preset => string.Equals(preset.Name, "Default", StringComparison.OrdinalIgnoreCase) ? 0 : 1)
+            .ThenBy(preset => preset.Name, StringComparer.OrdinalIgnoreCase)
+            .ToList();
+
+        using var transaction = conn.BeginTransaction();
+        using (var clear = conn.CreateCommand())
+        {
+            clear.Transaction = transaction;
+            clear.CommandText = "DELETE FROM filter_presets";
+            clear.ExecuteNonQuery();
+        }
+
+        for (var position = 0; position < sortedPresets.Count; position++)
+        {
+            var preset = sortedPresets[position];
+            using var insert = conn.CreateCommand();
+            insert.Transaction = transaction;
+            insert.CommandText = @"
+                INSERT INTO filter_presets (name, preset_json, position)
+                VALUES ($name, $json, $position)";
+            insert.Parameters.AddWithValue("$name", preset.Name);
+            insert.Parameters.AddWithValue("$json", JsonSerializer.Serialize(preset, PresetJsonOptions));
+            insert.Parameters.AddWithValue("$position", position);
+            insert.ExecuteNonQuery();
+        }
+        transaction.Commit();
     }
 
     internal static void EnsureGenreCurationSchema(SqliteConnection conn)

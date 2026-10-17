@@ -5,6 +5,7 @@ using System.IO;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
+using Resona.Core;
 using Resona.Models;
 
 namespace Resona.Services;
@@ -86,6 +87,8 @@ public class MusicLibraryService
     public void RecordTrackSkip(int trackId) => _db.RecordTrackSkip(trackId);
     public TrackUsageStats GetTrackUsageStats(int trackId) => _db.GetTrackUsageStats(trackId);
     public Dictionary<int, TrackUsageStats> GetAllTrackUsageStats() => _db.GetAllTrackUsageStats();
+    public List<PortableFilterPreset> GetFilterPresets() => _db.GetFilterPresets();
+    public void SaveFilterPresets(IReadOnlyCollection<PortableFilterPreset> presets) => _db.SaveFilterPresets(presets);
     public TimeSpan? EstimateAnalysisDuration(int? trackDurationSeconds, long? fileSizeBytes) =>
         _db.EstimateAnalysisDuration(trackDurationSeconds, fileSizeBytes);
     public TimeSpan? EstimateDownloadDuration(int? trackDurationSeconds, long? fileSizeBytes) =>
@@ -424,7 +427,10 @@ public class MusicLibraryService
         var stopwatch = Stopwatch.StartNew();
         try
         {
-            var response = await _analysis.AnalyzeTrackAsync(filePath, cancellationToken);
+            var response = await _analysis.AnalyzeTrackAsync(
+                filePath,
+                track.DurationSeconds,
+                cancellationToken);
             var analysis = TrackAnalysisService.ToTrackAnalysisResult(response);
             _db.SaveTrackAnalysis(track.Id, analysis, (int)stopwatch.ElapsedMilliseconds);
             CacheExperimentalAnalysis(track.Id, analysis);

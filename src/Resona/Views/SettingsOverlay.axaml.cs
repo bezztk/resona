@@ -1326,10 +1326,10 @@ public partial class SettingsOverlay : UserControl
     {
         var row = new Border
         {
-            Background = ThemeResources.Brush("Theme.Brush.SurfaceTranslucent"),
-            BorderBrush = ThemeResources.Brush("Theme.Brush.BorderSubtle"),
+            Background = Brushes.Transparent,
+            BorderBrush = new SolidColorBrush(Color.Parse("#36FFFFFF")),
             BorderThickness = new Avalonia.Thickness(1),
-            CornerRadius = new Avalonia.CornerRadius(7)
+            CornerRadius = new Avalonia.CornerRadius(2)
         };
         var panel = new StackPanel();
         var current = tag;
@@ -1343,18 +1343,17 @@ public partial class SettingsOverlay : UserControl
             HorizontalAlignment = HorizontalAlignment.Stretch,
             HorizontalContentAlignment = HorizontalAlignment.Stretch
         };
-        var headerContent = new Grid { ColumnDefinitions = new ColumnDefinitions("*,Auto,*") };
+        var headerContent = new Grid { ColumnDefinitions = new ColumnDefinitions("*,Auto"), ColumnSpacing = 12 };
         var titleText = new TextBlock
         {
             Text = tag.Name,
-            FontSize = 13.5,
+            FontSize = 12,
             FontWeight = FontWeight.SemiBold,
             Foreground = ThemeResources.Brush("Theme.Brush.TextPrimary"),
             TextTrimming = Avalonia.Media.TextTrimming.CharacterEllipsis,
-            HorizontalAlignment = HorizontalAlignment.Center,
+            HorizontalAlignment = HorizontalAlignment.Left,
             VerticalAlignment = VerticalAlignment.Center
         };
-        Grid.SetColumn(titleText, 1);
         headerContent.Children.Add(titleText);
         var usageCount = _tagUsageCounts.GetValueOrDefault(tag.Id);
         var usageText = new TextBlock
@@ -1365,7 +1364,7 @@ public partial class SettingsOverlay : UserControl
             HorizontalAlignment = HorizontalAlignment.Right,
             VerticalAlignment = VerticalAlignment.Center
         };
-        Grid.SetColumn(usageText, 2);
+        Grid.SetColumn(usageText, 1);
         headerContent.Children.Add(usageText);
         header.Content = headerContent;
         panel.Children.Add(header);
@@ -1385,9 +1384,12 @@ public partial class SettingsOverlay : UserControl
             }
 
             editorPanel.IsVisible = !editorPanel.IsVisible;
-            row.Background = ThemeResources.Brush(editorPanel.IsVisible
-                ? "Theme.Brush.SurfaceSelected"
-                : "Theme.Brush.SurfaceTranslucent");
+            row.Background = editorPanel.IsVisible
+                ? new SolidColorBrush(Color.Parse("#263E6591"))
+                : Brushes.Transparent;
+            row.BorderBrush = new SolidColorBrush(Color.Parse(editorPanel.IsVisible
+                ? "#7A78A9E6"
+                : "#36FFFFFF"));
         };
 
         row.Child = panel;
@@ -1523,10 +1525,10 @@ public partial class SettingsOverlay : UserControl
     {
         var row = new Border
         {
-            Background = ThemeResources.Brush("Theme.Brush.SurfaceTranslucent"),
-            BorderBrush = ThemeResources.Brush("Theme.Brush.BorderSubtle"),
+            Background = Brushes.Transparent,
+            BorderBrush = new SolidColorBrush(Color.Parse("#36FFFFFF")),
             BorderThickness = new Thickness(1),
-            CornerRadius = new CornerRadius(7)
+            CornerRadius = new CornerRadius(2)
         };
         var panel = new StackPanel();
         var current = style;
@@ -1539,18 +1541,17 @@ public partial class SettingsOverlay : UserControl
             HorizontalAlignment = HorizontalAlignment.Stretch,
             HorizontalContentAlignment = HorizontalAlignment.Stretch
         };
-        var headerContent = new Grid { ColumnDefinitions = new ColumnDefinitions("*,Auto,*") };
+        var headerContent = new Grid { ColumnDefinitions = new ColumnDefinitions("*,Auto"), ColumnSpacing = 12 };
         var titleText = new TextBlock
         {
             Text = style.Name,
-            FontSize = 13.5,
+            FontSize = 12,
             FontWeight = FontWeight.SemiBold,
             Foreground = ThemeResources.Brush("Theme.Brush.TextPrimary"),
             TextTrimming = TextTrimming.CharacterEllipsis,
-            HorizontalAlignment = HorizontalAlignment.Center,
+            HorizontalAlignment = HorizontalAlignment.Left,
             VerticalAlignment = VerticalAlignment.Center
         };
-        Grid.SetColumn(titleText, 1);
         headerContent.Children.Add(titleText);
         var usageCount = _styleUsageCounts.GetValueOrDefault(style.Id);
         var usageText = new TextBlock
@@ -1561,7 +1562,7 @@ public partial class SettingsOverlay : UserControl
             HorizontalAlignment = HorizontalAlignment.Right,
             VerticalAlignment = VerticalAlignment.Center
         };
-        Grid.SetColumn(usageText, 2);
+        Grid.SetColumn(usageText, 1);
         headerContent.Children.Add(usageText);
         header.Content = headerContent;
         panel.Children.Add(header);
@@ -1581,9 +1582,12 @@ public partial class SettingsOverlay : UserControl
             }
 
             editorPanel.IsVisible = !editorPanel.IsVisible;
-            row.Background = ThemeResources.Brush(editorPanel.IsVisible
-                ? "Theme.Brush.SurfaceSelected"
-                : "Theme.Brush.SurfaceTranslucent");
+            row.Background = editorPanel.IsVisible
+                ? new SolidColorBrush(Color.Parse("#263E6591"))
+                : Brushes.Transparent;
+            row.BorderBrush = new SolidColorBrush(Color.Parse(editorPanel.IsVisible
+                ? "#7A78A9E6"
+                : "#36FFFFFF"));
         };
 
         row.Child = panel;

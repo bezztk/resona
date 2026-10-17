@@ -437,11 +437,9 @@
                                                Text="Style" FontSize="11" Opacity="0.72"
                                                VerticalAlignment="Center" />
                                 </Grid>
-                                <UniformGrid x:Name="EditStylesPanel"
-                                             Columns="4"
-                                             ColumnSpacing="7"
-                                             RowSpacing="7"
-                                             Margin="22,0,0,2" />
+                                <StackPanel x:Name="EditStylesPanel"
+                                            Spacing="7"
+                                            Margin="22,0,0,2" />
                             </StackPanel>
                             <StackPanel Spacing="6" Margin="0,3,0,5">
                                 <Grid ColumnDefinitions="Auto,*"

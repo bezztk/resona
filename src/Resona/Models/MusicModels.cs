@@ -78,7 +78,7 @@ public static class TrackLanguageCatalog
         new("mul", "Multilingual"), new("ar", "Arabic"), new("fa", "Persian"),
         new("en", "English"), new("de", "German"), new("es", "Spanish"),
         new("fr", "French"), new("ru", "Russian"), new("tr", "Turkish"),
-        new("cn", "Chinese"), new("ja", "Japanese"), new("ko", "Korean")
+        new("zh", "Chinese"), new("ja", "Japanese"), new("ko", "Korean")
     ];
 
     public static string? Name(string? code) => All

@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Net.Http;
@@ -15,6 +16,7 @@ public sealed class TrackAnalysisService : IDisposable
 {
     private static readonly TimeSpan DefaultAnalysisTimeout = TimeSpan.FromMinutes(5);
     private static readonly TimeSpan DefaultHealthTimeout = TimeSpan.FromSeconds(10);
+    internal const int MaximumUploadDurationSeconds = 7 * 60;
     private static readonly HashSet<string> SupportedExtensions = new(StringComparer.OrdinalIgnoreCase)
     {
         ".mp3", ".m4a", ".wav", ".flac"
@@ -88,16 +90,25 @@ public sealed class TrackAnalysisService : IDisposable
 
     public async Task<MusicAnalysisResult> AnalyzeTrackAsync(
         string trackPath,
+        int? durationSeconds = null,
         CancellationToken cancellationToken = default)
     {
         var file = ValidateTrackFile(trackPath);
         var endpoint = BuildEndpoint("analyze");
         using var timeout = new CancellationTokenSource(_analysisTimeout);
         using var linked = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken, timeout.Token);
+        FileInfo? temporaryUpload = null;
 
         try
         {
-            await using var stream = file.OpenRead();
+            var uploadFile = file;
+            if (durationSeconds > MaximumUploadDurationSeconds)
+            {
+                temporaryUpload = await CreateAnalysisExcerptAsync(file, linked.Token);
+                uploadFile = temporaryUpload;
+            }
+
+            await using var stream = uploadFile.OpenRead();
             using var form = new MultipartFormDataContent();
             using var fileContent = new StreamContent(stream);
             fileContent.Headers.ContentType = new MediaTypeHeaderValue(ContentTypeFor(file.Extension));
@@ -165,6 +176,90 @@ public sealed class TrackAnalysisService : IDisposable
                 MusicAnalysisErrorKind.FileError,
                 "The audio file cannot be accessed.", exception);
         }
+        finally
+        {
+            if (temporaryUpload is not null)
+            {
+                try { temporaryUpload.Delete(); }
+                catch { }
+            }
+        }
+    }
+
+    private static async Task<FileInfo> CreateAnalysisExcerptAsync(
+        FileInfo source,
+        CancellationToken cancellationToken)
+    {
+        if (!ExternalToolLocator.TryResolve("ffmpeg", out var ffmpegPath))
+            throw new MusicAnalysisException(
+                MusicAnalysisErrorKind.FileError,
+                "FFmpeg is required to prepare the seven-minute analysis excerpt.");
+
+        var outputPath = Path.Combine(
+            Path.GetTempPath(),
+            $"resona-analysis-{Guid.NewGuid():N}{source.Extension.ToLowerInvariant()}");
+        var startInfo = new ProcessStartInfo
+        {
+            FileName = ffmpegPath,
+            RedirectStandardOutput = true,
+            RedirectStandardError = true,
+            UseShellExecute = false,
+            CreateNoWindow = true
+        };
+        foreach (var argument in new[]
+                 {
+                     "-hide_banner", "-loglevel", "error", "-y",
+                     "-i", source.FullName,
+                     "-t", MaximumUploadDurationSeconds.ToString(),
+                     "-map", "0:a:0", "-vn", "-c:a", "copy", outputPath
+                 })
+            startInfo.ArgumentList.Add(argument);
+
+        try
+        {
+            using var process = Process.Start(startInfo)
+                ?? throw new InvalidOperationException("FFmpeg could not be started.");
+            var outputTask = process.StandardOutput.ReadToEndAsync(cancellationToken);
+            var errorTask = process.StandardError.ReadToEndAsync(cancellationToken);
+            try
+            {
+                await process.WaitForExitAsync(cancellationToken);
+            }
+            catch (OperationCanceledException)
+            {
+                if (!process.HasExited)
+                    process.Kill(true);
+                throw;
+            }
+
+            _ = await outputTask;
+            var error = await errorTask;
+            if (process.ExitCode != 0 || !File.Exists(outputPath) || new FileInfo(outputPath).Length == 0)
+                throw new InvalidDataException(string.IsNullOrWhiteSpace(error)
+                    ? "FFmpeg did not create an analysis excerpt."
+                    : error.Trim());
+
+            return new FileInfo(outputPath);
+        }
+        catch (OperationCanceledException)
+        {
+            TryDelete(outputPath);
+            throw;
+        }
+        catch (Exception exception)
+        {
+            TryDelete(outputPath);
+            throw new MusicAnalysisException(
+                MusicAnalysisErrorKind.FileError,
+                "The seven-minute analysis excerpt could not be created.",
+                exception);
+        }
+    }
+
+    private static void TryDelete(string path)
+    {
+        try { File.Delete(path); }
+        catch { }
     }
 
     public static bool TryNormalizeServerUrl(string? value, out string normalizedUrl)
