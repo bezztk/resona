@@ -87,7 +87,7 @@ public record TrackDisplayItem(
     public string TrackTitleText => Track.Title.Trim();
     public string ByArtistText => string.IsNullOrWhiteSpace(Track.Artist)
         ? string.Empty
-        : $"  by {Track.Artist.Trim()}";
+        : $" by {Track.Artist.Trim()}";
 
     public string DownloadedDateText
     {
