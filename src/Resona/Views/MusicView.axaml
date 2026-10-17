@@ -759,7 +759,7 @@
                     Background="Transparent"
                     ClipToBounds="False"
                     CornerRadius="0,0,0,0"
-                    BorderBrush="#4A7C838B"
+                    BorderBrush="#5B5444"
                     BorderThickness="0,1,0,0">
                 <Border CornerRadius="0,0,0,0"
                         ClipToBounds="True"
