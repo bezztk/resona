@@ -136,7 +136,7 @@
                 BorderThickness="0,0,0,1"
                 ZIndex="20">
 
-            <Grid RowDefinitions="Auto,1,Auto,1,*">
+            <Grid RowDefinitions="Auto,1,*">
                 <Rectangle x:Name="EditorAtmosphereTint"
                            Grid.RowSpan="5"
                            Opacity="0.12"
@@ -158,6 +158,21 @@
                         <TextBlock Text="Information" FontSize="16" FontWeight="SemiBold" VerticalAlignment="Center"/>
                     </StackPanel>
                     <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="4">
+                        <Button x:Name="RateTrackButton"
+                                Click="OnRateTrackClicked"
+                                Height="30"
+                                Padding="11,0"
+                                Margin="0,2,7,2"
+                                Background="#101D2731"
+                                BorderBrush="#586E8498"
+                                BorderThickness="1"
+                                CornerRadius="1"
+                                FontFamily="Consolas"
+                                FontSize="9.5"
+                                FontWeight="SemiBold"
+                                VerticalContentAlignment="Center">
+                            <TextBlock Text="RATE TRACK" LetterSpacing="0.8"/>
+                        </Button>
                         <Button x:Name="ReviewButton"
                                 Click="OnReviewClicked"
                                 ToolTip.Tip="Mark for review"
@@ -210,106 +225,8 @@
 
                 <Rectangle Grid.Row="1" Fill="#10808080" />
 
-                <Border Grid.Row="2" Height="52" Background="Transparent">
-                    <Grid ColumnDefinitions="*,Auto"
-                          Margin="22,0"
-                          Width="{Binding Bounds.Width, ElementName=EditorSurface}"
-                          MaxWidth="800"
-                          HorizontalAlignment="Center">
-                        <StackPanel Grid.Column="0"
-                                    Orientation="Horizontal"
-                                    Spacing="4"
-                                    HorizontalAlignment="Left"
-                                    VerticalAlignment="Center">
-                            <Button x:Name="ClearRatingButton"
-                                    Height="32" Padding="10,0"
-                                    Background="#0CFFFFFF"
-                                    BorderBrush="#28FFFFFF"
-                                    BorderThickness="1"
-                                    CornerRadius="1"
-                                    FontFamily="Inter"
-                                    FontSize="9.5"
-                                    Content="Remove Rating"
-                                    Opacity="0.68"
-                                    VerticalContentAlignment="Center"
-                                    Click="OnClearRatingClicked"
-                                    ToolTip.Tip="Remove rating"/>
-                            <StackPanel x:Name="RatingOptionsPanel"
-                                        Orientation="Horizontal"
-                                        Spacing="4"
-                                        Margin="0,0,14,0"
-                                        HorizontalAlignment="Left"
-                                        VerticalAlignment="Center" />
-                        </StackPanel>
-                        <StackPanel x:Name="RatingBandPanel"
-                                    Grid.Column="1"
-                                    Orientation="Horizontal"
-                                    Spacing="4"
-                                    Margin="0,0,8,0"
-                                    HorizontalAlignment="Right"
-                                    VerticalAlignment="Center">
-                            <Button x:Name="RatingBandLowButton"
-                                    Width="28" Height="28" Padding="0"
-                                    FontFamily="Inter"
-                                    FontSize="17" FontWeight="Bold"
-                                    Background="Transparent" BorderThickness="0"
-                                    HorizontalContentAlignment="Center"
-                                    VerticalContentAlignment="Center"
-                                    Click="OnRatingBandLowClicked"
-                                    ToolTip.Tip="Low — near the lower edge of this rating">
-                                <Border Width="8" Height="14"
-                                        Background="{Binding Foreground, RelativeSource={RelativeSource AncestorType=Button}}"
-                                        RenderTransformOrigin="50%,50%"
-                                        HorizontalAlignment="Center"
-                                        VerticalAlignment="Center">
-                                    <Border.OpacityMask>
-                                        <ImageBrush Source="avares://Resona/Assets/rating-band-arrow.png" Stretch="Uniform"/>
-                                    </Border.OpacityMask>
-                                    <Border.RenderTransform>
-                                        <RotateTransform Angle="180"/>
-                                    </Border.RenderTransform>
-                                </Border>
-                            </Button>
-                            <Button x:Name="RatingBandMidButton"
-                                    Width="28" Height="28" Padding="0"
-                                    FontFamily="Inter"
-                                    FontSize="8" FontWeight="Bold"
-                                    Background="Transparent" BorderThickness="0"
-                                    HorizontalContentAlignment="Center"
-                                    VerticalContentAlignment="Center"
-                                    Click="OnRatingBandMidClicked"
-                                    ToolTip.Tip="Mid — solidly within this rating">
-                                <Ellipse Width="6" Height="6"
-                                         Fill="{Binding Foreground, RelativeSource={RelativeSource AncestorType=Button}}"
-                                         HorizontalAlignment="Center"
-                                         VerticalAlignment="Center"/>
-                            </Button>
-                            <Button x:Name="RatingBandHighButton"
-                                    Width="28" Height="28" Padding="0"
-                                    FontFamily="Inter"
-                                    FontSize="17" FontWeight="Bold"
-                                    Background="Transparent" BorderThickness="0"
-                                    HorizontalContentAlignment="Center"
-                                    VerticalContentAlignment="Center"
-                                    Click="OnRatingBandHighClicked"
-                                    ToolTip.Tip="High — near the upper edge of this rating">
-                                <Border Width="8" Height="14"
-                                        Background="{Binding Foreground, RelativeSource={RelativeSource AncestorType=Button}}"
-                                        HorizontalAlignment="Center"
-                                        VerticalAlignment="Center">
-                                    <Border.OpacityMask>
-                                        <ImageBrush Source="avares://Resona/Assets/rating-band-arrow.png" Stretch="Uniform"/>
-                                    </Border.OpacityMask>
-                                </Border>
-                            </Button>
-                        </StackPanel>
-                    </Grid>
-                </Border>
-
-                <Rectangle Grid.Row="3" Fill="#10808080" />
-
                 <ScrollViewer x:Name="EditorContentScrollViewer"
-                              Grid.Row="4"
+                              Grid.Row="2"
                               Padding="0"
                               HorizontalContentAlignment="Center"
                               HorizontalScrollBarVisibility="Disabled">
@@ -722,7 +639,7 @@
                 </ScrollViewer>
 
                 <Border x:Name="AnalysisBusyLayer"
-                        Grid.RowSpan="5"
+                        Grid.RowSpan="3"
                         IsVisible="False"
                         Background="#C0181A1D">
                     <Border Width="300" HorizontalAlignment="Center" VerticalAlignment="Center"
@@ -740,6 +657,87 @@
                 </Border>
 
             </Grid>
+        </Border>
+
+        <Border x:Name="RatingDialogLayer"
+                ZIndex="40"
+                IsVisible="False"
+                Background="#B20A0C0F">
+            <Border Width="510"
+                    MaxWidth="{Binding Bounds.Width, RelativeSource={RelativeSource AncestorType=UserControl}}"
+                    HorizontalAlignment="Center"
+                    VerticalAlignment="Center"
+                    Margin="24"
+                    Padding="22,20,22,18"
+                    Background="#FF15181C"
+                    BorderBrush="#94798692"
+                    BorderThickness="1"
+                    CornerRadius="2">
+                <StackPanel Spacing="16">
+                    <TextBlock Text="RATE TRACK"
+                               FontFamily="Consolas"
+                               FontSize="14"
+                               FontWeight="SemiBold"
+                               LetterSpacing="1"/>
+
+                    <UniformGrid x:Name="RatingOptionsPanel"
+                                 Columns="3"
+                                 ColumnSpacing="8"
+                                 RowSpacing="8"/>
+
+                    <StackPanel x:Name="RatingBandSection"
+                                IsVisible="False"
+                                Spacing="8">
+                        <TextBlock Text="RATING POSITION · OPTIONAL"
+                                   FontFamily="Consolas"
+                                   FontSize="9.5"
+                                   LetterSpacing="0.8"
+                                   Opacity="0.58"/>
+                        <Grid x:Name="RatingBandPanel"
+                              ColumnDefinitions="*,*,*"
+                              ColumnSpacing="7">
+                            <Button x:Name="RatingBandLowButton"
+                                    Grid.Column="0"
+                                    Height="34"
+                                    Content="LOW"
+                                    Click="OnRatingBandLowClicked"/>
+                            <Button x:Name="RatingBandMidButton"
+                                    Grid.Column="1"
+                                    Height="34"
+                                    Content="MID"
+                                    Click="OnRatingBandMidClicked"/>
+                            <Button x:Name="RatingBandHighButton"
+                                    Grid.Column="2"
+                                    Height="34"
+                                    Content="HIGH"
+                                    Click="OnRatingBandHighClicked"/>
+                        </Grid>
+                    </StackPanel>
+
+                    <Grid ColumnDefinitions="*,Auto,Auto" ColumnSpacing="8" Margin="0,3,0,0">
+                        <Button x:Name="ClearRatingButton"
+                                Grid.Column="0"
+                                HorizontalAlignment="Left"
+                                Height="32"
+                                Padding="10,0"
+                                Content="REMOVE RATING"
+                                Click="OnClearRatingClicked"/>
+                        <Button Grid.Column="1"
+                                Height="32"
+                                Padding="14,0"
+                                Content="CANCEL"
+                                Click="OnRatingDialogCancelClicked"/>
+                        <Button Grid.Column="2"
+                                Height="32"
+                                Padding="14,0"
+                                Background="#263E6591"
+                                BorderBrush="#7A78A9E6"
+                                BorderThickness="1"
+                                Content="SAVE CHANGES"
+                                Click="OnRatingDialogSaveClicked"/>
+                    </Grid>
+                </StackPanel>
+            </Border>
         </Border>
 
     </Panel>
