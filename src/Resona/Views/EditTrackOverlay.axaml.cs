@@ -1165,33 +1165,22 @@ public partial class EditTrackOverlay : UserControl
     private static Control CreateMirexCharacterRow(ExperimentalAnalysisValue value)
     {
         var brush = AnalysisColorScale.MoodModel(value.Score);
-        var panel = new Grid
+        var row = new Grid
         {
-            RowDefinitions = new RowDefinitions("Auto,Auto"),
-            RowSpacing = 4
+            ColumnDefinitions = new ColumnDefinitions("120,*,40"),
+            ColumnSpacing = 10
         };
-        var row = new Grid { ColumnDefinitions = new ColumnDefinitions("*,40"), ColumnSpacing = 8 };
         var label = new TextBlock
         {
             Text = EmotionalCharacterCatalog.Name(value.Label),
             FontSize = 10.5,
             FontWeight = FontWeight.SemiBold,
             Foreground = new SolidColorBrush(Color.Parse(EmotionalCharacterCatalog.Color(value.Label))),
-            TextWrapping = TextWrapping.Wrap
+            TextTrimming = TextTrimming.CharacterEllipsis,
+            VerticalAlignment = VerticalAlignment.Center
         };
         ToolTip.SetTip(label, MirexExplanation(value.Label));
         row.Children.Add(label);
-        var score = new TextBlock
-        {
-            Text = $"{value.Score * 100d:0}%",
-            FontSize = 10.5,
-            FontWeight = FontWeight.SemiBold,
-            Foreground = brush,
-            HorizontalAlignment = HorizontalAlignment.Right
-        };
-        Grid.SetColumn(score, 1);
-        row.Children.Add(score);
-        panel.Children.Add(row);
 
         var scoreBar = new ProgressBar
         {
@@ -1200,11 +1189,24 @@ public partial class EditTrackOverlay : UserControl
             Value = value.Score,
             Height = 4,
             Foreground = brush,
-            Background = ThemeResources.Brush("Theme.Brush.Surface")
+            Background = ThemeResources.Brush("Theme.Brush.Surface"),
+            VerticalAlignment = VerticalAlignment.Center
         };
-        Grid.SetRow(scoreBar, 1);
-        panel.Children.Add(scoreBar);
-        return panel;
+        Grid.SetColumn(scoreBar, 1);
+        row.Children.Add(scoreBar);
+
+        var score = new TextBlock
+        {
+            Text = $"{value.Score * 100d:0}%",
+            FontSize = 10.5,
+            FontWeight = FontWeight.SemiBold,
+            Foreground = brush,
+            HorizontalAlignment = HorizontalAlignment.Right,
+            VerticalAlignment = VerticalAlignment.Center
+        };
+        Grid.SetColumn(score, 2);
+        row.Children.Add(score);
+        return row;
     }
 
     private static string MirexExplanation(string label) => label switch

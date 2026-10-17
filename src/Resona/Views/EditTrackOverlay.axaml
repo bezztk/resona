@@ -443,7 +443,7 @@
                                    Fill="{DynamicResource Theme.Brush.BorderSubtle}"
                                    Margin="12,-2" />
 
-                        <Border Classes="edit-section">
+                        <Border Classes="edit-section" BorderThickness="0">
                             <StackPanel Spacing="9">
                             <TextBlock Text="Classification" FontSize="13" FontWeight="SemiBold" />
                             <StackPanel x:Name="EditStylesSection" Spacing="6" Margin="0,3,0,5">

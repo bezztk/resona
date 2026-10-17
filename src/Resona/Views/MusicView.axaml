@@ -631,9 +631,11 @@
                                                        FontWeight="SemiBold"
                                                        VerticalAlignment="Center"
                                                        TextTrimming="CharacterEllipsis">
-                                                <Run Text="{Binding ArtistText}" Foreground="#A6ADB3"/>
-                                                <Run Text="{Binding ArtistTitleSeparatorText}" Foreground="#C2C3BE"/>
                                                 <Run Text="{Binding TrackTitleText}" Foreground="{Binding TitleBrush}"/>
+                                                <Run Text="{Binding ByArtistText}"
+                                                     FontSize="11.5"
+                                                     FontWeight="Normal"
+                                                     Foreground="#A6ADB3"/>
                                             </TextBlock>
                                             <views:TrackTagSummaryControl Tags="{Binding TagDisplays}"
                                                                           Margin="0,0,8,0"
@@ -874,15 +876,13 @@
                                             HorizontalAlignment="Left"
                                             VerticalAlignment="Center">
                                     <Button Classes="icon"
-                                            Click="OnPreviousClicked"
-                                            ToolTip.Tip="Previous track">
+                                            Click="OnPreviousClicked">
                                         <Image Source="{SvgImage /Assets/skip-back.svg}"
                                                Width="18" Height="18"/>
                                     </Button>
                                     <Button x:Name="PlayPauseBtn"
                                             Classes="icon"
-                                            Click="OnPlayPauseClicked"
-                                            ToolTip.Tip="Play / Pause">
+                                            Click="OnPlayPauseClicked">
                                         <Grid Width="26" Height="26">
                                             <Image x:Name="PlayIcon"
                                                    Source="{SvgImage /Assets/play.svg}"/>
@@ -892,8 +892,7 @@
                                         </Grid>
                                     </Button>
                                     <Button Classes="icon"
-                                            Click="OnNextClicked"
-                                            ToolTip.Tip="Next track">
+                                            Click="OnNextClicked">
                                         <Image Source="{SvgImage /Assets/skip-forward.svg}"
                                                Width="18" Height="18"/>
                                     </Button>

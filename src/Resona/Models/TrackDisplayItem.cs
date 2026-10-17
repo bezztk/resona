@@ -84,9 +84,10 @@ public record TrackDisplayItem(
 
     public bool HasStyleText => !string.IsNullOrWhiteSpace(StyleText);
     public string StyleSeparatorText => HasStyleText && GenreDisplays.Count > 0 ? "  ·  " : string.Empty;
-    public string ArtistText => Track.Artist?.Trim() ?? string.Empty;
-    public string ArtistTitleSeparatorText => string.IsNullOrWhiteSpace(Track.Artist) ? string.Empty : " — ";
     public string TrackTitleText => Track.Title.Trim();
+    public string ByArtistText => string.IsNullOrWhiteSpace(Track.Artist)
+        ? string.Empty
+        : $"  by {Track.Artist.Trim()}";
 
     public string DownloadedDateText
     {
