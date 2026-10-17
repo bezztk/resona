@@ -24,7 +24,7 @@ using Resona.Services;
 
 namespace Resona.Views;
 
-public enum LibrarySortBy { Name, Rating, DownloadedAt, Duration, CollectionOrder }
+public enum LibrarySortBy { Name, Rating, DownloadedAt, Duration, ListenedTime, CollectionOrder }
 public enum LibrarySortDirection { Ascending, Descending }
 
 public partial class MusicView : UserControl
@@ -441,7 +441,8 @@ public partial class MusicView : UserControl
             LibrarySortBy.Rating => 1,
             LibrarySortBy.DownloadedAt => 2,
             LibrarySortBy.Duration => 3,
-            LibrarySortBy.CollectionOrder => 4,
+            LibrarySortBy.ListenedTime => 4,
+            LibrarySortBy.CollectionOrder => 5,
             _ => 0
         };
         FilterSortText.Text = SortLabel(selectedIndex);
@@ -459,10 +460,12 @@ public partial class MusicView : UserControl
             1 => LibrarySortBy.Rating,
             2 => LibrarySortBy.DownloadedAt,
             3 => LibrarySortBy.Duration,
-            4 when _activeCollection is not null => LibrarySortBy.CollectionOrder,
+            4 => LibrarySortBy.ListenedTime,
+            5 when _activeCollection is not null => LibrarySortBy.CollectionOrder,
             _ => LibrarySortBy.Name
         };
-        if (nextSort == LibrarySortBy.DownloadedAt && _sortBy != LibrarySortBy.DownloadedAt)
+        if ((nextSort == LibrarySortBy.DownloadedAt || nextSort == LibrarySortBy.ListenedTime)
+            && _sortBy != nextSort)
         {
             _sortDirection = LibrarySortDirection.Descending;
             UpdateSortDirectionButton();
@@ -483,7 +486,8 @@ public partial class MusicView : UserControl
         1 => "Rating",
         2 => "Downloaded at",
         3 => "Duration",
-        4 => "Collection order",
+        4 => "Listened time",
+        5 => "Collection order",
         _ => "Name"
     };
 
@@ -495,6 +499,7 @@ public partial class MusicView : UserControl
             (FilterSortRatingOption, FilterSortRatingCheck),
             (FilterSortDownloadedOption, FilterSortDownloadedCheck),
             (FilterSortDurationOption, FilterSortDurationCheck),
+            (FilterSortListenedOption, FilterSortListenedCheck),
             (FilterSortCollectionOption, FilterSortCollectionCheck)
         };
 
@@ -1229,6 +1234,14 @@ public partial class MusicView : UserControl
             LibrarySortBy.Duration =>
                 _filteredItems
                     .OrderByDescending(item => item.Track.DurationSeconds ?? int.MinValue)
+                    .ThenBy(item => item.Track.Title, StringComparer.OrdinalIgnoreCase),
+            LibrarySortBy.ListenedTime when _sortDirection == LibrarySortDirection.Ascending =>
+                _filteredItems
+                    .OrderBy(item => _allTrackUsageStats.GetValueOrDefault(item.Track.Id)?.ListenedSeconds ?? 0)
+                    .ThenBy(item => item.Track.Title, StringComparer.OrdinalIgnoreCase),
+            LibrarySortBy.ListenedTime =>
+                _filteredItems
+                    .OrderByDescending(item => _allTrackUsageStats.GetValueOrDefault(item.Track.Id)?.ListenedSeconds ?? 0)
                     .ThenBy(item => item.Track.Title, StringComparer.OrdinalIgnoreCase),
             _ =>
                 _filteredItems.OrderBy(item => item.Track.Title, StringComparer.OrdinalIgnoreCase)
@@ -5049,6 +5062,12 @@ public partial class MusicView : UserControl
         var wholeSeconds = (int)Math.Floor(_unflushedListeningSeconds);
         if (wholeSeconds < (force ? 1 : 5)) return;
         MusicLibraryService.Current.AddTrackListenedSeconds(_listeningTrackId, wholeSeconds);
+        var usage = _allTrackUsageStats.GetValueOrDefault(_listeningTrackId)
+            ?? new TrackUsageStats(0, 0, 0, null);
+        _allTrackUsageStats[_listeningTrackId] = usage with
+        {
+            ListenedSeconds = usage.ListenedSeconds + wholeSeconds
+        };
         _unflushedListeningSeconds -= wholeSeconds;
         EditTrackOverlay.RefreshUsageStats();
     }

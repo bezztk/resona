@@ -272,7 +272,12 @@ public partial class SettingsOverlay : UserControl
                 VerticalAlignment = VerticalAlignment.Center
             };
         }
-        var title = new Grid { ColumnDefinitions = new ColumnDefinitions("*,Auto"), ColumnSpacing = 5 };
+        var title = new Grid
+        {
+            ColumnDefinitions = new ColumnDefinitions("Auto,Auto"),
+            ColumnSpacing = 5,
+            HorizontalAlignment = HorizontalAlignment.Left
+        };
         title.Children.Add(titleName);
         if (subgenre.IsManual)
         {

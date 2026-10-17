@@ -201,7 +201,7 @@ public partial class EditTrackOverlay : UserControl
         ArtistBox.Text = track.Artist;
         SetInformationEditing(false);
         UpdateInformationDisplay(track);
-        SetPublicSelection(track.IsPublic);
+        _isPublic = track.IsPublic;
         UpdateReviewVisual(track.NeedsReview);
         UpdateAnalysisPolicyVisual(track.AnalysisDisabled);
 
@@ -432,9 +432,9 @@ public partial class EditTrackOverlay : UserControl
         {
             Content = label,
             IsChecked = isSelected,
-            Height = 34,
-            Padding = new Thickness(8, 3),
-            CornerRadius = new CornerRadius(5),
+            Height = 29,
+            Padding = new Thickness(9, 2),
+            CornerRadius = new CornerRadius(0),
             HorizontalAlignment = HorizontalAlignment.Stretch,
             HorizontalContentAlignment = HorizontalAlignment.Stretch,
             VerticalContentAlignment = VerticalAlignment.Center,
@@ -506,9 +506,9 @@ public partial class EditTrackOverlay : UserControl
         {
             Content = label,
             IsChecked = isSelected,
-            Height = 34,
-            Padding = new Avalonia.Thickness(9, 3),
-            CornerRadius = new Avalonia.CornerRadius(5),
+            Height = 29,
+            Padding = new Avalonia.Thickness(9, 2),
+            CornerRadius = new Avalonia.CornerRadius(0),
             HorizontalAlignment = HorizontalAlignment.Stretch,
             HorizontalContentAlignment = HorizontalAlignment.Stretch,
             VerticalContentAlignment = VerticalAlignment.Center,
@@ -523,16 +523,18 @@ public partial class EditTrackOverlay : UserControl
     {
         var selected = button.IsChecked == true;
         button.Background = selected
-            ? new SolidColorBrush(Color.FromArgb(46, 255, 255, 255))
-            : Brushes.Transparent;
+            ? new SolidColorBrush(Color.FromArgb(22, 44, 102, 133))
+            : new SolidColorBrush(Color.FromArgb(8, 255, 255, 255));
         button.BorderBrush = new SolidColorBrush(selected
-            ? Color.FromArgb(160, 255, 255, 255)
-            : Color.FromArgb(52, 255, 255, 255));
-        button.BorderThickness = new Avalonia.Thickness(1);
+            ? Color.FromArgb(192, 111, 169, 210)
+            : Color.FromArgb(54, 255, 255, 255));
+        button.BorderThickness = selected
+            ? new Avalonia.Thickness(2, 1, 1, 1)
+            : new Avalonia.Thickness(1);
         if (button.Tag is TextBlock label)
-            label.Foreground = ThemeResources.Brush(selected
-                ? "Theme.Brush.TextStrong"
-                : "Theme.Brush.TextPrimary");
+            label.Foreground = selected
+                ? new SolidColorBrush(Color.Parse("#A9D8F2"))
+                : ThemeResources.Brush("Theme.Brush.TextPrimary");
     }
 
     private void RebuildLanguageChips(string? selectedLanguageCode)
@@ -868,22 +870,6 @@ public partial class EditTrackOverlay : UserControl
         AutoSaveChanges();
     }
 
-    private void OnVisibilityClicked(object? sender, RoutedEventArgs e)
-    {
-        SetPublicSelection(!_isPublic);
-    }
-
-    private void SetPublicSelection(bool isPublic)
-    {
-        _isPublic = isPublic;
-        PublicVisibilityIcon.IsVisible = isPublic;
-        PrivateVisibilityIcon.IsVisible = !isPublic;
-        ToolTip.SetTip(VisibilityButton, isPublic
-            ? "Public — click to make private"
-            : "Private — click to make public");
-        AutoSaveChanges();
-    }
-
     private void OnReviewClicked(object? sender, RoutedEventArgs e)
     {
         if (_track is null || _isDeletingTrack)
@@ -1145,7 +1131,7 @@ public partial class EditTrackOverlay : UserControl
         var row = new Grid { ColumnDefinitions = new ColumnDefinitions("*,40"), ColumnSpacing = 8 };
         var label = new TextBlock
         {
-            Text = EmotionalCharacterCatalog.Display(value.Label),
+            Text = EmotionalCharacterCatalog.Name(value.Label),
             FontSize = 10.5,
             FontWeight = FontWeight.SemiBold,
             Foreground = new SolidColorBrush(Color.Parse(EmotionalCharacterCatalog.Color(value.Label))),

@@ -69,12 +69,12 @@
                 <Setter Property="FontFamily" Value="Inter"/>
             </Style>
             <Style Selector="ToggleButton.edit-chip:pointerover">
-                <Setter Property="Background" Value="#14FFFFFF"/>
-                <Setter Property="BorderBrush" Value="#68FFFFFF"/>
+                <Setter Property="Background" Value="#0FFFFFFF"/>
+                <Setter Property="BorderBrush" Value="#72FFFFFF"/>
             </Style>
             <Style Selector="ToggleButton.edit-chip:checked:pointerover">
-                <Setter Property="Background" Value="#2EFFFFFF"/>
-                <Setter Property="BorderBrush" Value="#A0FFFFFF"/>
+                <Setter Property="Background" Value="#162C6685"/>
+                <Setter Property="BorderBrush" Value="#C06FA9D2"/>
             </Style>
             <Style Selector="Button.edit-choice:pointerover">
                 <Setter Property="Background" Value="{DynamicResource Theme.Brush.SurfaceHover}"/>
@@ -110,24 +110,6 @@
                         <TextBlock Text="Information" FontSize="16" FontWeight="SemiBold" VerticalAlignment="Center"/>
                     </StackPanel>
                     <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="4">
-                        <Button x:Name="PreviewButton"
-                                Click="OnPreviewClicked"
-                                ToolTip.Tip="Play this track in the main player"
-                                Width="34" Height="34" Padding="0"
-                                Background="Transparent" BorderThickness="0"
-                                Opacity="0.8">
-                            <Image Source="{SvgImage /Assets/play.svg}" Width="16" Height="16"/>
-                        </Button>
-                        <Button x:Name="VisibilityButton"
-                                Click="OnVisibilityClicked"
-                                Width="34" Height="34" Padding="0"
-                                Background="Transparent" BorderThickness="0"
-                                Opacity="0.8">
-                            <Grid>
-                                <Image x:Name="PublicVisibilityIcon" Source="{SvgImage /Assets/eye.svg}" Width="17" Height="17"/>
-                                <Image x:Name="PrivateVisibilityIcon" Source="{SvgImage /Assets/eye-slash.svg}" Width="17" Height="17" IsVisible="False"/>
-                            </Grid>
-                        </Button>
                         <Button x:Name="ReviewButton"
                                 Click="OnReviewClicked"
                                 ToolTip.Tip="Mark for review"

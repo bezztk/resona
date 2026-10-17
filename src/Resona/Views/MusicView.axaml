@@ -1080,9 +1080,17 @@
                                                                 <TextBlock Grid.Column="1" Text="Duration" FontSize="11.5" VerticalAlignment="Center"/>
                                                             </Grid>
                                                         </Button>
+                                                        <Button x:Name="FilterSortListenedOption" Classes="filter-sort-option"
+                                                                Tag="4" Click="OnFilterSortOptionClicked">
+                                                            <Grid ColumnDefinitions="18,*" ColumnSpacing="8">
+                                                                <Image x:Name="FilterSortListenedCheck" Source="{SvgImage /Assets/check.svg}"
+                                                                       Width="12" Height="12" Opacity="0"/>
+                                                                <TextBlock Grid.Column="1" Text="Listened time" FontSize="11.5" VerticalAlignment="Center"/>
+                                                            </Grid>
+                                                        </Button>
                                                         <Button x:Name="FilterSortCollectionOption" Classes="filter-sort-option"
                                                                 IsVisible="False"
-                                                                Tag="4" Click="OnFilterSortOptionClicked">
+                                                                Tag="5" Click="OnFilterSortOptionClicked">
                                                             <Grid ColumnDefinitions="18,*" ColumnSpacing="8">
                                                                 <Image x:Name="FilterSortCollectionCheck" Source="{SvgImage /Assets/check.svg}"
                                                                        Width="12" Height="12" Opacity="0"/>
