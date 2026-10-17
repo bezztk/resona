@@ -4994,9 +4994,6 @@ public partial class MusicView : UserControl
             CreateTrackMenuItem("Open track on YouTube",
                 IsValidExternalUrl(item.Track.CanonicalUrl),
                 () => OpenExternalUrl(item.Track.CanonicalUrl)),
-            CreateTrackMenuItem("Open channel on YouTube",
-                IsValidExternalUrl(item.Track.ChannelUrl),
-                () => OpenExternalUrl(item.Track.ChannelUrl)),
             new Separator { Classes = { "track-context-separator" } },
             CreateTrackMenuItem("Edit", true,
                 () => OpenTrackEditor(item.Track)),
@@ -5145,10 +5142,17 @@ public partial class MusicView : UserControl
             .ToHashSet();
         var parent = new MenuItem
         {
-            Header = "Add to collection",
-            IsEnabled = true
+            Header = new TextBlock
+            {
+                Text = "Add to collection",
+                FontSize = 12,
+                FontWeight = FontWeight.Medium
+            },
+            IsEnabled = true,
+            FontSize = 8
         };
         parent.Classes.Add("track-context-item");
+        parent.Classes.Add("track-context-submenu");
 
         var choices = _collections
             .Select(collection => (object)CreateTrackMenuItem(

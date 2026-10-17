@@ -60,6 +60,11 @@
         <Style Selector="MenuItem.track-context-item:disabled">
             <Setter Property="Opacity" Value="0.42"/>
         </Style>
+        <Style Selector="MenuItem.track-context-submenu /template/ PathIcon">
+            <Setter Property="Width" Value="5"/>
+            <Setter Property="Height" Value="8"/>
+            <Setter Property="Opacity" Value="0.42"/>
+        </Style>
         <Style Selector="Separator.track-context-separator">
             <Setter Property="Height" Value="1"/>
             <Setter Property="Margin" Value="4,3"/>

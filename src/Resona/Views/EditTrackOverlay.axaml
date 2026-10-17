@@ -8,11 +8,10 @@
     <Panel>
         <Panel.Styles>
             <Style Selector="TextBlock">
-                <Setter Property="FontFamily" Value="Consolas"/>
-                <Setter Property="LetterSpacing" Value="0.15"/>
+                <Setter Property="FontFamily" Value="Inter"/>
             </Style>
             <Style Selector="Button">
-                <Setter Property="FontFamily" Value="Consolas"/>
+                <Setter Property="FontFamily" Value="Inter"/>
                 <Setter Property="CornerRadius" Value="2"/>
             </Style>
             <Style Selector="Border.edit-section">
@@ -25,7 +24,7 @@
             <Style Selector="TextBox">
                 <Setter Property="Background" Value="#E6171611"/>
                 <Setter Property="BorderBrush" Value="{DynamicResource Theme.Brush.BorderStrong}"/>
-                <Setter Property="FontFamily" Value="Consolas"/>
+                <Setter Property="FontFamily" Value="Inter"/>
             </Style>
             <Style Selector="TextBox.compact-search">
                 <Setter Property="Background" Value="Transparent"/>
@@ -67,7 +66,7 @@
                 <Setter Property="Background" Value="#E6171611"/>
                 <Setter Property="BorderBrush" Value="{DynamicResource Theme.Brush.BorderStrong}"/>
                 <Setter Property="CornerRadius" Value="2"/>
-                <Setter Property="FontFamily" Value="Consolas"/>
+                <Setter Property="FontFamily" Value="Inter"/>
             </Style>
             <Style Selector="ToggleButton.edit-chip:pointerover">
                 <Setter Property="Background" Value="#14FFFFFF"/>
@@ -198,7 +197,7 @@
                                     BorderBrush="#28FFFFFF"
                                     BorderThickness="1"
                                     CornerRadius="1"
-                                    FontFamily="Consolas"
+                                    FontFamily="Inter"
                                     FontSize="9.5"
                                     Content="Remove Rating"
                                     Opacity="0.68"
@@ -221,7 +220,7 @@
                                     VerticalAlignment="Center">
                             <Button x:Name="RatingBandLowButton"
                                     Width="28" Height="28" Padding="0"
-                                    FontFamily="Consolas"
+                                    FontFamily="Inter"
                                     FontSize="17" FontWeight="Bold"
                                     Background="Transparent" BorderThickness="0"
                                     HorizontalContentAlignment="Center"
@@ -243,7 +242,7 @@
                             </Button>
                             <Button x:Name="RatingBandMidButton"
                                     Width="28" Height="28" Padding="0"
-                                    FontFamily="Consolas"
+                                    FontFamily="Inter"
                                     FontSize="8" FontWeight="Bold"
                                     Background="Transparent" BorderThickness="0"
                                     HorizontalContentAlignment="Center"
@@ -257,7 +256,7 @@
                             </Button>
                             <Button x:Name="RatingBandHighButton"
                                     Width="28" Height="28" Padding="0"
-                                    FontFamily="Consolas"
+                                    FontFamily="Inter"
                                     FontSize="17" FontWeight="Bold"
                                     Background="Transparent" BorderThickness="0"
                                     HorizontalContentAlignment="Center"
