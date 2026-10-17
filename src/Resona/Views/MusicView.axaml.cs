@@ -145,7 +145,6 @@ public partial class MusicView : UserControl
     public MusicView()
     {
         InitializeComponent();
-        MoveFilterDrawerToRootOverlay();
         var appSettings = AppSettingsStore.Load();
         Values.UseYtDlpBrowserCookies = appSettings.UseYtDlpBrowserCookies;
         Values.YtDlpCookiesBrowser = AppSettingsStore.NormalizeYtDlpCookiesBrowser(appSettings.YtDlpCookiesBrowser);
@@ -4071,18 +4070,7 @@ public partial class MusicView : UserControl
 
     private void UpdateSettingsLayout()
     {
-        var playerClearance = new Thickness(0, 0, 0, PlayerBar.Bounds.Height);
         SettingsOverlay.Margin = new Thickness(0);
-        FilterDrawer.Margin = playerClearance;
-    }
-
-    private void MoveFilterDrawerToRootOverlay()
-    {
-        if (FilterDrawer.Parent is not Panel currentParent)
-            return;
-
-        currentParent.Children.Remove(FilterDrawer);
-        RootSurface.Children.Add(FilterDrawer);
     }
 
     private async void ShowToast(string message)

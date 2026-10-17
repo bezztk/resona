@@ -20,12 +20,12 @@ public sealed class TrackTagSummaryControl : Panel
     private readonly List<TextBlock> _tagLabels = [];
     private readonly TextBlock _moreLabel = new()
     {
-        FontSize = 10,
-        LineHeight = 18,
+        FontSize = 9.5,
+        LineHeight = 17,
         FontWeight = FontWeight.SemiBold,
         Foreground = ThemeResources.Brush("Theme.Brush.TextMuted"),
         Opacity = 0,
-        Margin = new Thickness(0, 0, 6, 0),
+        Margin = new Thickness(0, 0, 5, 0),
         VerticalAlignment = VerticalAlignment.Center
     };
 
@@ -43,7 +43,7 @@ public sealed class TrackTagSummaryControl : Panel
     public TrackTagSummaryControl()
     {
         ClipToBounds = true;
-        MinHeight = 18;
+        MinHeight = 17;
         VerticalAlignment = VerticalAlignment.Center;
         Children.Add(_moreLabel);
     }
@@ -60,11 +60,11 @@ public sealed class TrackTagSummaryControl : Panel
             {
                 Text = $"#{tag.Name}",
                 Foreground = tag.Foreground,
-                FontSize = 10,
-                LineHeight = 18,
+                FontSize = 9.5,
+                LineHeight = 17,
                 FontWeight = FontWeight.Medium,
                 Opacity = 0.82,
-                Margin = new Thickness(0, 0, 6, 0),
+                Margin = new Thickness(0, 0, 5, 0),
                 VerticalAlignment = VerticalAlignment.Center
             };
             _tagLabels.Add(label);

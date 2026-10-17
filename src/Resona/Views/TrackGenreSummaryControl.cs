@@ -22,7 +22,7 @@ public sealed class TrackGenreSummaryControl : Panel
     private readonly TextBlock _moreLabel = new()
     {
         Text = "…",
-        FontSize = 10,
+        FontSize = 9.5,
         FontWeight = FontWeight.SemiBold,
         Foreground = ThemeResources.Brush("Theme.Brush.TextPrimary"),
         Opacity = 0,
@@ -65,7 +65,7 @@ public sealed class TrackGenreSummaryControl : Panel
                 {
                     Text = index == genres.Count - 1 ? " and " : ", ",
                     Foreground = ThemeResources.Brush("Theme.Brush.TextPrimary"),
-                    FontSize = 11,
+                    FontSize = 10.5,
                     FontWeight = FontWeight.Medium,
                     Opacity = 0.9,
                     VerticalAlignment = VerticalAlignment.Center,
@@ -79,7 +79,7 @@ public sealed class TrackGenreSummaryControl : Panel
             {
                 Text = genre.Name,
                 Foreground = genre.Foreground,
-                FontSize = 11,
+                FontSize = 10.5,
                 FontWeight = FontWeight.Medium,
                 Opacity = 0.9,
                 VerticalAlignment = VerticalAlignment.Center,
