@@ -763,8 +763,20 @@
                     BorderThickness="0,1,0,0">
                 <Border CornerRadius="0,0,0,0"
                         ClipToBounds="True"
-                        Background="#F5111214">
+                        Background="#FF111214">
                     <Panel>
+                        <Image x:Name="PlayerArtworkBackground"
+                               Margin="-28"
+                               Stretch="UniformToFill"
+                               Opacity="0.45"
+                               IsVisible="False"
+                               IsHitTestVisible="False">
+                            <Image.Effect>
+                                <BlurEffect Radius="22"/>
+                            </Image.Effect>
+                        </Image>
+                        <Rectangle Fill="#B8111214"
+                                   IsHitTestVisible="False"/>
                         <Grid Margin="16,8,16,10"
                               RowDefinitions="22,28,*"
                               RowSpacing="3">

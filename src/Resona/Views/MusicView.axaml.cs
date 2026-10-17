@@ -2202,6 +2202,8 @@ public partial class MusicView : UserControl
             LibraryArtworkBackground.Source = _libraryBackgroundBitmap;
             LibraryArtworkBackground.IsVisible = true;
             LibraryArtworkScrim.IsVisible = true;
+            PlayerArtworkBackground.Source = _libraryBackgroundBitmap;
+            PlayerArtworkBackground.IsVisible = true;
         }
         catch
         {
@@ -2214,6 +2216,8 @@ public partial class MusicView : UserControl
         LibraryArtworkBackground.Source = null;
         LibraryArtworkBackground.IsVisible = false;
         LibraryArtworkScrim.IsVisible = false;
+        PlayerArtworkBackground.Source = null;
+        PlayerArtworkBackground.IsVisible = false;
         _libraryBackgroundBitmap?.Dispose();
         _libraryBackgroundBitmap = null;
         _libraryBackgroundTrackId = -1;
