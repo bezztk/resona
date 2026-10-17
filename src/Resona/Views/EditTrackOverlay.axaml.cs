@@ -799,9 +799,7 @@ public partial class EditTrackOverlay : UserControl
                 accent.R,
                 accent.G,
                 accent.B));
-            visual.NameText.Text = isSelected
-                ? $"✓  {visual.Rating.Name.ToUpperInvariant()}"
-                : visual.Rating.Name.ToUpperInvariant();
+            visual.NameText.Text = visual.Rating.Name.ToUpperInvariant();
             visual.Button.Opacity = isSelected ? 1 : 0.72;
         }
 
