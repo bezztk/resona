@@ -35,24 +35,22 @@ public partial class SettingsOverlay : UserControl
     private bool _genreVocabularyLoaded;
     private int? _selectedModelGenreId;
     private SettingsPage _selectedPage;
-    private readonly DispatcherTimer _appearanceSaveTimer = new() { Interval = TimeSpan.FromMilliseconds(350) };
-    private readonly List<Action<AppearanceSettings>> _appearanceControlRefreshers = [];
-    private AppearanceSettings _appearanceSettings = AppearanceSettings.Balanced();
-    private bool _synchronizingAppearanceControls;
-    private bool _appearanceSavePending;
+    private readonly DispatcherTimer _songFadeSaveTimer = new() { Interval = TimeSpan.FromMilliseconds(350) };
+    private double _songFadeDuration = 10;
+    private bool _loadingSongFadeDuration;
+    private bool _songFadeSavePending;
     private bool _loadingDiscordPresenceSettings;
     private bool _loadingBrowserCookieSettings;
 
     public event Action<string>? ToastRequested;
     public event Action? LibraryMetadataChanged;
-    public event Action<AppearanceSettings>? AppearanceChanged;
+    public event Action<double>? SongFadeDurationChanged;
     public event Action? DiscordPresenceChanged;
 
     public SettingsOverlay()
     {
         InitializeComponent();
-        BuildAppearanceControls();
-        _appearanceSaveTimer.Tick += (_, _) => PersistPendingAppearance();
+        _songFadeSaveTimer.Tick += (_, _) => PersistPendingSongFadeDuration();
         SearchBox.TextChanged += (_, _) => RebuildGenreVocabularyRows();
         AppUpdateService.Current.StateChanged += OnAppUpdateStateChanged;
         RefreshUpdatePage(AppUpdateService.Current.State);
@@ -67,8 +65,11 @@ public partial class SettingsOverlay : UserControl
         DiscordPresenceToggle.IsChecked = appSettings.DiscordRichPresenceEnabled;
         DiscordLargeImageTextBox.Text = appSettings.DiscordLargeImageText;
         _loadingDiscordPresenceSettings = false;
-        _appearanceSettings = appSettings.Appearance.Clone().Clamp();
-        RefreshAppearanceControls();
+        _loadingSongFadeDuration = true;
+        _songFadeDuration = appSettings.Appearance.SongFadeDuration;
+        SongFadeDurationSlider.Value = _songFadeDuration;
+        SongFadeDurationValueText.Text = SecondsValue(_songFadeDuration);
+        _loadingSongFadeDuration = false;
         AnalysisServerStatusText.IsVisible = false;
         _loadingBrowserCookieSettings = true;
         var cookiesBrowser = AppSettingsStore.NormalizeYtDlpCookiesBrowser(appSettings.YtDlpCookiesBrowser);
@@ -351,7 +352,6 @@ public partial class SettingsOverlay : UserControl
         if (sender is not ToggleButton { Tag: string value }) return;
         var page = value switch
         {
-            "appearance" => SettingsPage.Appearance,
             "general" => SettingsPage.General,
             "tags" => SettingsPage.Tags,
             "styles" => SettingsPage.Styles,
@@ -368,16 +368,13 @@ public partial class SettingsOverlay : UserControl
 
         _selectedPage = page;
         var isGenreVocabularyPage = page == SettingsPage.GenreVocabulary;
-        var isAppearancePage = page == SettingsPage.Appearance;
         var isGeneralPage = page == SettingsPage.General;
         GenreVocabularyPage.IsVisible = isGenreVocabularyPage;
-        AppearancePage.IsVisible = isAppearancePage;
         GeneralPage.IsVisible = isGeneralPage;
         TagsPage.IsVisible = page == SettingsPage.Tags;
         StylesPage.IsVisible = page == SettingsPage.Styles;
         TagRulesPage.IsVisible = page == SettingsPage.TagRules;
         GenreVocabularyNavButton.IsChecked = isGenreVocabularyPage;
-        AppearanceNavButton.IsChecked = isAppearancePage;
         GeneralNavButton.IsChecked = isGeneralPage;
         TagsNavButton.IsChecked = page == SettingsPage.Tags;
         StylesNavButton.IsChecked = page == SettingsPage.Styles;
@@ -385,7 +382,6 @@ public partial class SettingsOverlay : UserControl
 
         PageTitleText.Text = page switch
         {
-            SettingsPage.Appearance => "Appearance",
             SettingsPage.General => "General",
             SettingsPage.Tags => "Tags",
             SettingsPage.Styles => "Styles",
@@ -394,15 +390,13 @@ public partial class SettingsOverlay : UserControl
         };
         PageDescriptionText.Text = isGenreVocabularyPage
             ? "Review the genre categories and subgenres used directly by the library."
-            : isAppearancePage
-                ? "Tune artwork, blur, color and audio-reactive visuals. Changes are applied live."
-                : isGeneralPage
+            : isGeneralPage
                     ? "Configure downloads, analysis, Discord integration and application updates."
                             : page == SettingsPage.Tags
                                 ? "Maintain your curated labels. Tags can describe mood, themes, situations or workflow states without turning them into genres."
                                 : page == SettingsPage.Styles
                                     ? "Maintain descriptive styles such as Nightcore, Reverb, Sped Up or Slowed."
-                                : page == SettingsPage.TagRules
+                            : page == SettingsPage.TagRules
                                     ? "Turn model signals into reviewable tag suggestions. Rules never assign tags automatically in this first version."
                                     : "Compare current system interpretations before turning them into filters.";
         SummaryText.Text = isGenreVocabularyPage ? BuildSummaryText() : "";
@@ -1423,194 +1417,37 @@ public partial class SettingsOverlay : UserControl
         _ => modelName
     };
 
-    private void BuildAppearanceControls()
+    private void OnSongFadeDurationChanged(object? sender, RangeBaseValueChangedEventArgs e)
     {
-        AddAppearanceSlider(PlayerAppearanceRows, "Song fade duration", "Crossfade duration when playback advances automatically. Set to 0 to disable crossfading.",
-            0, 30, settings => settings.SongFadeDuration,
-            (settings, value) => settings.SongFadeDuration = value, SecondsValue);
-        AddAppearanceSlider(TrackAppearanceRows, "Color wash strength", "Intensity of each cover's color across its track row.",
-            0, 30, settings => settings.TrackColorWashStrength,
-            (settings, value) => settings.TrackColorWashStrength = value, PercentValue);
-        AddAppearanceSlider(TrackAppearanceRows, "Color wash reach", "How far the artwork color extends across the row.",
-            20, 100, settings => settings.TrackColorWashReach,
-            (settings, value) => settings.TrackColorWashReach = value, PercentValue);
-
-        AddAppearanceSlider(TrackArtworkAppearanceRows, "Row artwork strength", "Visibility of the blurred cover inside each row.",
-            0, 50, settings => settings.TrackArtworkStrength,
-            (settings, value) => settings.TrackArtworkStrength = value, PercentValue);
-        AddAppearanceSlider(TrackArtworkAppearanceRows, "Row artwork blur", "Spread of the large cover image inside each row.",
-            0, 30, settings => settings.TrackArtworkBlur,
-            (settings, value) => settings.TrackArtworkBlur = value, PixelValue);
-        AddAppearanceSlider(TrackArtworkAppearanceRows, "Cover halo strength", "Visibility of the small glow directly around each cover.",
-            0, 60, settings => settings.CoverHaloStrength,
-            (settings, value) => settings.CoverHaloStrength = value, PercentValue);
-        AddAppearanceSlider(TrackArtworkAppearanceRows, "Cover halo blur", "Softness of the local glow around each cover.",
-            0, 20, settings => settings.CoverHaloBlur,
-            (settings, value) => settings.CoverHaloBlur = value, PixelValue);
-    }
-
-    private void AddAppearanceSlider(
-        StackPanel panel,
-        string title,
-        string description,
-        double minimum,
-        double maximum,
-        Func<AppearanceSettings, double> getter,
-        Action<AppearanceSettings, double> setter,
-        Func<double, string> formatter)
-    {
-        var valueText = new TextBlock
-        {
-            Width = 48,
-            FontFamily = new FontFamily("Consolas"),
-            FontSize = 10.5,
-            Opacity = 0.72,
-            TextAlignment = TextAlignment.Right,
-            VerticalAlignment = VerticalAlignment.Center
-        };
-        var slider = new Slider
-        {
-            Minimum = minimum,
-            Maximum = maximum,
-            TickFrequency = 1,
-            VerticalAlignment = VerticalAlignment.Center
-        };
-        slider.Classes.Add("appearance-simple");
-        ToolTip.SetTip(slider, "Double-click to restore the default value.");
-        slider.ValueChanged += (_, _) =>
-        {
-            valueText.Text = formatter(slider.Value);
-            if (_synchronizingAppearanceControls)
-                return;
-
-            setter(_appearanceSettings, slider.Value);
-            NotifyAppearanceChanged();
-        };
-        slider.DoubleTapped += (_, _) => slider.Value = getter(AppearanceSettings.Balanced());
-
-        var labels = new StackPanel { Spacing = 2 };
-        labels.Children.Add(new TextBlock { Text = title, FontSize = 11.5, FontWeight = FontWeight.SemiBold });
-        labels.Children.Add(new TextBlock
-        {
-            Text = description,
-            FontSize = 10,
-            Opacity = 0.5,
-            TextWrapping = TextWrapping.Wrap
-        });
-
-        var controlRow = new Grid
-        {
-            ColumnDefinitions = new ColumnDefinitions("*,52"),
-            ColumnSpacing = 10
-        };
-        controlRow.Children.Add(slider);
-        Grid.SetColumn(valueText, 1);
-        controlRow.Children.Add(valueText);
-
-        var row = new StackPanel { Spacing = 5 };
-        row.Children.Add(labels);
-        row.Children.Add(controlRow);
-        panel.Children.Add(row);
-
-        _appearanceControlRefreshers.Add(settings =>
-        {
-            slider.Value = getter(settings);
-            valueText.Text = formatter(slider.Value);
-        });
-    }
-
-    private void AddAppearanceToggle(
-        StackPanel panel,
-        string title,
-        string description,
-        Func<AppearanceSettings, bool> getter,
-        Action<AppearanceSettings, bool> setter)
-    {
-        var toggle = new ToggleSwitch
-        {
-            OnContent = "On",
-            OffContent = "Off",
-            HorizontalAlignment = HorizontalAlignment.Right,
-            VerticalAlignment = VerticalAlignment.Center
-        };
-        void UpdateValue()
-        {
-            if (_synchronizingAppearanceControls)
-                return;
-            setter(_appearanceSettings, toggle.IsChecked == true);
-            NotifyAppearanceChanged();
-        }
-        toggle.IsCheckedChanged += (_, _) => UpdateValue();
-
-        var labels = new StackPanel { Spacing = 2 };
-        labels.Children.Add(new TextBlock { Text = title, FontSize = 11.5, FontWeight = FontWeight.SemiBold });
-        labels.Children.Add(new TextBlock
-        {
-            Text = description,
-            FontSize = 10,
-            Opacity = 0.5,
-            TextWrapping = TextWrapping.Wrap
-        });
-
-        var row = new Grid { ColumnDefinitions = new ColumnDefinitions("*,Auto"), ColumnSpacing = 12 };
-        row.Children.Add(labels);
-        Grid.SetColumn(toggle, 1);
-        row.Children.Add(toggle);
-        panel.Children.Add(row);
-
-        _appearanceControlRefreshers.Add(settings => toggle.IsChecked = getter(settings));
-    }
-
-
-    private void RefreshAppearanceControls()
-    {
-        _synchronizingAppearanceControls = true;
-        try
-        {
-            foreach (var refresh in _appearanceControlRefreshers)
-                refresh(_appearanceSettings);
-        }
-        finally
-        {
-            _synchronizingAppearanceControls = false;
-        }
-    }
-
-    private void NotifyAppearanceChanged()
-    {
-        _appearanceSettings.Clamp();
-        AppearanceChanged?.Invoke(_appearanceSettings.Clone());
-        _appearanceSavePending = true;
-        _appearanceSaveTimer.Stop();
-        _appearanceSaveTimer.Start();
-    }
-
-    private void PersistPendingAppearance()
-    {
-        _appearanceSaveTimer.Stop();
-        if (!_appearanceSavePending)
+        _songFadeDuration = Math.Clamp(SongFadeDurationSlider.Value, 0, 30);
+        SongFadeDurationValueText.Text = SecondsValue(_songFadeDuration);
+        if (_loadingSongFadeDuration)
             return;
 
-        AppSettingsStore.SaveAppearance(_appearanceSettings);
-        _appearanceSavePending = false;
+        SongFadeDurationChanged?.Invoke(_songFadeDuration);
+        _songFadeSavePending = true;
+        _songFadeSaveTimer.Stop();
+        _songFadeSaveTimer.Start();
     }
 
-    private void OnResetAppearanceClicked(object? sender, RoutedEventArgs e)
+    private void OnSongFadeDurationDoubleTapped(object? sender, TappedEventArgs e) =>
+        SongFadeDurationSlider.Value = AppearanceSettings.Balanced().SongFadeDuration;
+
+    private void PersistPendingSongFadeDuration()
     {
-        _appearanceSettings = AppearanceSettings.Balanced();
-        RefreshAppearanceControls();
-        NotifyAppearanceChanged();
-        PersistPendingAppearance();
-        ToastRequested?.Invoke("Appearance reset to defaults.");
+        _songFadeSaveTimer.Stop();
+        if (!_songFadeSavePending)
+            return;
+
+        AppSettingsStore.SaveSongFadeDuration(_songFadeDuration);
+        _songFadeSavePending = false;
     }
 
-    private static string PercentValue(double value) => $"{value:0}%";
-    private static string PixelValue(double value) => $"{value:0} px";
     private static string SecondsValue(double value) => $"{value:0} s";
 
     private void OnCloseClicked(object? sender, RoutedEventArgs e)
     {
-        PersistPendingAppearance();
+        PersistPendingSongFadeDuration();
         IsVisible = false;
     }
 
@@ -1634,5 +1471,5 @@ public partial class SettingsOverlay : UserControl
         public override string ToString() => Name;
     }
 
-    private enum SettingsPage { General, GenreVocabulary, Appearance, Tags, Styles, TagRules }
+    private enum SettingsPage { General, GenreVocabulary, Tags, Styles, TagRules }
 }

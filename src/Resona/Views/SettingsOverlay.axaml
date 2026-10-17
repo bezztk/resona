@@ -114,20 +114,20 @@
             <Setter Property="Background" Value="Transparent"/>
             <Setter Property="Opacity" Value="0.82"/>
         </Style>
-        <Style Selector="Slider.appearance-simple">
+        <Style Selector="Slider.settings-simple">
             <Setter Property="Height" Value="28"/>
             <Setter Property="MinHeight" Value="28"/>
             <Setter Property="Foreground" Value="{DynamicResource Theme.Brush.AccentStrong}"/>
             <Setter Property="Background" Value="{DynamicResource Theme.Brush.SurfaceHover}"/>
         </Style>
-        <Style Selector="Slider.appearance-simple /template/ Thumb">
+        <Style Selector="Slider.settings-simple /template/ Thumb">
             <Setter Property="Width" Value="9"/>
             <Setter Property="Height" Value="9"/>
             <Setter Property="Background" Value="{DynamicResource Theme.Brush.TextPrimary}"/>
             <Setter Property="BorderBrush" Value="{DynamicResource Theme.Brush.AccentStrong}"/>
             <Setter Property="BorderThickness" Value="1"/>
         </Style>
-        <Style Selector="Slider.appearance-simple:pointerover /template/ Thumb">
+        <Style Selector="Slider.settings-simple:pointerover /template/ Thumb">
             <Setter Property="Width" Value="11"/>
             <Setter Property="Height" Value="11"/>
             <Setter Property="Background" Value="#FAF9EF"/>
@@ -153,9 +153,6 @@
                             <ToggleButton x:Name="GeneralNavButton" Classes="settings-nav"
                                           Content="General" Tag="general"
                                           FontSize="13" FontWeight="SemiBold"
-                                          Click="OnSettingsNavigationClicked"/>
-                            <ToggleButton x:Name="AppearanceNavButton" Classes="settings-nav"
-                                          Content="Appearance" Tag="appearance"
                                           Click="OnSettingsNavigationClicked"/>
                         </StackPanel>
 
@@ -418,6 +415,32 @@
 
                         <Rectangle Height="1" Fill="{DynamicResource Theme.Brush.Divider}"/>
 
+                        <StackPanel Spacing="7">
+                            <StackPanel Spacing="3">
+                                <TextBlock Text="Song fade duration" FontSize="12.5" FontWeight="SemiBold"/>
+                                <TextBlock Text="Crossfade duration when playback advances automatically. Set to 0 to disable crossfading."
+                                           FontSize="10.5" Opacity="0.58" TextWrapping="Wrap"/>
+                            </StackPanel>
+                            <Grid ColumnDefinitions="*,52" ColumnSpacing="10">
+                                <Slider x:Name="SongFadeDurationSlider"
+                                        Classes="settings-simple"
+                                        Minimum="0" Maximum="30"
+                                        TickFrequency="1"
+                                        ValueChanged="OnSongFadeDurationChanged"
+                                        DoubleTapped="OnSongFadeDurationDoubleTapped"/>
+                                <TextBlock x:Name="SongFadeDurationValueText"
+                                           Grid.Column="1"
+                                           Width="48"
+                                           FontFamily="Consolas"
+                                           FontSize="10.5"
+                                           Opacity="0.72"
+                                           TextAlignment="Right"
+                                           VerticalAlignment="Center"/>
+                            </Grid>
+                        </StackPanel>
+
+                        <Rectangle Height="1" Fill="{DynamicResource Theme.Brush.Divider}"/>
+
                         <StackPanel Spacing="14">
                             <StackPanel Spacing="5">
                                 <TextBlock Text="Application updates" FontSize="12.5" FontWeight="SemiBold"/>
@@ -464,31 +487,6 @@
                         </StackPanel>
 
                     </StackPanel>
-                </StackPanel>
-            </ScrollViewer>
-
-            <ScrollViewer x:Name="AppearancePage" Grid.Row="2" IsVisible="False" Margin="30,22,30,0"
-                          HorizontalScrollBarVisibility="Disabled">
-                <StackPanel Spacing="20" Margin="0,0,0,24">
-                    <StackPanel Spacing="12">
-                        <TextBlock Text="PLAYER" FontSize="10" FontWeight="SemiBold" Opacity="0.42"/>
-                        <StackPanel x:Name="PlayerAppearanceRows" Spacing="16"/>
-                    </StackPanel>
-
-                    <Rectangle Height="1" Fill="{DynamicResource Theme.Brush.Divider}"/>
-
-                    <StackPanel Spacing="12">
-                        <TextBlock Text="TRACK LIST" FontSize="10" FontWeight="SemiBold" Opacity="0.42"/>
-                        <StackPanel x:Name="TrackAppearanceRows" Spacing="16"/>
-                        <StackPanel x:Name="TrackArtworkAppearanceRows" Spacing="16"/>
-                    </StackPanel>
-
-                    <Grid ColumnDefinitions="*,Auto">
-                        <TextBlock Text="Changes are previewed immediately and saved automatically."
-                                   FontSize="10.5" Opacity="0.54" VerticalAlignment="Center"/>
-                        <Button Grid.Column="1" Classes="settings-action"
-                                Content="Reset to defaults" Click="OnResetAppearanceClicked"/>
-                    </Grid>
                 </StackPanel>
             </ScrollViewer>
 

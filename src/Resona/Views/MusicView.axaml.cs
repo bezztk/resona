@@ -21,7 +21,6 @@ using Avalonia.VisualTree;
 using Resona.Core;
 using Resona.Models;
 using Resona.Services;
-using SkiaSharp;
 
 namespace Resona.Views;
 
@@ -36,14 +35,11 @@ public partial class MusicView : UserControl
     private readonly GlobalMediaKeyListener _globalMediaKeys = new();
     private readonly WindowsMediaSession _windowsMediaSession = new();
     private readonly DiscordPresenceService _discordPresence = new();
-    private static readonly AmbientPalette DefaultAmbientPalette = new(
-        Color.Parse("#5865B8"),
-        Color.Parse("#8051AE"));
     private bool _isSeeking;
     private TaskCompletionSource<bool>? _deleteTrackConfirmationCompletion;
     private ContextMenu? _activeTrackContextMenu;
     private TopLevel? _contextMenuDismissRoot;
-    private AppearanceSettings _appearanceSettings = AppearanceSettings.Balanced();
+    private double _songFadeDuration = 10;
 
     // Playback settings
     private bool _shuffle;
@@ -153,7 +149,7 @@ public partial class MusicView : UserControl
         var appSettings = AppSettingsStore.Load();
         Values.UseYtDlpBrowserCookies = appSettings.UseYtDlpBrowserCookies;
         Values.YtDlpCookiesBrowser = AppSettingsStore.NormalizeYtDlpCookiesBrowser(appSettings.YtDlpCookiesBrowser);
-        _appearanceSettings = appSettings.Appearance.Clone().Clamp();
+        _songFadeDuration = appSettings.Appearance.SongFadeDuration;
         _restoredPlayerSession = appSettings.PlayerSession;
         _sortBy = Enum.TryParse<LibrarySortBy>(_restoredPlayerSession.SortBy, true, out var restoredSortBy)
             ? restoredSortBy
@@ -171,7 +167,6 @@ public partial class MusicView : UserControl
         if (_shuffle)
             foreach (var item in _pendingRestoredQueueOrder)
                 _shufflePriorities[item.Key] = item.Value;
-        ApplyAppearanceSettings(_appearanceSettings, refreshTrackRows: false);
         AddHandler(KeyDownEvent, OnKeyDown, RoutingStrategies.Tunnel);
         AttachedToVisualTree += (_, _) => AttachContextMenuDismissHandler();
         _globalMediaKeys.Pressed += OnGlobalMediaKeyPressed;
@@ -315,7 +310,7 @@ public partial class MusicView : UserControl
         EditTrackOverlay.DeleteRequested += DeleteTrackFromEditorAsync;
         EditTrackOverlay.Closed += PrepareActiveTrackEditor;
         SettingsOverlay.ToastRequested += ShowToast;
-        SettingsOverlay.AppearanceChanged += settings => ApplyAppearanceSettings(settings, refreshTrackRows: true);
+        SettingsOverlay.SongFadeDurationChanged += seconds => _songFadeDuration = seconds;
         SettingsOverlay.DiscordPresenceChanged += () =>
         {
             _discordPresence.ReloadSettings();
@@ -636,7 +631,6 @@ public partial class MusicView : UserControl
             if (previous?.Thumbnail is not null)
             {
                 item.Thumbnail = previous.Thumbnail;
-                item.SetArtworkPalette(previous.ArtworkPrimaryColor, previous.ArtworkSecondaryColor);
                 previous.Thumbnail = null;
             }
             newItems.Add(item);
@@ -761,7 +755,6 @@ public partial class MusicView : UserControl
             NeedsAnalysis = needsAnalysis,
             IsPlaying = _engine.ActiveTrackId == track.Id
         };
-        item.ApplyAppearance(_appearanceSettings);
         return item;
     }
 
@@ -785,7 +778,6 @@ public partial class MusicView : UserControl
         if (previous?.Thumbnail is not null)
         {
             updatedItem.Thumbnail = previous.Thumbnail;
-            updatedItem.SetArtworkPalette(previous.ArtworkPrimaryColor, previous.ArtworkSecondaryColor);
             previous.Thumbnail = null;
         }
 
@@ -1003,19 +995,17 @@ public partial class MusicView : UserControl
     {
         var items = _visibleItems.ToList();
 
-        Dictionary<int, LoadedTrackThumbnail?> artworkByTrackId;
+        Dictionary<int, byte[]?> artworkByTrackId;
         try
         {
             artworkByTrackId = await Task.Run(() =>
             {
-                var result = new Dictionary<int, LoadedTrackThumbnail?>();
+                var result = new Dictionary<int, byte[]?>();
                 foreach (var item in items)
                 {
                     ct.ThrowIfCancellationRequested();
                     var artwork = MusicLibraryService.Current.GetTrackThumbnail(item.Track.Id);
-                    result[item.Track.Id] = artwork is { Length: > 0 }
-                        ? new LoadedTrackThumbnail(artwork, ExtractAmbientPalette(artwork))
-                        : null;
+                    result[item.Track.Id] = artwork is { Length: > 0 } ? artwork : null;
                 }
                 return result;
             }, ct);
@@ -1030,13 +1020,12 @@ public partial class MusicView : UserControl
             if (item.Thumbnail is not null)
                 continue;
 
-            if (artworkByTrackId.TryGetValue(item.Track.Id, out var loaded) && loaded is not null)
+            if (artworkByTrackId.TryGetValue(item.Track.Id, out var artwork) && artwork is not null)
             {
                 try
                 {
-                    using var stream = new MemoryStream(loaded.Artwork);
+                    using var stream = new MemoryStream(artwork);
                     item.Thumbnail = new Bitmap(stream);
-                    item.SetArtworkPalette(loaded.Palette.Primary, loaded.Palette.Secondary);
                     any = true;
                 }
                 catch { }
@@ -4086,28 +4075,6 @@ public partial class MusicView : UserControl
         RootSurface.Children.Add(FilterDrawer);
     }
 
-    private void ApplyAppearanceSettings(AppearanceSettings settings, bool refreshTrackRows)
-    {
-        var updatedSettings = settings.Clone().Clamp();
-        var trackAppearanceChanged = TrackAppearanceChanged(_appearanceSettings, updatedSettings);
-        _appearanceSettings = updatedSettings;
-
-        if (trackAppearanceChanged)
-            foreach (var item in _allItems)
-                item.ApplyAppearance(_appearanceSettings);
-
-        if (refreshTrackRows && trackAppearanceChanged && _allItems.Count > 0)
-            RefreshVisibleItemsSource((FileList.SelectedItem as TrackDisplayItem)?.Track.Id);
-    }
-
-    private static bool TrackAppearanceChanged(AppearanceSettings current, AppearanceSettings updated) =>
-        current.TrackArtworkStrength != updated.TrackArtworkStrength
-        || current.TrackArtworkBlur != updated.TrackArtworkBlur
-        || current.TrackColorWashStrength != updated.TrackColorWashStrength
-        || current.TrackColorWashReach != updated.TrackColorWashReach
-        || current.CoverHaloStrength != updated.CoverHaloStrength
-        || current.CoverHaloBlur != updated.CoverHaloBlur;
-
     private async void ShowToast(string message)
     {
         _toastCts?.Cancel();
@@ -4579,7 +4546,7 @@ public partial class MusicView : UserControl
         }
 
         bool wasPlaying = _engine.State != EngineState.Stopped;
-        var songFadeDuration = (float)_appearanceSettings.SongFadeDuration;
+        var songFadeDuration = (float)_songFadeDuration;
         float fadeOut = isCrossfade ? songFadeDuration
                       : wasPlaying ? Values.ManualFadeDurationSeconds : 0f;
         float fadeIn = isCrossfade ? songFadeDuration
@@ -4778,7 +4745,7 @@ public partial class MusicView : UserControl
         {
             var total = _engine.TotalTime.TotalSeconds;
             var current = _engine.CurrentTime.TotalSeconds;
-            var songFadeDuration = _appearanceSettings.SongFadeDuration;
+            var songFadeDuration = _songFadeDuration;
             if (songFadeDuration > 0 && total >= songFadeDuration + 2.0 && current >= 1.0)
             {
                 var remaining = total - current;
@@ -4943,139 +4910,6 @@ public partial class MusicView : UserControl
         var playedFraction = totalSeconds > 0 ? _engine.CurrentTime.TotalSeconds / totalSeconds : 1;
         FinishListeningSession(markSkipped: playedFraction < .8);
         _engine.Stop();
-    }
-
-    private static AmbientPalette ExtractAmbientPalette(byte[] artwork)
-    {
-        using var bitmap = SKBitmap.Decode(artwork);
-        if (bitmap is null || bitmap.Width == 0 || bitmap.Height == 0)
-            return DefaultAmbientPalette;
-
-        const int hueBinCount = 18;
-        var bins = new AmbientColorBin[hueBinCount];
-        for (var index = 0; index < bins.Length; index++)
-            bins[index] = new AmbientColorBin();
-
-        var step = Math.Max(1, (int)Math.Sqrt((bitmap.Width * bitmap.Height) / 5000d));
-        var opaqueSampleCount = 0;
-        var chromaticSampleCount = 0;
-        double sampledLightness = 0;
-        for (var y = step / 2; y < bitmap.Height; y += step)
-        {
-            for (var x = step / 2; x < bitmap.Width; x += step)
-            {
-                var pixel = bitmap.GetPixel(x, y);
-                if (pixel.Alpha < 160)
-                    continue;
-
-                pixel.ToHsl(out var hue, out var saturation, out var lightness);
-                opaqueSampleCount++;
-                sampledLightness += lightness;
-                if (saturation < 18 || lightness < 7 || lightness > 92)
-                    continue;
-
-                chromaticSampleCount++;
-                var midtoneWeight = 1 - Math.Abs((lightness / 100d) - 0.5) * 0.55;
-                var weight = (0.25 + saturation / 100d) * midtoneWeight;
-                var binIndex = Math.Clamp((int)(hue / (360d / hueBinCount)), 0, hueBinCount - 1);
-                bins[binIndex].Add(pixel, weight);
-            }
-        }
-
-        // A small warm accent must not define an otherwise white, black or
-        // grayscale cover. In that case the artwork's overall brightness is
-        // more representative than the strongest remaining hue.
-        var chromaticCoverage = opaqueSampleCount > 0
-            ? chromaticSampleCount / (double)opaqueSampleCount
-            : 0;
-        if (chromaticCoverage < 0.18)
-            return CreateNeutralAmbientPalette(opaqueSampleCount > 0
-                ? sampledLightness / opaqueSampleCount
-                : 50);
-
-        var primaryIndex = Array.FindIndex(bins, bin => ReferenceEquals(bin, bins.MaxBy(candidate => candidate.Weight)));
-        if (primaryIndex < 0 || bins[primaryIndex].Weight <= 0)
-            return CreateNeutralAmbientPalette(sampledLightness / Math.Max(1, opaqueSampleCount));
-
-        var secondaryCandidates = Enumerable.Range(0, bins.Length)
-            .Where(index => bins[index].Weight > 0 && HueBinDistance(index, primaryIndex, hueBinCount) >= 2)
-            .ToList();
-        var secondaryIndex = secondaryCandidates.Count > 0
-            ? secondaryCandidates.MaxBy(index => bins[index].Weight * (1 + HueBinDistance(index, primaryIndex, hueBinCount) * 0.08))
-            : primaryIndex;
-
-        var primary = NormalizeAmbientColor(bins[primaryIndex].AverageColor());
-        var secondary = secondaryIndex != primaryIndex && bins[secondaryIndex].Weight > 0
-            ? NormalizeAmbientColor(bins[secondaryIndex].AverageColor())
-            : RotateAmbientColor(primary, 46);
-        return new AmbientPalette(primary, secondary);
-    }
-
-    private static AmbientPalette CreateNeutralAmbientPalette(double artworkLightness)
-    {
-        // Bright neutral covers produce a light silver graph, while dark
-        // covers remain visible through a softer graphite-to-gray gradient.
-        var primaryLightness = Math.Clamp(54 + artworkLightness * 0.36, 58, 88);
-        var secondaryLightness = Math.Clamp(primaryLightness - 25, 36, 66);
-        var primary = SKColor.FromHsl(215, 5, (float)primaryLightness);
-        var secondary = SKColor.FromHsl(215, 8, (float)secondaryLightness);
-        return new AmbientPalette(
-            Color.FromRgb(primary.Red, primary.Green, primary.Blue),
-            Color.FromRgb(secondary.Red, secondary.Green, secondary.Blue));
-    }
-
-    private static int HueBinDistance(int left, int right, int count)
-    {
-        var distance = Math.Abs(left - right);
-        return Math.Min(distance, count - distance);
-    }
-
-    private static Color NormalizeAmbientColor(SKColor color)
-    {
-        color.ToHsl(out var hue, out var saturation, out var lightness);
-        var normalized = SKColor.FromHsl(
-            hue,
-            Math.Clamp(saturation, 55, 82),
-            Math.Clamp(lightness, 40, 56));
-        return Color.FromRgb(normalized.Red, normalized.Green, normalized.Blue);
-    }
-
-    private static Color RotateAmbientColor(Color color, float degrees)
-    {
-        var source = new SKColor(color.R, color.G, color.B);
-        source.ToHsl(out var hue, out var saturation, out var lightness);
-        var rotated = SKColor.FromHsl((hue + degrees) % 360, saturation, lightness);
-        return Color.FromRgb(rotated.Red, rotated.Green, rotated.Blue);
-    }
-
-    private sealed record LoadedTrackThumbnail(byte[] Artwork, AmbientPalette Palette);
-    private sealed record AmbientPalette(Color Primary, Color Secondary);
-
-    private static byte ToByte(double value) =>
-        (byte)Math.Clamp((int)Math.Round(value), 0, 255);
-
-    private sealed class AmbientColorBin
-    {
-        private double _red;
-        private double _green;
-        private double _blue;
-
-        public double Weight { get; private set; }
-
-        public void Add(SKColor color, double weight)
-        {
-            _red += color.Red * weight;
-            _green += color.Green * weight;
-            _blue += color.Blue * weight;
-            Weight += weight;
-        }
-
-        public SKColor AverageColor() => Weight <= 0
-            ? SKColors.Transparent
-            : new SKColor(
-                ToByte(_red / Weight),
-                ToByte(_green / Weight),
-                ToByte(_blue / Weight));
     }
 
     // ─── Listening telemetry ─────────────────────────────────────────────────

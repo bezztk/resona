@@ -58,10 +58,10 @@ public static class AppSettingsStore
         Save(settings);
     }
 
-    public static void SaveAppearance(AppearanceSettings appearance)
+    public static void SaveSongFadeDuration(double seconds)
     {
         var settings = Load();
-        settings.Appearance = appearance.Clone().Clamp();
+        settings.Appearance.SongFadeDuration = Math.Clamp(seconds, 0, 30);
         Save(settings);
     }
 

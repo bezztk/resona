@@ -500,50 +500,18 @@
                                     PointerPressed="OnTrackContextMenuPointerPressed"
                                     Tapped="OnTrackCardTapped"
                                     DoubleTapped="OnTrackCardDoubleTapped"
-                                    CornerRadius="12,4,4,12"
+                                    CornerRadius="0"
                                     ClipToBounds="True"
                                     MinHeight="58"
                                     Padding="0,0">
                                 <Panel>
                                 <Border IsVisible="{Binding IsPlaying}"
-                                        CornerRadius="4"
-                                        Background="#40103050"
-                                        BorderThickness="3,0,0,0"
-                                        BorderBrush="Aquamarine"
-                                        BoxShadow="0 0 16 0 #284F83C4"
+                                        CornerRadius="0"
+                                        Background="#46191C20"
+                                        BorderThickness="1"
+                                        BorderBrush="#8A89919A"
                                         IsHitTestVisible="False">
-                                    <Border.OpacityMask>
-                                        <LinearGradientBrush StartPoint="0%,50%" EndPoint="100%,50%">
-                                            <GradientStop Color="#FFFFFFFF" Offset="0"/>
-                                            <GradientStop Color="#FFFFFFFF" Offset="0.6"/>
-                                            <GradientStop Color="#00FFFFFF" Offset="1"/>
-                                        </LinearGradientBrush>
-                                    </Border.OpacityMask>
                                 </Border>
-                                <views:TrackColorWashControl
-                                        PrimaryColor="{Binding ArtworkPrimaryColor}"
-                                        SecondaryColor="{Binding ArtworkSecondaryColor}"
-                                        Seed="{Binding Track.Id}"
-                                        Strength="{Binding TrackColorWashStrength}"
-                                        Reach="{Binding TrackColorWashReach}"
-                                        Margin="-8,0"
-                                        IsHitTestVisible="False">
-                                    <views:TrackColorWashControl.Effect>
-                                        <BlurEffect Radius="8"/>
-                                    </views:TrackColorWashControl.Effect>
-                                </views:TrackColorWashControl>
-                                    <Image Source="{Binding Thumbnail}"
-                                           Width="106" Height="74"
-                                           Margin="36,-10,0,-10"
-                                           HorizontalAlignment="Left"
-                                           VerticalAlignment="Center"
-                                           Stretch="UniformToFill"
-                                           Opacity="{Binding TrackArtworkOpacity}"
-                                           IsHitTestVisible="False">
-                                    <Image.Effect>
-                                        <BlurEffect Radius="{Binding TrackArtworkBlur}"/>
-                                    </Image.Effect>
-                                </Image>
                                 <Grid ColumnDefinitions="2,20,52,*"
                                       Height="58"
                                       VerticalAlignment="Top">
@@ -588,23 +556,12 @@
                                            Width="52" Height="58"
                                            Margin="-2,0,0,0"
                                            VerticalAlignment="Center">
-                                        <Image Source="{Binding Thumbnail}"
-                                               Width="50" Height="50"
-                                               HorizontalAlignment="Center"
-                                               VerticalAlignment="Center"
-                                               Stretch="UniformToFill"
-                                               Opacity="{Binding CoverHaloOpacity}"
-                                               IsHitTestVisible="False">
-                                            <Image.Effect>
-                                                <BlurEffect Radius="{Binding CoverHaloBlur}"/>
-                                            </Image.Effect>
-                                        </Image>
                                         <Border Width="46" Height="46"
                                                 CornerRadius="9"
                                                 HorizontalAlignment="Center"
                                                 VerticalAlignment="Center"
                                                 Background="#D0141512"
-                                                BorderBrush="{Binding ArtworkMetadataBrush}"
+                                                BorderBrush="#46514D40"
                                                 BorderThickness="0"
                                                 Padding="1"
                                                 BoxShadow="0 2 6 1 #88000000, 0 0 2 0 #52FFFFFF">
@@ -891,8 +848,7 @@
                                             Orientation="Horizontal" Spacing="10"
                                             VerticalAlignment="Center">
                                     <Button x:Name="VolumeButton"
-                                            Classes="icon"
-                                            ToolTip.Tip="Volume">
+                                            Classes="icon">
                                         <Button.Flyout>
                                             <Flyout Placement="Top">
                                                 <Flyout.FlyoutPresenterTheme>
@@ -917,6 +873,7 @@
                                                             Width="18"
                                                             Height="118"
                                                             HorizontalAlignment="Center"
+                                                            RenderTransform="translateX(-2px)"
                                                             PointerReleased="OnVolumeSliderPointerReleased"/>
                                                 </Border>
                                             </Flyout>
@@ -926,8 +883,7 @@
                                     </Button>
                                     <Button x:Name="ShuffleBtn"
                                             Classes="icon shuffle-toggle"
-                                            Click="OnShuffleToggleClicked"
-                                            ToolTip.Tip="Shuffle">
+                                            Click="OnShuffleToggleClicked">
                                         <Grid Width="17" Height="17">
                                             <Image x:Name="ShuffleMutedIcon"
                                                    Source="{SvgImage /Assets/shuffle.svg}"
