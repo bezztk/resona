@@ -75,7 +75,6 @@ public partial class MainView : UserControl
 
         public PortableTrack Track { get; }
         public bool IsCurrent { get; }
-        public bool IsMarkedForReview => Track.NeedsReview;
         public Bitmap? Cover => _owner.LoadThumbnail(Track);
 
         public string Title => Track.Title;
@@ -95,8 +94,8 @@ public partial class MainView : UserControl
                         Text = index switch
                         {
                             _ when genres.Count == 1 || index == genres.Count - 1 => genre.Text,
-                            _ when index == genres.Count - 2 => $"{genre.Text} and",
-                            _ => $"{genre.Text},"
+                            _ when index == genres.Count - 2 => $"{genre.Text} and\u00A0",
+                            _ => $"{genre.Text},\u00A0"
                         }
                     })
                     .ToList();
@@ -207,7 +206,9 @@ public partial class MainView : UserControl
             ApplyFilter();
         };
         ProgressSlider.AddHandler(PointerPressedEvent, OnProgressPressed, RoutingStrategies.Tunnel);
+        ProgressSlider.AddHandler(PointerMovedEvent, OnProgressMoved, RoutingStrategies.Tunnel);
         ProgressSlider.AddHandler(PointerReleasedEvent, OnProgressReleased, RoutingStrategies.Tunnel);
+        ProgressSlider.PointerCaptureLost += (_, _) => _isSeeking = false;
 
         _audio.PlaybackEnded += () => Dispatcher.UIThread.Post(() => PlayNext(isAutomaticTransition: true));
         CompanionServices.MediaControls.CommandRequested += OnMediaCommandRequested;
@@ -250,7 +251,7 @@ public partial class MainView : UserControl
             _safeAreaBottom = safeArea.Bottom;
 
         HeaderBar.Padding = new Thickness(14, 6 + _safeAreaTop, 12, 6);
-        PlayerContent.Margin = new Thickness(12, 5, 12, 6 + _safeAreaBottom);
+        PlayerContent.Margin = new Thickness(10, 4, 10, 5 + _safeAreaBottom);
     }
 
     private async Task LoadLibraryAsync()
@@ -296,23 +297,54 @@ public partial class MainView : UserControl
 
     private void RebuildLibrarySourceRows()
     {
+        DefaultRows.Children.Clear();
+        DefaultRows.Children.Add(CreateLibrarySourceButton(
+            "Default",
+            TrackCountText(CountTracksForSource(MobileLibrarySource.Default)),
+            MobileLibrarySource.Default));
+
         PresetRows.Children.Clear();
         foreach (var preset in (_loadedLibrary.Library.FilterPresets ?? [])
                      .OrderBy(item => item.Name, StringComparer.OrdinalIgnoreCase))
             PresetRows.Children.Add(CreateLibrarySourceButton(
-                preset.Name, "Desktop preset", MobileLibrarySource.Preset, preset.Name));
-        AddEmptyState(PresetRows, "No desktop presets available.");
+                preset.Name,
+                TrackCountText(CountTracksForSource(MobileLibrarySource.Preset, preset.Name)),
+                MobileLibrarySource.Preset,
+                preset.Name));
+        AddEmptyState(PresetRows, "No presets available.");
 
         CollectionRows.Children.Clear();
         foreach (var collection in (_loadedLibrary.Library.Collections ?? [])
                      .OrderBy(item => item.Name, StringComparer.OrdinalIgnoreCase))
             CollectionRows.Children.Add(CreateLibrarySourceButton(
                 collection.Name,
-                $"{collection.TrackKeys.Count} tracks",
+                TrackCountText(CountTracksForSource(MobileLibrarySource.Collection, collection.StableId)),
                 MobileLibrarySource.Collection,
                 collection.StableId));
-        AddEmptyState(CollectionRows, "No desktop collections available.");
+        AddEmptyState(CollectionRows, "No collections available.");
     }
+
+    private int CountTracksForSource(MobileLibrarySource source, string? id = null)
+    {
+        IEnumerable<PortableTrack> tracks = _loadedLibrary.Library.Tracks.Where(track => !IsRejected(track));
+
+        if (source == MobileLibrarySource.Collection)
+        {
+            var collection = (_loadedLibrary.Library.Collections ?? []).FirstOrDefault(item =>
+                string.Equals(item.StableId, id, StringComparison.OrdinalIgnoreCase));
+            var keys = collection?.TrackKeys.ToHashSet(StringComparer.OrdinalIgnoreCase) ?? [];
+            tracks = tracks.Where(track => !string.IsNullOrWhiteSpace(track.TrackKey) && keys.Contains(track.TrackKey));
+        }
+
+        var groups = source == MobileLibrarySource.Preset
+            ? (_loadedLibrary.Library.FilterPresets ?? []).FirstOrDefault(item =>
+                string.Equals(item.Name, id, StringComparison.OrdinalIgnoreCase))?.Groups ?? []
+            : [];
+
+        return PortableTrackFilter.Apply(tracks, null, new HashSet<string>(), groups).Count;
+    }
+
+    private static string TrackCountText(int count) => $"{count} {(count == 1 ? "track" : "tracks")}";
 
     private Button CreateLibrarySourceButton(
         string title,
@@ -326,7 +358,8 @@ public partial class MainView : UserControl
         labels.Children.Add(new TextBlock
         {
             Text = title,
-            FontSize = 11.5,
+            FontFamily = new FontFamily("Consolas, monospace"),
+            FontSize = 11,
             FontWeight = FontWeight.SemiBold,
             Foreground = CompanionTheme.Brush(selected
                 ? "Mobile.Brush.TextStrong"
@@ -343,8 +376,8 @@ public partial class MainView : UserControl
         var button = new Button
         {
             Content = labels,
-            MinHeight = 48,
-            Padding = new Thickness(10, 7),
+            MinHeight = 43,
+            Padding = new Thickness(9, 6),
             HorizontalAlignment = HorizontalAlignment.Stretch,
             HorizontalContentAlignment = HorizontalAlignment.Stretch,
             VerticalContentAlignment = VerticalAlignment.Center,
@@ -354,8 +387,8 @@ public partial class MainView : UserControl
             BorderBrush = selected
                 ? new SolidColorBrush(Color.Parse("#8A78A9E6"))
                 : CompanionTheme.Brush("Mobile.Brush.BorderSubtle"),
-            BorderThickness = new Thickness(1),
-            CornerRadius = new CornerRadius(7)
+            BorderThickness = selected ? new Thickness(3, 1, 1, 1) : new Thickness(1),
+            CornerRadius = new CornerRadius(2)
         };
         button.Click += (_, _) => SelectLibrarySource(source, id);
         return button;
@@ -403,16 +436,12 @@ public partial class MainView : UserControl
         _filteredTracks = PortableTrackFilter.Apply(
             sourceTracks,
             SearchBox.Text,
-            _selectedRatings,
+            _manualRatingFilter ? _selectedRatings : new HashSet<string>(),
             activeGroups);
 
-        _filteredTracks = _activeLibrarySource switch
-        {
-            MobileLibrarySource.Preset => FilterForPresetCompletion(_filteredTracks),
-            _ => _filteredTracks
-                .Where(track => !IsRejected(track))
-                .ToList()
-        };
+        _filteredTracks = _filteredTracks
+            .Where(track => !IsRejected(track))
+            .ToList();
 
         if (_manualRatingFilter && _selectedRatings.Count == 0)
             _filteredTracks.Clear();
@@ -433,18 +462,6 @@ public partial class MainView : UserControl
 
     private static bool IsRejected(PortableTrack track) =>
         string.Equals(track.LibraryState, "Rejected", StringComparison.OrdinalIgnoreCase);
-
-    private List<PortableTrack> FilterForPresetCompletion(IEnumerable<PortableTrack> tracks)
-    {
-        var preset = (_loadedLibrary.Library.FilterPresets ?? []).FirstOrDefault(item =>
-            string.Equals(item.Name, _activeLibrarySourceId, StringComparison.OrdinalIgnoreCase));
-        return tracks
-            .Where(track => !IsRejected(track)
-                            && (preset?.ShowNeedsReview == true
-                                ? track.NeedsReview
-                                : !track.NeedsReview))
-            .ToList();
-    }
 
     private void RefreshTrackRows(bool scrollToCurrent = false)
     {
@@ -637,9 +654,7 @@ public partial class MainView : UserControl
         RatingButtonsPanel.IsVisible = _manualRatingFilter;
         if (RatingModeIndicator.RenderTransform is TranslateTransform transform)
             transform.X = _manualRatingFilter ? 69 : 0;
-        RatingModeIndicator.CornerRadius = _manualRatingFilter
-            ? new CornerRadius(0, 5, 5, 0)
-            : new CornerRadius(5, 0, 0, 5);
+        RatingModeIndicator.CornerRadius = new CornerRadius(0);
         AllRatingsText.Foreground = CompanionTheme.Brush(_manualRatingFilter
             ? "Mobile.Brush.TextMuted"
             : "Mobile.Brush.TextStrong");
@@ -661,12 +676,13 @@ public partial class MainView : UserControl
             var button = new Button
             {
                 Content = rating,
-                Height = 34,
+                Height = 28,
                 HorizontalAlignment = HorizontalAlignment.Stretch,
                 HorizontalContentAlignment = HorizontalAlignment.Center,
                 VerticalContentAlignment = VerticalAlignment.Center,
                 FontSize = 11,
                 FontWeight = FontWeight.SemiBold,
+                FontFamily = new FontFamily("Consolas, monospace"),
                 Background = selected
                     ? new SolidColorBrush(Color.FromArgb(76, accent.R, accent.G, accent.B))
                     : CompanionTheme.Brush("Mobile.Brush.Surface"),
@@ -677,7 +693,7 @@ public partial class MainView : UserControl
                     ? new SolidColorBrush(RatingForegroundColor(rating))
                     : CompanionTheme.Brush("Mobile.Brush.TextMuted"),
                 BorderThickness = new Thickness(1),
-                CornerRadius = new CornerRadius(5),
+                CornerRadius = new CornerRadius(1),
                 Opacity = selected ? 1 : 0.62
             };
             button.Click += (_, _) =>
@@ -994,17 +1010,39 @@ public partial class MainView : UserControl
     private void OnProgressPressed(object? sender, PointerPressedEventArgs e)
     {
         _isSeeking = true;
+        e.Pointer.Capture(ProgressSlider);
+        SeekFromPointer(e, commit: true);
+        e.Handled = true;
+    }
+
+    private void OnProgressMoved(object? sender, PointerEventArgs e)
+    {
+        if (!_isSeeking)
+            return;
+
+        SeekFromPointer(e, commit: false);
+        e.Handled = true;
     }
 
     private void OnProgressReleased(object? sender, PointerReleasedEventArgs e)
     {
-        if (_audio.Duration.TotalSeconds > 0)
-        {
-            var seconds = _audio.Duration.TotalSeconds * ProgressSlider.Value / 100.0;
-            SeekTo(TimeSpan.FromSeconds(seconds));
-        }
-
+        SeekFromPointer(e, commit: true);
+        e.Pointer.Capture(null);
         _isSeeking = false;
+        e.Handled = true;
+    }
+
+    private void SeekFromPointer(PointerEventArgs e, bool commit)
+    {
+        if (_audio.Duration.TotalSeconds <= 0 || ProgressSlider.Bounds.Width <= 0)
+            return;
+
+        var fraction = Math.Clamp(e.GetPosition(ProgressSlider).X / ProgressSlider.Bounds.Width, 0, 1);
+        ProgressSlider.Value = fraction * 100;
+        var position = TimeSpan.FromSeconds(_audio.Duration.TotalSeconds * fraction);
+        if (commit)
+            SeekTo(position);
+        TimeText.Text = $"{Format(position)} / {Format(_audio.Duration)}";
     }
 
     private void SeekTo(TimeSpan position)

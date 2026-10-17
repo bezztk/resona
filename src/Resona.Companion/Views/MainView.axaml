@@ -71,10 +71,10 @@
             <Setter Property="Background" Value="{DynamicResource Mobile.Brush.Divider}"/>
         </Style>
         <Style Selector="Slider:horizontal /template/ Thumb">
-            <Setter Property="Width" Value="8"/>
-            <Setter Property="Height" Value="8"/>
-            <Setter Property="MinWidth" Value="8"/>
-            <Setter Property="MinHeight" Value="8"/>
+            <Setter Property="Width" Value="10"/>
+            <Setter Property="Height" Value="10"/>
+            <Setter Property="MinWidth" Value="10"/>
+            <Setter Property="MinHeight" Value="10"/>
         </Style>
         <Style Selector="CheckBox">
             <Setter Property="Foreground" Value="{DynamicResource Mobile.Brush.TextPrimary}"/>
@@ -139,9 +139,9 @@
                                 Tapped="OnChooseLibraryFolderClicked">
                         <TextBlock x:Name="LibraryContextTitleText" Text="LIBRARY"
                                    FontFamily="Consolas, monospace"
-                                   FontSize="14"
+                                   FontSize="12"
                                    FontWeight="SemiBold"
-                                   LetterSpacing="1.1"/>
+                                   LetterSpacing="0.8"/>
                         <TextBlock x:Name="PlaylistSummaryText"
                                    FontFamily="Consolas, monospace"
                                    FontSize="10.5"
@@ -200,9 +200,9 @@
                                           VerticalAlignment="Center">
                                         <TextBlock Text="{Binding Title}"
                                                    FontFamily="avares://Resona.Companion/Assets/Fonts#Noto Serif CJK JP"
-                                                   FontSize="14.5"
-                                                   FontWeight="SemiBold"
-                                                   Foreground="{DynamicResource Mobile.Brush.TextStrong}"
+                                                   FontSize="13"
+                                                   FontWeight="Normal"
+                                                   Foreground="{DynamicResource Mobile.Brush.TextPrimary}"
                                                    TextTrimming="CharacterEllipsis"/>
                                         <ItemsControl Grid.Row="1" ItemsSource="{Binding Subgenres}">
                                             <ItemsControl.ItemsPanel>
@@ -216,7 +216,7 @@
                                                                Foreground="{Binding Foreground}"
                                                                FontSize="10.5"
                                                                FontWeight="SemiBold"
-                                                               Margin="0,0,5,0"/>
+                                                               Margin="0"/>
                                                 </DataTemplate>
                                             </ItemsControl.ItemTemplate>
                                         </ItemsControl>
@@ -258,37 +258,42 @@
                     IsVisible="False"
                     HorizontalAlignment="Stretch"
                     Background="{DynamicResource Mobile.Brush.Navigation}"
-                    BorderThickness="0">
-                <Grid RowDefinitions="Auto,*">
-                    <Grid Margin="16,14,16,12" Height="34">
-                        <TextBlock Text="FILTERS" FontSize="14" FontWeight="SemiBold" LetterSpacing="0.8"
-                                   VerticalAlignment="Center"/>
-                    </Grid>
-
-                    <ScrollViewer Grid.Row="1" Padding="16,8,16,22">
-                        <StackPanel Spacing="16">
+                    BorderBrush="{DynamicResource Mobile.Brush.BorderStrong}"
+                    BorderThickness="0,1,0,0">
+                <ScrollViewer Padding="14,12,14,22">
+                    <StackPanel Spacing="10">
+                        <Border Padding="11,10"
+                                Background="#B2161618"
+                                BorderBrush="{DynamicResource Mobile.Brush.BorderStrong}"
+                                BorderThickness="1,1,1,1"
+                                CornerRadius="1">
                             <StackPanel Spacing="8">
                                 <Grid ColumnDefinitions="*,140" ColumnSpacing="8">
-                                    <TextBlock Text="RATING" FontSize="9.5" FontWeight="SemiBold"
+                                    <TextBlock Text="RATING" FontFamily="Consolas, monospace"
+                                               FontSize="9.5" FontWeight="SemiBold"
                                                Foreground="{DynamicResource Mobile.Brush.TextMuted}"
                                                LetterSpacing="0.8" VerticalAlignment="Center"/>
                                     <Border Grid.Column="1" Height="30"
-                                            Background="{DynamicResource Mobile.Brush.Surface}"
+                                            Background="#E0141416"
                                             BorderBrush="{DynamicResource Mobile.Brush.BorderStrong}"
-                                            BorderThickness="1" CornerRadius="6" ClipToBounds="True">
+                                            BorderThickness="1" CornerRadius="2" ClipToBounds="True">
                                         <Grid ColumnDefinitions="69,69">
                                             <Border x:Name="RatingModeIndicator" Grid.ColumnSpan="2" Width="69"
+                                                    Height="2"
+                                                    VerticalAlignment="Bottom"
                                                     HorizontalAlignment="Left"
-                                                    Background="{DynamicResource Mobile.Brush.AccentSurface}"
-                                                    CornerRadius="5,0,0,5" IsHitTestVisible="False">
+                                                    Background="{DynamicResource Mobile.Brush.Accent}"
+                                                    CornerRadius="0" IsHitTestVisible="False">
                                                 <Border.RenderTransform><TranslateTransform/></Border.RenderTransform>
                                             </Border>
                                             <Border Grid.Column="0" Background="Transparent" PointerPressed="OnAllRatingsPressed">
-                                                <TextBlock x:Name="AllRatingsText" Text="All" FontSize="10" FontWeight="SemiBold"
+                                                <TextBlock x:Name="AllRatingsText" Text="All" FontFamily="Consolas, monospace"
+                                                           FontSize="10" FontWeight="SemiBold"
                                                            HorizontalAlignment="Center" VerticalAlignment="Center"/>
                                             </Border>
                                             <Border Grid.Column="1" Background="Transparent" PointerPressed="OnManualRatingsPressed">
-                                                <TextBlock x:Name="ManualRatingsText" Text="Manual" FontSize="10" FontWeight="SemiBold"
+                                                <TextBlock x:Name="ManualRatingsText" Text="Manual" FontFamily="Consolas, monospace"
+                                                           FontSize="10" FontWeight="SemiBold"
                                                            HorizontalAlignment="Center" VerticalAlignment="Center"/>
                                             </Border>
                                         </Grid>
@@ -296,22 +301,43 @@
                                 </Grid>
                                 <StackPanel x:Name="RatingButtonsPanel" Spacing="5" IsVisible="False"/>
                             </StackPanel>
-                            <Rectangle Height="1" Fill="{DynamicResource Mobile.Brush.Divider}"/>
+                        </Border>
+                        <Border Padding="11,10"
+                                Background="#B2161618"
+                                BorderBrush="{DynamicResource Mobile.Brush.BorderStrong}"
+                                BorderThickness="1" CornerRadius="1">
                             <StackPanel Spacing="6">
-                                <TextBlock Text="COLLECTIONS" FontSize="9.5" FontWeight="SemiBold"
+                                <TextBlock Text="BUILT-IN VIEWS" FontFamily="Consolas, monospace"
+                                           FontSize="9.5" FontWeight="SemiBold"
                                            Foreground="{DynamicResource Mobile.Brush.TextMuted}" LetterSpacing="0.8"/>
-                                <StackPanel x:Name="CollectionRows" Spacing="6"/>
+                                <StackPanel x:Name="DefaultRows" Spacing="5"/>
                             </StackPanel>
-                            <Rectangle Height="1" Fill="{DynamicResource Mobile.Brush.Divider}"/>
+                        </Border>
+                        <Border Padding="11,10"
+                                Background="#B2161618"
+                                BorderBrush="{DynamicResource Mobile.Brush.BorderStrong}"
+                                BorderThickness="1" CornerRadius="1">
                             <StackPanel Spacing="6">
-                                <TextBlock Text="PRESETS" FontSize="9.5" FontWeight="SemiBold"
+                                <TextBlock Text="COLLECTIONS" FontFamily="Consolas, monospace"
+                                           FontSize="9.5" FontWeight="SemiBold"
                                            Foreground="{DynamicResource Mobile.Brush.TextMuted}" LetterSpacing="0.8"/>
-                                <StackPanel x:Name="PresetRows" Spacing="6"/>
+                                <StackPanel x:Name="CollectionRows" Spacing="5"/>
                             </StackPanel>
-                            <Border Height="132"/>
-                        </StackPanel>
-                    </ScrollViewer>
-                </Grid>
+                        </Border>
+                        <Border Padding="11,10"
+                                Background="#B2161618"
+                                BorderBrush="{DynamicResource Mobile.Brush.BorderStrong}"
+                                BorderThickness="1" CornerRadius="1">
+                            <StackPanel Spacing="6">
+                                <TextBlock Text="PRESETS" FontFamily="Consolas, monospace"
+                                           FontSize="9.5" FontWeight="SemiBold"
+                                           Foreground="{DynamicResource Mobile.Brush.TextMuted}" LetterSpacing="0.8"/>
+                                <StackPanel x:Name="PresetRows" Spacing="5"/>
+                            </StackPanel>
+                        </Border>
+                        <Border Height="94"/>
+                    </StackPanel>
+                </ScrollViewer>
             </Border>
 
             <Border x:Name="Toast"
@@ -330,10 +356,11 @@
 
         <Border Grid.Row="2"
                 Background="Transparent"
-                BorderThickness="0"
+                BorderBrush="{DynamicResource Mobile.Brush.BorderStrong}"
+                BorderThickness="0,1,0,0"
                 CornerRadius="0"
                 ClipToBounds="False"
-                BoxShadow="0 -14 36 6 #A0000000">
+                BoxShadow="0 -8 20 2 #78000000">
             <Border ClipToBounds="True"
                     BoxShadow="inset 0 8 16 -12 #50000000">
                 <Border.Background>
@@ -344,9 +371,9 @@
                     </LinearGradientBrush>
                 </Border.Background>
                 <Grid x:Name="PlayerContent"
-                      RowDefinitions="Auto,Auto,Auto" RowSpacing="1" Margin="12,5,12,13">
-                    <Grid ColumnDefinitions="42,*" ColumnSpacing="8">
-                        <Border Width="38" Height="38" CornerRadius="2" ClipToBounds="True"
+                      RowDefinitions="Auto,Auto,Auto" RowSpacing="0" Margin="10,4,10,10">
+                    <Grid ColumnDefinitions="37,*" ColumnSpacing="7">
+                        <Border Width="34" Height="34" CornerRadius="1" ClipToBounds="True"
                                 Padding="0,0,2,0"
                                 Background="{DynamicResource Mobile.Brush.Surface}"
                                 BorderBrush="{DynamicResource Mobile.Brush.Border}"
@@ -357,14 +384,15 @@
                             <TextBlock x:Name="NowPlayingText"
                                        FontFamily="avares://Resona.Companion/Assets/Fonts#Noto Serif CJK JP"
                                        Text="Nothing playing"
-                                       FontSize="13"
-                                       FontWeight="SemiBold"
+                                       FontSize="12"
+                                       FontWeight="Normal"
                                        TextTrimming="CharacterEllipsis"/>
                         </StackPanel>
                     </Grid>
 
                     <Grid Grid.Row="1" ColumnDefinitions="*,Auto" ColumnSpacing="8">
-                        <Slider x:Name="ProgressSlider" Minimum="0" Maximum="100" Value="0"/>
+                        <Slider x:Name="ProgressSlider" Minimum="0" Maximum="100" Value="0"
+                                Height="22"/>
                         <TextBlock x:Name="TimeText" Grid.Column="1"
                                    Text="00:00 / 00:00" FontSize="9.5"
                                    FontFamily="Consolas, monospace"
@@ -374,27 +402,27 @@
 
                     <Grid Grid.Row="2" ColumnDefinitions="Auto,Auto,Auto,*,Auto" ColumnSpacing="1">
                     <Button x:Name="PreviousButton" Grid.Column="0" Classes="icon"
-                            Width="38" Height="34"
+                            Width="34" Height="30"
                             Click="OnPreviousClicked" ToolTip.Tip="Previous">
-                        <Image Source="{SvgImage /Assets/skip-back.svg}" Width="21" Height="21"/>
+                        <Image Source="{SvgImage /Assets/skip-back.svg}" Width="18" Height="18"/>
                     </Button>
                     <Button x:Name="PlayPauseButton" Grid.Column="1" Classes="primaryPlayer"
-                            Width="38" Height="34"
+                            Width="34" Height="30"
                             Click="OnPlayPauseClicked" ToolTip.Tip="Play / Pause">
-                        <Grid Width="21" Height="21">
+                        <Grid Width="18" Height="18">
                             <Image x:Name="PlayIcon" Source="{SvgImage /Assets/play.svg}"/>
                             <Image x:Name="PauseIcon" Source="{SvgImage /Assets/pause.svg}" IsVisible="False"/>
                         </Grid>
                     </Button>
                     <Button x:Name="NextButton" Grid.Column="2" Classes="icon"
-                            Width="38" Height="34"
+                            Width="34" Height="30"
                             Click="OnNextClicked" ToolTip.Tip="Next">
-                        <Image Source="{SvgImage /Assets/skip-forward.svg}" Width="21" Height="21"/>
+                        <Image Source="{SvgImage /Assets/skip-forward.svg}" Width="18" Height="18"/>
                     </Button>
                     <Button x:Name="ShuffleButton" Grid.Column="4" Classes="icon"
-                            Width="38" Height="34"
+                            Width="34" Height="30"
                             Opacity="0.45" Click="OnShuffleClicked" ToolTip.Tip="Shuffle">
-                        <Image Source="{SvgImage /Assets/shuffle.svg}" Width="20" Height="20"/>
+                        <Image Source="{SvgImage /Assets/shuffle.svg}" Width="17" Height="17"/>
                     </Button>
                     </Grid>
                 </Grid>
