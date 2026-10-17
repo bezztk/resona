@@ -24,25 +24,25 @@
             <Setter Property="VerticalContentAlignment" Value="Center"/>
         </Style>
         <Style Selector="Button.shuffle-toggle">
-            <Setter Property="Opacity" Value="0.22"/>
+            <Setter Property="Opacity" Value="1"/>
             <Setter Property="Background" Value="Transparent"/>
             <Setter Property="BorderBrush" Value="Transparent"/>
-            <Setter Property="BorderThickness" Value="1"/>
+            <Setter Property="BorderThickness" Value="0"/>
         </Style>
         <Style Selector="Button.shuffle-toggle:pointerover">
-            <Setter Property="Opacity" Value="0.5"/>
-            <Setter Property="Background" Value="#1878A9E6"/>
-            <Setter Property="BorderBrush" Value="#4878A9E6"/>
+            <Setter Property="Opacity" Value="1"/>
+            <Setter Property="Background" Value="Transparent"/>
+            <Setter Property="BorderBrush" Value="Transparent"/>
         </Style>
         <Style Selector="Button.shuffle-toggle.active">
             <Setter Property="Opacity" Value="1"/>
-            <Setter Property="Background" Value="#4A78A9E6"/>
-            <Setter Property="BorderBrush" Value="#D078A9E6"/>
+            <Setter Property="Background" Value="Transparent"/>
+            <Setter Property="BorderBrush" Value="Transparent"/>
         </Style>
         <Style Selector="Button.shuffle-toggle.active:pointerover">
             <Setter Property="Opacity" Value="1"/>
-            <Setter Property="Background" Value="#6478A9E6"/>
-            <Setter Property="BorderBrush" Value="#FF8DB9ED"/>
+            <Setter Property="Background" Value="Transparent"/>
+            <Setter Property="BorderBrush" Value="Transparent"/>
         </Style>
         <Style Selector="ToggleButton.toolbar-icon">
             <Setter Property="Width" Value="38"/>
@@ -254,6 +254,20 @@
             <Setter Property="Width" Value="11"/>
             <Setter Property="Height" Value="11"/>
             <Setter Property="Background" Value="#FAF9EF"/>
+        </Style>
+        <Style Selector="Slider.volume-vertical">
+            <Setter Property="Width" Value="18"/>
+            <Setter Property="MinWidth" Value="18"/>
+            <Setter Property="Foreground" Value="#D9BFC8D2"/>
+            <Setter Property="Background" Value="#4A737B85"/>
+            <Setter Property="HorizontalAlignment" Value="Center"/>
+        </Style>
+        <Style Selector="Slider.volume-vertical /template/ Thumb">
+            <Setter Property="Width" Value="9"/>
+            <Setter Property="Height" Value="9"/>
+            <Setter Property="Background" Value="#FFF1F3F5"/>
+            <Setter Property="BorderBrush" Value="#FF9FA8B2"/>
+            <Setter Property="BorderThickness" Value="1"/>
         </Style>
         <Style Selector="ListBoxItem">
             <Setter Property="Padding" Value="10,0"/>
@@ -738,6 +752,35 @@
                     </DataTemplate>
                 </ListBox.ItemTemplate>
             </ListBox>
+            <Canvas x:Name="TrackPositionRail"
+                    Width="16"
+                    Margin="0,10,2,10"
+                    HorizontalAlignment="Right"
+                    VerticalAlignment="Stretch"
+                    ZIndex="8">
+                <Button x:Name="PlayingTrackScrollMarker"
+                        IsVisible="False"
+                        Canvas.Left="0"
+                        Width="16"
+                        Height="20"
+                        Padding="0"
+                        Background="Transparent"
+                        BorderThickness="0"
+                        Click="OnPlayingTrackScrollMarkerClicked"
+                        ToolTip.Tip="Scroll to playing track">
+                    <Grid Width="14" Height="18">
+                        <Rectangle Width="2"
+                                   Height="18"
+                                   HorizontalAlignment="Right"
+                                   Fill="#FF78A9E6"/>
+                        <Path Data="M 1 2 L 11 2 L 11 10 L 1 10 L 4 6 Z"
+                              Fill="#FF78A9E6"
+                              Stretch="None"
+                              HorizontalAlignment="Left"
+                              VerticalAlignment="Top"/>
+                    </Grid>
+                </Button>
+            </Canvas>
             </Panel>
 
             <!-- ── Player bar ── -->
@@ -749,23 +792,12 @@
                     Background="Transparent"
                     ClipToBounds="False"
                     CornerRadius="0,0,0,0"
-                    BorderThickness="0"
-                    BoxShadow="0 -14 36 6 #C0000000">
+                    BorderBrush="#4A7C838B"
+                    BorderThickness="0,1,0,0">
                 <Border CornerRadius="0,0,0,0"
-                        ClipToBounds="True">
+                        ClipToBounds="True"
+                        Background="#F5111214">
                     <Panel>
-                        <Border Height="14"
-                                HorizontalAlignment="Stretch"
-                                VerticalAlignment="Top"
-                                IsHitTestVisible="False">
-                            <Border.Background>
-                                <LinearGradientBrush StartPoint="50%,0%" EndPoint="50%,100%">
-                                    <GradientStop Color="#70000000" Offset="0"/>
-                                    <GradientStop Color="#30000000" Offset="0.42"/>
-                                    <GradientStop Color="#00000000" Offset="1"/>
-                                </LinearGradientBrush>
-                            </Border.Background>
-                        </Border>
                         <Grid Margin="16,8,16,10"
                               RowDefinitions="22,28,*"
                               RowSpacing="3">
@@ -863,18 +895,28 @@
                                             ToolTip.Tip="Volume">
                                         <Button.Flyout>
                                             <Flyout Placement="Top">
-                                                <Border Padding="7,10"
-                                                        Background="#F2191A1D"
-                                                        BorderBrush="#3EFFFFFF"
+                                                <Flyout.FlyoutPresenterTheme>
+                                                    <ControlTheme TargetType="FlyoutPresenter">
+                                                        <Setter Property="Padding" Value="0"/>
+                                                        <Setter Property="Background" Value="Transparent"/>
+                                                        <Setter Property="BorderThickness" Value="0"/>
+                                                        <Setter Property="CornerRadius" Value="0"/>
+                                                    </ControlTheme>
+                                                </Flyout.FlyoutPresenterTheme>
+                                                <Border Width="40"
+                                                        Padding="5,9"
+                                                        Background="#FF111317"
+                                                        BorderBrush="#98737B85"
                                                         BorderThickness="1"
-                                                        CornerRadius="9">
+                                                        CornerRadius="2">
                                                     <Slider x:Name="VolumeSlider"
-                                                            Classes="playback"
+                                                            Classes="volume-vertical"
                                                             Orientation="Vertical"
                                                             Minimum="0" Maximum="100"
                                                             Value="100"
-                                                            Width="28"
-                                                            Height="130"
+                                                            Width="18"
+                                                            Height="118"
+                                                            HorizontalAlignment="Center"
                                                             PointerReleased="OnVolumeSliderPointerReleased"/>
                                                 </Border>
                                             </Flyout>
@@ -886,8 +928,16 @@
                                             Classes="icon shuffle-toggle"
                                             Click="OnShuffleToggleClicked"
                                             ToolTip.Tip="Shuffle">
-                                        <Image Source="{SvgImage /Assets/shuffle.svg}"
-                                               Width="17" Height="17"/>
+                                        <Grid Width="17" Height="17">
+                                            <Image x:Name="ShuffleMutedIcon"
+                                                   Source="{SvgImage /Assets/shuffle.svg}"
+                                                   Width="17" Height="17"
+                                                   Opacity="0.26"/>
+                                            <Image x:Name="ShuffleActiveIcon"
+                                                   Source="{SvgImage /Assets/shuffle-active.svg}"
+                                                   Width="17" Height="17"
+                                                   IsVisible="False"/>
+                                        </Grid>
                                     </Button>
                                 </StackPanel>
 

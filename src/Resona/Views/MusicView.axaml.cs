@@ -219,6 +219,7 @@ public partial class MusicView : UserControl
             if (!_suppressSelectionSessionSave)
                 PersistPlayerSession();
         };
+        FileList.SizeChanged += (_, _) => UpdatePlayingTrackScrollMarker();
         PlayerBar.SizeChanged += (_, _) => UpdateSettingsLayout();
         PlayerBar.SizeChanged += (_, _) => UpdateEditorBounds();
         PlayerBar.SizeChanged += (_, _) => UpdateImportBounds();
@@ -1235,6 +1236,33 @@ public partial class MusicView : UserControl
             if (index >= 0)
                 FileList.SelectedIndex = index;
         }
+        Dispatcher.UIThread.Post(UpdatePlayingTrackScrollMarker, DispatcherPriority.Background);
+    }
+
+    private void UpdatePlayingTrackScrollMarker()
+    {
+        var activeIndex = _engine.ActiveTrackId < 0
+            ? -1
+            : _visibleItems.FindIndex(item => item.Track.Id == _engine.ActiveTrackId);
+        var railHeight = TrackPositionRail.Bounds.Height;
+        PlayingTrackScrollMarker.IsVisible = activeIndex >= 0 && railHeight > 0;
+        if (!PlayingTrackScrollMarker.IsVisible)
+            return;
+
+        var ratio = _visibleItems.Count <= 1
+            ? 0.5
+            : activeIndex / (double)(_visibleItems.Count - 1);
+        var markerHeight = PlayingTrackScrollMarker.Bounds.Height > 0
+            ? PlayingTrackScrollMarker.Bounds.Height
+            : 20;
+        Canvas.SetTop(PlayingTrackScrollMarker, Math.Round(ratio * Math.Max(0, railHeight - markerHeight)));
+    }
+
+    private void OnPlayingTrackScrollMarkerClicked(object? sender, RoutedEventArgs e)
+    {
+        var activeItem = _visibleItems.FirstOrDefault(item => item.Track.Id == _engine.ActiveTrackId);
+        if (activeItem is not null)
+            FileList.ScrollIntoView(activeItem);
     }
 
     private void EnsureVisibleWindowAround(int filteredIndex)
@@ -4505,6 +4533,8 @@ public partial class MusicView : UserControl
 
     private void UpdateShuffleButton()
     {
+        ShuffleMutedIcon.IsVisible = !_shuffle;
+        ShuffleActiveIcon.IsVisible = _shuffle;
         if (_shuffle)
         {
             if (!ShuffleBtn.Classes.Contains("active"))
