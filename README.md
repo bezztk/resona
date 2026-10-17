@@ -1,61 +1,55 @@
 # Resona
 
-**Your music, your library, your decisions.**
+Resona is a local music library for Windows and Linux. It downloads audio from YouTube links, stores the library in SQLite, and plays the downloaded files locally.
 
-Resona is a local-first music library for people who want to collect, understand, and curate their music instead of handing that job to a streaming service. The desktop application downloads new tracks through one local queue, while the self-hosted analyzer handles audio analysis. Windows, Linux, and Android can retain audio for offline playback.
+The desktop app manages imports, playback, metadata, ratings, tags, genres, styles, languages, collections, filters, and playlists. Imports run through a persistent queue, so a video, playlist, mix, or radio URL can be expanded and processed in the background.
 
-Paste a YouTube video, playlist, mix, or radio link and Resona expands it into a persistent import queue. New tracks can be analyzed with Essentia-based models for genre suggestions, BPM, loudness, dynamics, and emotional character. Ratings, tags, languages, styles, collections, presets, and reusable views make even a large library manageable without taking control away from you.
+Audio analysis is optional. A separate analyzer can provide BPM, loudness, dynamics, genre suggestions, and emotional-character values. The analyzer is located in `src/AnalysisServer` and can run as a Docker service.
 
-Resona also includes a dedicated track editor, Discord Rich Presence, review workflows, artwork-driven visuals, and local database backups.
+The repository also contains an Android app for playing a portable copy of the local library. The desktop application remains responsible for changing library metadata.
 
-## How the system fits together
+This is a personal project. If it matches what you need, you can use it.
 
-- **Resona Desktop** owns and edits the SQLite library, downloads tracks, and plays local audio.
-- **Resona Analyzer** processes audio for the desktop app.
-- **Resona Android** plays a portable local library without writing library metadata.
+## Components
+
+- `src/Resona`: desktop library, player, editor, filters, and import queue
+- `src/AnalysisServer`: optional self-hosted audio analyzer
+- `src/Resona.Android`: Android player for a copied local library
 
 ## Requirements
 
-For the desktop application and analyzer you need:
+The desktop application requires:
 
-- a Windows or Linux computer for Resona Desktop;
-- `yt-dlp`, FFmpeg, and FFprobe for imports;
-- a reachable Resona Analyzer instance for audio analysis.
+- Windows or Linux x64
+- `yt-dlp`
+- FFmpeg and FFprobe
+- Node.js for YouTube imports
+- `libvlc` for playback on Linux
 
-The analyzer can run as a Docker service from `src/AnalysisServer`. Configure its address under **Settings → Connections**.
-
-## Linux
-
-Linux x64 releases are available as an AppImage. Playback uses the system `libvlc`; imports rely on `yt-dlp`, FFmpeg, FFprobe, and Node.js. Resona reports missing runtime dependencies in Settings and integrates with desktop media controls through MPRIS.
+The analyzer address and other runtime options are configured under **Settings → General**.
 
 ## Screenshots
 
-### Your library at a glance
+### Library
 
-Browse, play, rate, and manage the collection from the central library view.
+The main view contains the local tracks, playback controls, ratings, and library actions.
 
-![Library view](docs/images/track-library.png)
+![Library](docs/images/track-library.png)
 
-### Make every track your own
+### Track editor
 
-Edit metadata, ratings, classifications, language, and analysis results in one focused view.
+Metadata, ratings, classifications, languages, and analysis results can be edited per track.
 
 ![Track editor](docs/images/edit.png)
 
-### Find the exact mood
+### Filters
 
-Combine ratings, genres, styles, tags, languages, visibility, and emotional character.
+Tracks can be filtered by ratings, genres, styles, tags, languages, visibility, and analysis values.
 
-![Filter](docs/images/filter.png)
+![Filters](docs/images/filter.png)
 
-### Import an entire playlist from one URL
+### Import
 
-Paste a YouTube playlist, mix, or radio link, review the expanded track list, and send the selection into the persistent import queue.
+YouTube video, playlist, mix, and radio URLs are expanded into the import queue before downloading.
 
-![Playlist import](docs/images/playlist-import.png)
-
-### Tune Resona to your environment
-
-Configure playback, analysis, appearance, backups, integrations, and external tools.
-
-![Settings](docs/images/settings.png)
+![Import queue](docs/images/playlist-import.png)
