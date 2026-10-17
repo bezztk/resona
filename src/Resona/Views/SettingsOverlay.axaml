@@ -251,7 +251,7 @@
             <Rectangle Grid.Row="1" Fill="#18808080"/>
 
             <Grid x:Name="GenreVocabularyPage" Grid.Row="2" RowDefinitions="Auto,*"
-                  Margin="30,22,30,0" MaxWidth="800" HorizontalAlignment="Center">
+                  Margin="30,22,30,0" MaxWidth="960" HorizontalAlignment="Center">
                 <Grid Grid.Row="0" ColumnDefinitions="*,28" ColumnSpacing="8" Margin="0,0,0,14">
                     <TextBox x:Name="SearchBox" Classes="compact-search"
                              Height="24" MinHeight="24" MaxHeight="24"
@@ -273,13 +273,13 @@
                 </Grid>
 
                 <Grid Grid.Row="1" ColumnDefinitions="118,13,*">
-                    <ScrollViewer Padding="0" HorizontalScrollBarVisibility="Disabled">
+                    <ScrollViewer Padding="0,0,14,0" HorizontalScrollBarVisibility="Disabled">
                         <StackPanel x:Name="GenreGroupRows"/>
                     </ScrollViewer>
                     <Border Grid.Column="1" Width="1"
                             Background="{DynamicResource Theme.Brush.Divider}"
                             Margin="6,1"/>
-                    <ScrollViewer Grid.Column="2" Padding="10,0,0,0"
+                    <ScrollViewer Grid.Column="2" Padding="10,0,18,0"
                                   HorizontalScrollBarVisibility="Disabled"
                                   VerticalContentAlignment="Top">
                         <UniformGrid x:Name="GenreVocabularyRows"
