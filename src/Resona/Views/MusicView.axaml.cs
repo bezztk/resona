@@ -3152,6 +3152,7 @@ public partial class MusicView : UserControl
         var hasSelection = genres.Count > 0 || styles.Count > 0 || tags.Count > 0 || languages.Count > 0 || emotional.Count > 0;
         CurrentSetEmptyText.IsVisible = !hasSelection;
         AddFilterGroupButton.IsEnabled = hasSelection;
+        AddFilterGroupButton.IsVisible = hasSelection;
     }
 
     private void RebuildFilterConditionsPanel()

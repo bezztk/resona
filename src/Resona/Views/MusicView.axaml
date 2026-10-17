@@ -811,11 +811,20 @@
                             </Grid>
 
                             <Grid Grid.Row="2"
-                                  ColumnDefinitions="Auto,*,Auto"
                                   Height="42">
 
-                                <StackPanel Grid.Column="0"
-                                            Orientation="Horizontal" Spacing="2"
+                                <TextBlock x:Name="NowPlayingText"
+                                           Text=""
+                                           Foreground="{DynamicResource Theme.Brush.TextPrimary}"
+                                           Opacity="0.82"
+                                           VerticalAlignment="Center"
+                                           HorizontalAlignment="Stretch"
+                                           TextAlignment="Center"
+                                           TextTrimming="CharacterEllipsis"
+                                           Margin="126,0"/>
+
+                                <StackPanel Orientation="Horizontal" Spacing="2"
+                                            HorizontalAlignment="Left"
                                             VerticalAlignment="Center">
                                     <Button Classes="icon"
                                             Click="OnPreviousClicked"
@@ -843,19 +852,8 @@
                                     </Button>
                                 </StackPanel>
 
-                                <TextBlock Grid.Column="1"
-                                           x:Name="NowPlayingText"
-                                           Text=""
-                                           Foreground="{DynamicResource Theme.Brush.TextPrimary}"
-                                           Opacity="0.82"
-                                           VerticalAlignment="Center"
-                                           HorizontalAlignment="Center"
-                                           TextTrimming="CharacterEllipsis"
-                                           Margin="12,0,18,0"
-                                           Padding="0,0,4,0"/>
-
-                                <StackPanel Grid.Column="2"
-                                            Orientation="Horizontal" Spacing="10"
+                                <StackPanel Orientation="Horizontal" Spacing="10"
+                                            HorizontalAlignment="Right"
                                             VerticalAlignment="Center">
                                     <Button x:Name="VolumeButton"
                                             Classes="icon">
@@ -926,6 +924,13 @@
                         Background="#F2121212"
                         BorderThickness="0,0,0,1"
                         BorderBrush="#14FFFFFF">
+                <Grid>
+                <Border Width="375"
+                        HorizontalAlignment="Left"
+                        Background="#24101418"
+                        BorderBrush="#A8757D86"
+                        BorderThickness="0,0,1,0"
+                        IsHitTestVisible="False"/>
                 <Grid RowDefinitions="Auto,*" Margin="30,22,30,26">
                     <Rectangle x:Name="FilterAtmosphereTint"
                                Grid.RowSpan="2"
@@ -940,25 +945,9 @@
                             </LinearGradientBrush>
                         </Rectangle.Fill>
                     </Rectangle>
-                    <Grid Grid.Row="0" ColumnDefinitions="*,Auto" Height="34" Margin="0,0,0,18">
+                    <Grid Grid.Row="0" Height="34" Margin="0,0,0,18">
                         <TextBlock Text="Filters" FontSize="20" FontWeight="SemiBold"
                                    VerticalAlignment="Center"/>
-                        <Button Grid.Column="1"
-                                Click="OnToggleFiltersClicked"
-                                Classes="icon"
-                                Width="34"
-                                Height="34"
-                                Padding="0"
-                                VerticalAlignment="Center"
-                                HorizontalContentAlignment="Center"
-                                VerticalContentAlignment="Center"
-                                ToolTip.Tip="Close filters"
-                                Opacity="0.7">
-                            <Image Source="{SvgImage /Assets/close.svg}"
-                                   Width="16" Height="16"
-                                   HorizontalAlignment="Center"
-                                   VerticalAlignment="Center"/>
-                        </Button>
                     </Grid>
 
                     <Grid Grid.Row="1" ColumnDefinitions="330,28,*">
@@ -1181,11 +1170,6 @@
                             </StackPanel>
                         </ScrollViewer>
 
-                        <Rectangle Grid.Column="1"
-                                   Width="1"
-                                   HorizontalAlignment="Center"
-                                   Fill="#66757D86"/>
-
                         <DockPanel Grid.Column="2" LastChildFill="True">
                                 <Grid DockPanel.Dock="Top" Margin="0,0,0,10">
                                     <TextBlock Text="Conditions" FontSize="14" FontWeight="SemiBold"
@@ -1251,6 +1235,7 @@
                                                     BorderBrush="Transparent"
                                                     BorderThickness="0"
                                                     IsEnabled="False"
+                                                    IsVisible="False"
                                                     ToolTip.Tip="Add set">
                                                 <TextBlock Text="+" FontSize="17" Margin="0,-2,0,0"
                                                            HorizontalAlignment="Center"
@@ -1315,6 +1300,7 @@
                                 </ScrollViewer>
                         </DockPanel>
                     </Grid>
+                </Grid>
                 </Grid>
                 </Border>
             </Border>

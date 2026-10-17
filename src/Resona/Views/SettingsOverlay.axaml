@@ -119,6 +119,19 @@
             <Setter Property="HorizontalContentAlignment" Value="Center"/>
             <Setter Property="VerticalContentAlignment" Value="Center"/>
         </Style>
+        <Style Selector="Border.settings-card">
+            <Setter Property="Background" Value="#FF15171A"/>
+            <Setter Property="BorderBrush" Value="#52656A72"/>
+            <Setter Property="BorderThickness" Value="1"/>
+            <Setter Property="CornerRadius" Value="2"/>
+            <Setter Property="Padding" Value="14"/>
+        </Style>
+        <Style Selector="TextBlock.settings-kicker">
+            <Setter Property="FontSize" Value="9.5"/>
+            <Setter Property="FontWeight" Value="SemiBold"/>
+            <Setter Property="LetterSpacing" Value="1"/>
+            <Setter Property="Opacity" Value="0.48"/>
+        </Style>
         <Style Selector="Button.profile-avatar">
             <Setter Property="Width" Value="96"/>
             <Setter Property="Height" Value="96"/>
@@ -294,216 +307,163 @@
 
             <ScrollViewer x:Name="GeneralPage" Grid.Row="2" IsVisible="False" Margin="30,22,30,0"
                           HorizontalScrollBarVisibility="Disabled">
-                <StackPanel Spacing="22" Margin="0,0,0,24">
-                    <StackPanel Spacing="18">
-                        <Border x:Name="LinuxDependenciesPanel"
-                                IsVisible="False"
-                                Background="{DynamicResource Theme.Brush.SurfaceTranslucent}"
-                                BorderBrush="{DynamicResource Theme.Brush.BorderSubtle}"
-                                BorderThickness="1"
-                                CornerRadius="2"
-                                Padding="12">
-                            <StackPanel Spacing="10">
-                                <Grid ColumnDefinitions="*,Auto" ColumnSpacing="16">
-                                    <StackPanel Spacing="4">
-                                        <TextBlock Text="Linux dependencies"
-                                                   FontSize="12.5"
-                                                   FontWeight="SemiBold"/>
-                                        <TextBlock Text="The AppImage includes .NET. Playback and media tools are provided by the Linux system."
-                                                   FontSize="11"
-                                                   Opacity="0.58"
+                <StackPanel Spacing="20" Margin="0,0,0,24">
+                    <Border x:Name="LinuxDependenciesPanel"
+                            Classes="settings-card"
+                            IsVisible="False">
+                        <StackPanel Spacing="10">
+                            <Grid ColumnDefinitions="*,Auto" ColumnSpacing="16">
+                                <StackPanel Spacing="4">
+                                    <TextBlock Text="LINUX RUNTIME" Classes="settings-kicker"/>
+                                    <TextBlock Text="System dependencies" FontSize="13" FontWeight="SemiBold"/>
+                                    <TextBlock Text="The AppImage includes .NET. Playback and media tools are provided by the Linux system."
+                                               FontSize="10.5" Opacity="0.58" TextWrapping="Wrap"/>
+                                </StackPanel>
+                                <Button Grid.Column="1" Classes="settings-action" Content="Refresh"
+                                        Click="OnRefreshLinuxDependenciesClicked" VerticalAlignment="Top"/>
+                            </Grid>
+                            <TextBlock x:Name="LinuxDependenciesText"
+                                       FontFamily="Consolas,monospace" FontSize="11" LineHeight="19"
+                                       TextWrapping="Wrap"/>
+                        </StackPanel>
+                    </Border>
+
+                    <StackPanel Spacing="10">
+                        <TextBlock Text="CONNECTIVITY &amp; INTEGRATIONS" Classes="settings-kicker"/>
+                        <Grid ColumnDefinitions="*,*" ColumnSpacing="12">
+                            <StackPanel Spacing="12">
+                                <Border Classes="settings-card">
+                                    <StackPanel Spacing="10">
+                                        <TextBlock Text="Obsidian music library" FontSize="13" FontWeight="SemiBold"/>
+                                        <TextBlock Text="Mirror tracks and artwork to Data/Music inside the selected vault."
+                                                   FontSize="10.5" Opacity="0.58" TextWrapping="Wrap"/>
+                                        <TextBox x:Name="ObsidianVaultPathBox" Classes="settings-input"
+                                                 IsReadOnly="True" Watermark="Choose vault folder"/>
+                                        <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Spacing="8">
+                                            <Button Classes="settings-action" Content="Choose vault"
+                                                    Click="OnChooseObsidianVaultClicked"/>
+                                            <Button x:Name="ExportObsidianLibraryButton" Classes="settings-action"
+                                                    Content="Export now" Click="OnExportObsidianLibraryClicked"/>
+                                        </StackPanel>
+                                        <TextBlock x:Name="ObsidianExportStatusText" IsVisible="False"
+                                                   FontSize="10.5" TextWrapping="Wrap"/>
+                                    </StackPanel>
+                                </Border>
+
+                                <Border Classes="settings-card">
+                                    <StackPanel Spacing="10">
+                                        <Grid ColumnDefinitions="*,Auto" ColumnSpacing="12">
+                                            <TextBlock Text="Discord presence" FontSize="13" FontWeight="SemiBold"
+                                                       VerticalAlignment="Center"/>
+                                            <ToggleSwitch x:Name="DiscordPresenceToggle" Grid.Column="1"
+                                                          OnContent="On" OffContent="Off"
+                                                          Checked="OnDiscordPresenceEnabledChanged"
+                                                          Unchecked="OnDiscordPresenceEnabledChanged"/>
+                                        </Grid>
+                                        <TextBlock Text="Optional text shown with the current track."
+                                                   FontSize="10.5" Opacity="0.58" TextWrapping="Wrap"/>
+                                        <TextBox x:Name="DiscordLargeImageTextBox" Classes="settings-input"
+                                                 MaxLength="128" Watermark="Optional Discord note"
+                                                 TextChanged="OnDiscordPresenceTextChanged"/>
+                                    </StackPanel>
+                                </Border>
+                            </StackPanel>
+
+                            <StackPanel Grid.Column="1" Spacing="12">
+                                <Border Classes="settings-card">
+                                    <StackPanel Spacing="10">
+                                        <TextBlock Text="YouTube browser session" FontSize="13" FontWeight="SemiBold"/>
+                                        <TextBlock Text="Use a signed-in browser profile for restricted videos."
+                                                   FontSize="10.5" Opacity="0.58" TextWrapping="Wrap"/>
+                                        <Grid ColumnDefinitions="*,Auto" ColumnSpacing="9">
+                                            <ComboBox x:Name="BrowserCookiesBrowserBox" Classes="settings-input"
+                                                      SelectionChanged="OnBrowserCookiesBrowserChanged">
+                                                <ComboBoxItem Content="Firefox" Tag="firefox"/>
+                                                <ComboBoxItem Content="Chrome" Tag="chrome"/>
+                                                <ComboBoxItem Content="Edge" Tag="edge"/>
+                                                <ComboBoxItem Content="Brave" Tag="brave"/>
+                                            </ComboBox>
+                                            <ToggleSwitch x:Name="BrowserCookiesToggle" Grid.Column="1"
+                                                          OnContent="On" OffContent="Off"
+                                                          Checked="OnBrowserCookiesSettingChanged"
+                                                          Unchecked="OnBrowserCookiesSettingChanged"/>
+                                        </Grid>
+                                        <TextBlock x:Name="BrowserCookiesWarningText" IsVisible="False"
+                                                   FontSize="10.5" Foreground="{DynamicResource Theme.Brush.Warning}"
                                                    TextWrapping="Wrap"/>
                                     </StackPanel>
-                                    <Button Grid.Column="1"
-                                            Classes="settings-action"
-                                            Content="Refresh"
-                                            Click="OnRefreshLinuxDependenciesClicked"
-                                            VerticalAlignment="Top"/>
-                                </Grid>
-                                <TextBlock x:Name="LinuxDependenciesText"
-                                           FontFamily="Consolas,monospace"
-                                           FontSize="11"
-                                           LineHeight="19"
-                                           TextWrapping="Wrap"/>
-                            </StackPanel>
-                        </Border>
-                        <StackPanel Spacing="10">
-                            <TextBlock Text="Obsidian music library"
-                                       FontSize="12.5"
-                                       FontWeight="SemiBold"/>
-                            <TextBlock Text="Exports to Data/Music inside the selected vault. Tracks and images are mirrored for Obsidian Sync."
-                                       FontSize="11"
-                                       Opacity="0.58"
-                                       TextWrapping="Wrap"/>
-                            <Grid ColumnDefinitions="*,Auto,Auto" ColumnSpacing="9">
-                                <TextBox x:Name="ObsidianVaultPathBox"
-                                         Classes="settings-input"
-                                         IsReadOnly="True"
-                                         Watermark="Choose the Obsidian vault folder"/>
-                                <Button Grid.Column="1"
-                                        Classes="settings-action"
-                                        Content="Choose vault"
-                                        Click="OnChooseObsidianVaultClicked"/>
-                                <Button x:Name="ExportObsidianLibraryButton"
-                                        Grid.Column="2"
-                                        Classes="settings-action"
-                                        Content="Export now"
-                                        Click="OnExportObsidianLibraryClicked"/>
-                            </Grid>
-                            <TextBlock x:Name="ObsidianExportStatusText"
-                                       IsVisible="False"
-                                       FontSize="10.5"
-                                       TextWrapping="Wrap"/>
-                        </StackPanel>
+                                </Border>
 
-                        <Rectangle Height="1" Fill="{DynamicResource Theme.Brush.Divider}"/>
-
-                        <Grid RowDefinitions="Auto,Auto" ColumnDefinitions="*,Auto" ColumnSpacing="16" RowSpacing="9">
-                            <StackPanel Spacing="4">
-                                <TextBlock Text="YouTube browser session"
-                                           FontSize="12.5"
-                                           FontWeight="SemiBold"/>
-                                <TextBlock Text="Uses a signed-in browser profile when YouTube requires authentication, for example for age-restricted videos."
-                                           FontSize="11"
-                                           Opacity="0.58"
-                                           TextWrapping="Wrap"/>
+                                <Border Classes="settings-card">
+                                    <StackPanel Spacing="10">
+                                        <TextBlock Text="Analysis server" FontSize="13" FontWeight="SemiBold"/>
+                                        <TextBlock Text="Endpoint used for automatic track analysis."
+                                                   FontSize="10.5" Opacity="0.58" TextWrapping="Wrap"/>
+                                        <TextBox x:Name="MusicAnalysisServerUrlBox" Classes="settings-input"
+                                                 Watermark="http://debian:5268"/>
+                                        <Grid ColumnDefinitions="*,Auto,Auto" ColumnSpacing="8">
+                                            <TextBlock x:Name="AnalysisServerStatusText" IsVisible="False"
+                                                       FontSize="10.5" VerticalAlignment="Center" TextWrapping="Wrap"/>
+                                            <Button x:Name="TestAnalysisServerButton" Grid.Column="1"
+                                                    Classes="settings-action" Content="Test"
+                                                    Click="OnTestAnalysisServerClicked"/>
+                                            <Button Grid.Column="2" Classes="settings-action" Content="Save"
+                                                    Click="OnSaveAnalysisServerClicked"/>
+                                        </Grid>
+                                    </StackPanel>
+                                </Border>
                             </StackPanel>
-                            <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="9"
-                                        VerticalAlignment="Center">
-                                <ComboBox x:Name="BrowserCookiesBrowserBox"
-                                          Classes="settings-input"
-                                          Width="118"
-                                          SelectionChanged="OnBrowserCookiesBrowserChanged">
-                                    <ComboBoxItem Content="Firefox" Tag="firefox"/>
-                                    <ComboBoxItem Content="Chrome" Tag="chrome"/>
-                                    <ComboBoxItem Content="Edge" Tag="edge"/>
-                                    <ComboBoxItem Content="Brave" Tag="brave"/>
-                                </ComboBox>
-                                <ToggleSwitch x:Name="BrowserCookiesToggle"
-                                              OnContent="On"
-                                              OffContent="Off"
-                                              Checked="OnBrowserCookiesSettingChanged"
-                                              Unchecked="OnBrowserCookiesSettingChanged"/>
-                            </StackPanel>
-                            <TextBlock x:Name="BrowserCookiesWarningText"
-                                       Grid.Row="1" Grid.ColumnSpan="2"
-                                       IsVisible="False"
-                                       FontSize="10.5"
-                                       Foreground="{DynamicResource Theme.Brush.Warning}"
-                                       TextWrapping="Wrap"/>
                         </Grid>
+                    </StackPanel>
 
-                        <Rectangle Height="1" Fill="{DynamicResource Theme.Brush.Divider}"/>
+                    <StackPanel Spacing="10">
+                        <TextBlock Text="PLAYBACK &amp; SYSTEM" Classes="settings-kicker"/>
+                        <Grid ColumnDefinitions="*,*" ColumnSpacing="12">
+                            <Border Classes="settings-card">
+                                <StackPanel Spacing="11">
+                                    <TextBlock Text="Song fade duration" FontSize="13" FontWeight="SemiBold"/>
+                                    <TextBlock Text="Crossfade when playback advances automatically. Set to 0 to disable."
+                                               FontSize="10.5" Opacity="0.58" TextWrapping="Wrap"/>
+                                    <Grid ColumnDefinitions="*,48" ColumnSpacing="10">
+                                        <Slider x:Name="SongFadeDurationSlider" Classes="settings-simple"
+                                                Minimum="0" Maximum="30" TickFrequency="1"
+                                                ValueChanged="OnSongFadeDurationChanged"
+                                                DoubleTapped="OnSongFadeDurationDoubleTapped"/>
+                                        <TextBlock x:Name="SongFadeDurationValueText" Grid.Column="1"
+                                                   FontFamily="Consolas" FontSize="10.5" Opacity="0.72"
+                                                   TextAlignment="Right" VerticalAlignment="Center"/>
+                                    </Grid>
+                                </StackPanel>
+                            </Border>
 
-                        <StackPanel Spacing="12">
-                            <TextBlock Text="Analysis server" FontSize="12.5" FontWeight="SemiBold"/>
-                            <Grid>
-                                <TextBox x:Name="MusicAnalysisServerUrlBox"
-                                         Classes="settings-input"
-                                         Watermark="http://debian:5268"/>
-                            </Grid>
-                            <Grid ColumnDefinitions="*,Auto,Auto" ColumnSpacing="9">
-                                <TextBlock x:Name="AnalysisServerStatusText"
-                                           IsVisible="False" FontSize="11"
-                                           VerticalAlignment="Center" TextWrapping="Wrap"/>
-                                <Button x:Name="TestAnalysisServerButton"
-                                        Grid.Column="1" Classes="settings-action"
-                                        Content="Test" Click="OnTestAnalysisServerClicked"/>
-                                <Button Grid.Column="2" Classes="settings-action"
-                                        Content="Save" Click="OnSaveAnalysisServerClicked"/>
-                            </Grid>
-                        </StackPanel>
-
-                        <Rectangle Height="1" Fill="{DynamicResource Theme.Brush.Divider}"/>
-
-                        <Grid ColumnDefinitions="*,Auto" ColumnSpacing="16">
-                            <StackPanel Spacing="5">
-                                <TextBlock Text="Discord presence" FontSize="12.5" FontWeight="SemiBold"/>
-                                <TextBox x:Name="DiscordLargeImageTextBox" Classes="settings-input"
-                                         MaxLength="128" Watermark="Optional Discord note"
-                                         TextChanged="OnDiscordPresenceTextChanged"/>
-                            </StackPanel>
-                            <ToggleSwitch x:Name="DiscordPresenceToggle"
-                                          Grid.Column="1"
-                                          OnContent="On" OffContent="Off"
-                                          VerticalAlignment="Center"
-                                          Checked="OnDiscordPresenceEnabledChanged"
-                                          Unchecked="OnDiscordPresenceEnabledChanged"/>
+                            <Border Grid.Column="1" Classes="settings-card">
+                                <StackPanel Spacing="10">
+                                    <TextBlock Text="Application updates" FontSize="13" FontWeight="SemiBold"/>
+                                    <Grid ColumnDefinitions="*,Auto" ColumnSpacing="12">
+                                        <StackPanel Spacing="2">
+                                            <TextBlock Text="INSTALLED" Classes="settings-kicker"/>
+                                            <TextBlock x:Name="InstalledVersionText" FontSize="14" FontWeight="SemiBold"/>
+                                            <TextBlock x:Name="AvailableVersionText" FontSize="10.5"
+                                                       Foreground="{DynamicResource Theme.Brush.TextSecondary}"/>
+                                        </StackPanel>
+                                        <StackPanel Grid.Column="1" Spacing="7" VerticalAlignment="Center">
+                                            <Button x:Name="CheckForUpdatesButton" Classes="settings-action"
+                                                    Content="Check" Click="OnCheckForUpdatesClicked"/>
+                                            <Button x:Name="DownloadUpdateButton" Classes="settings-action"
+                                                    Content="Download" IsVisible="False"
+                                                    Click="OnDownloadUpdateClicked"/>
+                                            <Button x:Name="InstallUpdateButton" Classes="settings-action"
+                                                    Content="Restart &amp; install" IsVisible="False"
+                                                    Click="OnInstallUpdateClicked"/>
+                                        </StackPanel>
+                                    </Grid>
+                                    <TextBlock x:Name="UpdateStatusText" FontSize="10.5" Opacity="0.72"
+                                               TextWrapping="Wrap"/>
+                                    <ProgressBar x:Name="UpdateProgressBar" IsVisible="False"
+                                                 Height="4" Minimum="0" Maximum="100"/>
+                                </StackPanel>
+                            </Border>
                         </Grid>
-
-                        <Rectangle Height="1" Fill="{DynamicResource Theme.Brush.Divider}"/>
-
-                        <StackPanel Spacing="7">
-                            <StackPanel Spacing="3">
-                                <TextBlock Text="Song fade duration" FontSize="12.5" FontWeight="SemiBold"/>
-                                <TextBlock Text="Crossfade duration when playback advances automatically. Set to 0 to disable crossfading."
-                                           FontSize="10.5" Opacity="0.58" TextWrapping="Wrap"/>
-                            </StackPanel>
-                            <Grid ColumnDefinitions="*,52" ColumnSpacing="10">
-                                <Slider x:Name="SongFadeDurationSlider"
-                                        Classes="settings-simple"
-                                        Minimum="0" Maximum="30"
-                                        TickFrequency="1"
-                                        ValueChanged="OnSongFadeDurationChanged"
-                                        DoubleTapped="OnSongFadeDurationDoubleTapped"/>
-                                <TextBlock x:Name="SongFadeDurationValueText"
-                                           Grid.Column="1"
-                                           Width="48"
-                                           FontFamily="Consolas"
-                                           FontSize="10.5"
-                                           Opacity="0.72"
-                                           TextAlignment="Right"
-                                           VerticalAlignment="Center"/>
-                            </Grid>
-                        </StackPanel>
-
-                        <Rectangle Height="1" Fill="{DynamicResource Theme.Brush.Divider}"/>
-
-                        <StackPanel Spacing="14">
-                            <StackPanel Spacing="5">
-                                <TextBlock Text="Application updates" FontSize="12.5" FontWeight="SemiBold"/>
-                                <TextBlock Text="Resona checks the public GitHub releases for newer versions."
-                                           FontSize="11" Opacity="0.62" TextWrapping="Wrap"/>
-                            </StackPanel>
-
-                            <Grid ColumnDefinitions="*,Auto" ColumnSpacing="16">
-                                <StackPanel Spacing="3">
-                                    <TextBlock Text="INSTALLED VERSION" FontSize="10" FontWeight="SemiBold" Opacity="0.42"/>
-                                    <TextBlock x:Name="InstalledVersionText" FontSize="14" FontWeight="SemiBold"/>
-                                    <TextBlock x:Name="AvailableVersionText"
-                                               FontSize="11"
-                                               Foreground="{DynamicResource Theme.Brush.TextSecondary}"/>
-                                </StackPanel>
-                                <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="9"
-                                            VerticalAlignment="Center">
-                                    <Button x:Name="CheckForUpdatesButton"
-                                            Classes="settings-action"
-                                            Content="Check for updates"
-                                            Click="OnCheckForUpdatesClicked"/>
-                                    <Button x:Name="DownloadUpdateButton"
-                                            Classes="settings-action"
-                                            Content="Download update"
-                                            IsVisible="False"
-                                            Click="OnDownloadUpdateClicked"/>
-                                    <Button x:Name="InstallUpdateButton"
-                                            Classes="settings-action"
-                                            Content="Restart and install"
-                                            IsVisible="False"
-                                            Click="OnInstallUpdateClicked"/>
-                                </StackPanel>
-                            </Grid>
-
-                            <TextBlock x:Name="UpdateStatusText"
-                                       FontSize="11"
-                                       Opacity="0.72"
-                                       TextWrapping="Wrap"/>
-                            <ProgressBar x:Name="UpdateProgressBar"
-                                         IsVisible="False"
-                                         Height="5"
-                                         Minimum="0"
-                                         Maximum="100"/>
-                        </StackPanel>
-
                     </StackPanel>
                 </StackPanel>
             </ScrollViewer>
