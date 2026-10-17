@@ -262,7 +262,16 @@ public class MusicLibraryService
     public List<Rating> GetRatings() => _db.GetRatings();
     public List<ModelGenre> GetModelGenres() => _db.GetModelGenres();
     public List<ModelSubgenre> GetModelSubgenres(int? modelGenreId = null) => _db.GetModelSubgenres(modelGenreId);
+    public Dictionary<int, int> GetModelSubgenreTrackCounts() => _db.GetModelSubgenreTrackCounts();
+    public Dictionary<int, int> GetGenreReferenceCounts() => _db.GetGenreReferenceCounts();
+    public List<GenreReferenceTrack> GetGenreReferenceTracks(int genreId) => _db.GetGenreReferenceTracks(genreId);
+    public HashSet<int> GetGenreCleanupTrackIds() => _db.GetGenreCleanupTrackIds();
     public void AddModelSubgenre(int modelGenreId, string name) => _db.AddModelSubgenre(modelGenreId, name);
+    public void SetModelSubgenrePreferred(int id, bool isPreferred) => _db.SetModelSubgenrePreferred(id, isPreferred);
+    public void SetTrackGenreReference(int trackId, int genreId, bool isReference) =>
+        _db.SetTrackGenreReference(trackId, genreId, isReference);
+    public void UpdateModelSubgenreDetails(int id, string name, string? description) =>
+        _db.UpdateModelSubgenreDetails(id, name, description);
     public void UpdateModelSubgenre(int id, string name, string? description, string? classificationHint, int? bpmMin, int? bpmMax) =>
         _db.UpdateModelSubgenre(id, name, description, classificationHint, bpmMin, bpmMax);
     public List<ModelSubgenreDistinction> GetModelSubgenreDistinctions() => _db.GetModelSubgenreDistinctions();

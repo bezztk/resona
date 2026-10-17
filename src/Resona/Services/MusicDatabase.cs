@@ -54,6 +54,7 @@ public class MusicDatabase
         CreateSchema(conn, tx);
         SeedDefaultMetadata(conn, tx);
         tx.Commit();
+        EnsureGenreCurationSchema(conn);
         EnsureTrackWorkflowGuards(conn);
     }
 
@@ -158,6 +159,7 @@ public class MusicDatabase
                 assigned_at              TEXT NOT NULL,
                 is_enabled               INTEGER NOT NULL DEFAULT 1,
                 is_manual                INTEGER NOT NULL DEFAULT 0,
+                is_reference             INTEGER NOT NULL DEFAULT 0,
                 PRIMARY KEY (track_id, genre_id)
             );
 
@@ -200,6 +202,7 @@ public class MusicDatabase
                 classification_hint TEXT NULL,
                 bpm_min         INTEGER NULL,
                 bpm_max         INTEGER NULL,
+                is_preferred    INTEGER NOT NULL DEFAULT 0,
                 UNIQUE (model_genre_id, name)
             );
 
@@ -291,7 +294,9 @@ public class MusicDatabase
         EnsureColumn(conn, "model_subgenres", "classification_hint", "TEXT NULL");
         EnsureColumn(conn, "model_subgenres", "bpm_min", "INTEGER NULL");
         EnsureColumn(conn, "model_subgenres", "bpm_max", "INTEGER NULL");
+        EnsureColumn(conn, "model_subgenres", "is_preferred", "INTEGER NOT NULL DEFAULT 0");
         EnsureTrackGenreSourceSchema(conn);
+        EnsureGenreCurationSchema(conn);
         RenameLegacySkipRating(conn);
         DropTrackWorkflowGuards(conn);
         NormalizeTrackWorkflowState(conn);
@@ -305,6 +310,39 @@ public class MusicDatabase
         RemoveLegacyNightcoreGenre(conn);
         DropLegacyEditsColumn(conn);
         CreateCollectionSchema(conn);
+    }
+
+    internal static void EnsureGenreCurationSchema(SqliteConnection conn)
+    {
+        EnsureColumn(conn, "model_subgenres", "is_preferred", "INTEGER NOT NULL DEFAULT 0");
+        EnsureColumn(conn, "track_genres", "is_reference", "INTEGER NOT NULL DEFAULT 0");
+        ExecuteNonQuery(conn, @"
+            UPDATE track_genres SET is_reference = 0 WHERE is_enabled = 0;
+            CREATE INDEX IF NOT EXISTS ix_track_genres_reference
+                ON track_genres(genre_id, is_reference) WHERE is_reference = 1;
+            CREATE TRIGGER IF NOT EXISTS trg_track_genres_reference_insert
+            BEFORE INSERT ON track_genres
+            WHEN NEW.is_reference = 1
+            BEGIN
+                SELECT CASE
+                    WHEN NEW.is_enabled <> 1 THEN RAISE(ABORT, 'reference track must have an enabled genre assignment')
+                    WHEN (SELECT COUNT(*) FROM track_genres
+                          WHERE genre_id = NEW.genre_id AND is_reference = 1) >= 5
+                        THEN RAISE(ABORT, 'a genre can have at most five reference tracks')
+                END;
+            END;
+            CREATE TRIGGER IF NOT EXISTS trg_track_genres_reference_update
+            BEFORE UPDATE OF is_reference, is_enabled ON track_genres
+            WHEN NEW.is_reference = 1
+            BEGIN
+                SELECT CASE
+                    WHEN NEW.is_enabled <> 1 THEN RAISE(ABORT, 'reference track must have an enabled genre assignment')
+                    WHEN OLD.is_reference = 0 AND
+                         (SELECT COUNT(*) FROM track_genres
+                          WHERE genre_id = NEW.genre_id AND is_reference = 1) >= 5
+                        THEN RAISE(ABORT, 'a genre can have at most five reference tracks')
+                END;
+            END;");
     }
 
     private static void CreateCollectionSchema(SqliteConnection conn)
@@ -1576,6 +1614,7 @@ public class MusicDatabase
     {
         using var conn = Open(); using var cmd = conn.CreateCommand();
         cmd.CommandText = @"SELECT track_genres.genre_id, msg.name, track_genres.is_enabled, track_genres.is_manual,
+                                   msg.is_preferred, track_genres.is_reference,
                                    mg.name, msg.name, predictions.score
                             FROM track_genres
                             JOIN model_subgenres msg ON msg.id = track_genres.genre_id
@@ -1586,17 +1625,20 @@ public class MusicDatabase
                             ORDER BY predictions.score IS NULL, predictions.score DESC, msg.name";
         cmd.Parameters.AddWithValue("$trackId", trackId);
         using var reader = cmd.ExecuteReader();
-        var groups = new Dictionary<int, (string Name, bool Enabled, bool Manual, List<ModelGenreReason> Reasons)>();
+        var groups = new Dictionary<int, (string Name, bool Enabled, bool Manual, bool Preferred, bool Reference, List<ModelGenreReason> Reasons)>();
         while (reader.Read())
         {
             var id = reader.GetInt32(0);
             if (!groups.TryGetValue(id, out var group))
-                groups[id] = group = (reader.GetString(1), reader.GetInt32(2) != 0, reader.GetInt32(3) != 0, []);
-            if (!reader.IsDBNull(6))
-                group.Reasons.Add(new ModelGenreReason(reader.GetString(4), reader.GetString(5), reader.GetDouble(6)));
+                groups[id] = group = (
+                    reader.GetString(1), reader.GetInt32(2) != 0, reader.GetInt32(3) != 0,
+                    reader.GetInt32(4) != 0, reader.GetInt32(5) != 0, []);
+            if (!reader.IsDBNull(8))
+                group.Reasons.Add(new ModelGenreReason(reader.GetString(6), reader.GetString(7), reader.GetDouble(8)));
         }
         return groups.Select(x => new TrackModelGenre(
-            x.Key, x.Value.Name, x.Value.Enabled, x.Value.Manual, x.Value.Reasons)).ToList();
+            x.Key, x.Value.Name, x.Value.Enabled, x.Value.Manual,
+            x.Value.Preferred, x.Value.Reference, x.Value.Reasons)).ToList();
     }
 
     public void SetTrackModelGenreEnabled(int trackId, int genreId, bool isEnabled)
@@ -1619,7 +1661,9 @@ public class MusicDatabase
         }
         else
         {
-            cmd.CommandText = @"UPDATE track_genres SET is_enabled = 0 WHERE track_id = $trackId AND genre_id = $genreId";
+            cmd.CommandText = @"UPDATE track_genres
+                                SET is_enabled = 0, is_reference = 0
+                                WHERE track_id = $trackId AND genre_id = $genreId";
         }
         cmd.Parameters.AddWithValue("$trackId", trackId);
         cmd.Parameters.AddWithValue("$genreId", genreId);
@@ -2532,7 +2576,7 @@ public class MusicDatabase
     {
         using var conn = Open();
         using var cmd = conn.CreateCommand();
-        cmd.CommandText = @"SELECT id, model_genre_id, name, description, classification_hint, bpm_min, bpm_max
+        cmd.CommandText = @"SELECT id, model_genre_id, name, description, classification_hint, bpm_min, bpm_max, is_preferred
                             FROM model_subgenres
                             WHERE $modelGenreId IS NULL OR model_genre_id = $modelGenreId
                             ORDER BY name";
@@ -2544,8 +2588,143 @@ public class MusicDatabase
             reader.IsDBNull(3) ? null : reader.GetString(3),
             reader.IsDBNull(4) ? null : reader.GetString(4),
             reader.IsDBNull(5) ? null : reader.GetInt32(5),
-            reader.IsDBNull(6) ? null : reader.GetInt32(6)));
+            reader.IsDBNull(6) ? null : reader.GetInt32(6),
+            reader.GetInt32(7) != 0));
         return subgenres;
+    }
+
+    public Dictionary<int, int> GetModelSubgenreTrackCounts()
+    {
+        using var conn = Open();
+        using var cmd = conn.CreateCommand();
+        cmd.CommandText = @"
+            SELECT genre_id, COUNT(*)
+            FROM track_genres
+            WHERE is_enabled = 1
+            GROUP BY genre_id";
+        using var reader = cmd.ExecuteReader();
+        var counts = new Dictionary<int, int>();
+        while (reader.Read())
+            counts[reader.GetInt32(0)] = Convert.ToInt32(reader.GetInt64(1));
+        return counts;
+    }
+
+    public void SetModelSubgenrePreferred(int id, bool isPreferred)
+    {
+        using var conn = Open();
+        ExecuteNonQuery(conn,
+            "UPDATE model_subgenres SET is_preferred = $isPreferred WHERE id = $id",
+            ("$id", id), ("$isPreferred", isPreferred ? 1 : 0));
+    }
+
+    public void UpdateModelSubgenreDetails(int id, string name, string? description)
+    {
+        var normalizedName = name.Trim();
+        if (normalizedName.Length == 0)
+            throw new ArgumentException("Subgenre name is required.", nameof(name));
+
+        using var conn = Open();
+        ExecuteNonQuery(conn, @"
+            UPDATE model_subgenres
+            SET name = $name, description = $description
+            WHERE id = $id",
+            ("$id", id),
+            ("$name", normalizedName),
+            ("$description", string.IsNullOrWhiteSpace(description) ? DBNull.Value : description.Trim()));
+    }
+
+    public List<GenreReferenceTrack> GetGenreReferenceTracks(int genreId)
+    {
+        using var conn = Open();
+        using var cmd = conn.CreateCommand();
+        cmd.CommandText = @"
+            SELECT tracks.id, tracks.title, tracks.artist, tracks.file_name
+            FROM track_genres
+            JOIN tracks ON tracks.id = track_genres.track_id
+            WHERE track_genres.genre_id = $genreId
+              AND track_genres.is_enabled = 1
+              AND track_genres.is_reference = 1
+            ORDER BY COALESCE(tracks.artist, ''), tracks.title
+            LIMIT 5";
+        cmd.Parameters.AddWithValue("$genreId", genreId);
+        using var reader = cmd.ExecuteReader();
+        var tracks = new List<GenreReferenceTrack>();
+        while (reader.Read())
+            tracks.Add(new GenreReferenceTrack(
+                reader.GetInt32(0), reader.GetString(1),
+                reader.IsDBNull(2) ? null : reader.GetString(2), reader.GetString(3)));
+        return tracks;
+    }
+
+    public Dictionary<int, int> GetGenreReferenceCounts()
+    {
+        using var conn = Open();
+        using var cmd = conn.CreateCommand();
+        cmd.CommandText = @"
+            SELECT genre_id, COUNT(*)
+            FROM track_genres
+            WHERE is_enabled = 1 AND is_reference = 1
+            GROUP BY genre_id";
+        using var reader = cmd.ExecuteReader();
+        var counts = new Dictionary<int, int>();
+        while (reader.Read())
+            counts[reader.GetInt32(0)] = Convert.ToInt32(reader.GetInt64(1));
+        return counts;
+    }
+
+    public void SetTrackGenreReference(int trackId, int genreId, bool isReference)
+    {
+        using var conn = Open();
+        using var tx = conn.BeginTransaction();
+
+        var assignment = SelectId(conn, tx, @"
+            SELECT COUNT(*) FROM track_genres
+            WHERE track_id = $trackId AND genre_id = $genreId AND is_enabled = 1",
+            ("$trackId", trackId), ("$genreId", genreId));
+        if (assignment == 0)
+            throw new InvalidOperationException("The track must be assigned to this genre before it can be a reference.");
+
+        if (isReference)
+        {
+            var alreadyReference = SelectId(conn, tx, @"
+                SELECT COUNT(*) FROM track_genres
+                WHERE track_id = $trackId AND genre_id = $genreId AND is_reference = 1",
+                ("$trackId", trackId), ("$genreId", genreId));
+            var referenceCount = SelectId(conn, tx, @"
+                SELECT COUNT(*) FROM track_genres
+                WHERE genre_id = $genreId AND is_enabled = 1 AND is_reference = 1",
+                ("$genreId", genreId));
+            if (alreadyReference == 0 && referenceCount >= 5)
+                throw new InvalidOperationException("This genre already has five reference tracks.");
+        }
+
+        ExecuteInsert(conn, tx, @"
+            UPDATE track_genres
+            SET is_reference = $isReference
+            WHERE track_id = $trackId AND genre_id = $genreId AND is_enabled = 1",
+            ("$trackId", trackId), ("$genreId", genreId), ("$isReference", isReference ? 1 : 0));
+        tx.Commit();
+    }
+
+    public HashSet<int> GetGenreCleanupTrackIds()
+    {
+        using var conn = Open();
+        using var cmd = conn.CreateCommand();
+        cmd.CommandText = @"
+            SELECT DISTINCT tracks.id
+            FROM tracks
+            JOIN track_genres ON track_genres.track_id = tracks.id
+            JOIN model_subgenres ON model_subgenres.id = track_genres.genre_id
+            LEFT JOIN ratings ON ratings.id = tracks.rating_id
+            WHERE tracks.library_state <> 'Rejected'
+              AND track_genres.is_enabled = 1
+              AND model_subgenres.is_preferred = 0
+              AND COALESCE(ratings.name, '') NOT IN ('Favorite', $timeless)";
+        cmd.Parameters.AddWithValue("$timeless", RatingNames.Timeless);
+        using var reader = cmd.ExecuteReader();
+        var ids = new HashSet<int>();
+        while (reader.Read()) ids.Add(reader.GetInt32(0));
+        return ids;
     }
 
     public void AddModelSubgenre(int modelGenreId, string name)

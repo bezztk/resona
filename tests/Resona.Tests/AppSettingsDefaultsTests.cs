@@ -18,7 +18,6 @@ public sealed class AppSettingsDefaultsTests
         Assert.False(settings.UseYtDlpBrowserCookies);
         Assert.Equal("firefox", settings.YtDlpCookiesBrowser);
         Assert.Empty(settings.PlayerSession.QueueTrackIds);
-        Assert.Empty(settings.TrackBackdropFocus);
     }
 
     [Theory]

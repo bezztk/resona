@@ -2,7 +2,6 @@ using System.Collections.Generic;
 using System.Linq;
 using Avalonia;
 using Avalonia.Controls;
-using Avalonia.Controls.Primitives;
 using Avalonia.Controls.Shapes;
 using Avalonia.Layout;
 using Avalonia.Media;
@@ -22,8 +21,8 @@ internal static class GenreMetadataTooltipFactory
         var entries = source.ToList();
         var content = new StackPanel
         {
-            Width = 410,
-            Spacing = 15
+            Width = 330,
+            Spacing = 12
         };
 
         for (var index = 0; index < entries.Count; index++)
@@ -39,10 +38,8 @@ internal static class GenreMetadataTooltipFactory
 
         return new ScrollViewer
         {
-            Width = 414,
-            MaxHeight = 430,
-            HorizontalScrollBarVisibility = ScrollBarVisibility.Disabled,
-            VerticalScrollBarVisibility = ScrollBarVisibility.Auto,
+            Width = 334,
+            MaxHeight = 300,
             Content = content
         };
     }
@@ -50,51 +47,21 @@ internal static class GenreMetadataTooltipFactory
     private static Control CreateEntry(GenreMetadataTooltipEntry entry)
     {
         var subgenre = entry.Subgenre;
-        var accent = MainGenrePalette.For(entry.MainGenreName);
-        var panel = new StackPanel { Spacing = 11 };
-
-        var header = new Grid
-        {
-            ColumnDefinitions = new ColumnDefinitions("*,Auto"),
-            ColumnSpacing = 18
-        };
-        header.Children.Add(new TextBlock
+        var panel = new StackPanel { Spacing = 5 };
+        panel.Children.Add(new TextBlock
         {
             Text = subgenre.Name,
-            FontSize = 15,
+            FontSize = 13,
             FontWeight = FontWeight.SemiBold,
-            Foreground = accent,
-            VerticalAlignment = VerticalAlignment.Center,
+            Foreground = MainGenrePalette.For(entry.MainGenreName),
             TextWrapping = TextWrapping.Wrap
         });
-        if (subgenre.BpmMin is not null || subgenre.BpmMax is not null)
+        panel.Children.Add(new TextBlock
         {
-            var bpm = new StackPanel
-            {
-                Spacing = 1,
-                HorizontalAlignment = HorizontalAlignment.Right
-            };
-            bpm.Children.Add(new TextBlock
-            {
-                Text = "TYPICAL BPM",
-                FontSize = 8.5,
-                FontWeight = FontWeight.SemiBold,
-                LetterSpacing = 0.65,
-                Opacity = 0.46,
-                HorizontalAlignment = HorizontalAlignment.Right
-            });
-            bpm.Children.Add(new TextBlock
-            {
-                Text = FormatBpm(subgenre),
-                FontSize = 11,
-                FontWeight = FontWeight.SemiBold,
-                Foreground = ThemeResources.Brush("Theme.Brush.TextPrimary"),
-                HorizontalAlignment = HorizontalAlignment.Right
-            });
-            Grid.SetColumn(bpm, 1);
-            header.Children.Add(bpm);
-        }
-        panel.Children.Add(header);
+            Text = entry.MainGenreName,
+            FontSize = 9.5,
+            Opacity = 0.5
+        });
 
         if (!string.IsNullOrWhiteSpace(subgenre.Description))
             panel.Children.Add(new TextBlock
@@ -106,95 +73,6 @@ internal static class GenreMetadataTooltipFactory
                 TextWrapping = TextWrapping.Wrap
             });
 
-        if (!string.IsNullOrWhiteSpace(subgenre.ClassificationHint))
-        {
-            var guidance = new Grid
-            {
-                ColumnDefinitions = new ColumnDefinitions("3,*"),
-                ColumnSpacing = 10
-            };
-            guidance.Children.Add(new Border
-            {
-                Width = 3,
-                CornerRadius = new CornerRadius(2),
-                Background = accent
-            });
-            var guidanceText = new StackPanel { Spacing = 3 };
-            guidanceText.Children.Add(new TextBlock
-            {
-                Text = "USE WHEN",
-                FontSize = 8.5,
-                FontWeight = FontWeight.SemiBold,
-                LetterSpacing = 0.7,
-                Foreground = accent
-            });
-            guidanceText.Children.Add(new TextBlock
-            {
-                Text = subgenre.ClassificationHint,
-                FontSize = 10.5,
-                Foreground = ThemeResources.Brush("Theme.Brush.TextPrimary"),
-                TextWrapping = TextWrapping.Wrap
-            });
-            Grid.SetColumn(guidanceText, 1);
-            guidance.Children.Add(guidanceText);
-            panel.Children.Add(guidance);
-        }
-
-        if (entry.Distinctions.Count > 0)
-        {
-            panel.Children.Add(new TextBlock
-            {
-                Text = "DISTINGUISH FROM",
-                FontSize = 8.5,
-                FontWeight = FontWeight.SemiBold,
-                LetterSpacing = 0.7,
-                Opacity = 0.48,
-                Margin = new Thickness(0, 2, 0, 0)
-            });
-            var distinctions = new WrapPanel
-            {
-                Orientation = Orientation.Horizontal,
-                ItemWidth = 200
-            };
-            foreach (var distinction in entry.Distinctions)
-            {
-                var distinctionText = new StackPanel { Spacing = 3 };
-                distinctionText.Children.Add(new TextBlock
-                {
-                    Text = distinction.ModelSubgenreName,
-                    FontSize = 10.5,
-                    FontWeight = FontWeight.SemiBold,
-                    Foreground = MainGenrePalette.For(distinction.ModelGenreName),
-                    TextWrapping = TextWrapping.Wrap
-                });
-                distinctionText.Children.Add(new TextBlock
-                {
-                    Text = distinction.Difference,
-                    FontSize = 9.5,
-                    Foreground = ThemeResources.Brush("Theme.Brush.TextSecondary"),
-                    Opacity = 0.78,
-                    TextWrapping = TextWrapping.Wrap
-                });
-                distinctions.Children.Add(new Border
-                {
-                    Width = 194,
-                    Margin = new Thickness(0, 0, 6, 10),
-                    Padding = new Thickness(9, 0, 5, 0),
-                    BorderBrush = MainGenrePalette.For(distinction.ModelGenreName),
-                    BorderThickness = new Thickness(2, 0, 0, 0),
-                    Child = distinctionText
-                });
-            }
-            panel.Children.Add(distinctions);
-        }
-
         return panel;
     }
-
-    private static string FormatBpm(ModelSubgenre subgenre) =>
-        subgenre.BpmMin is not null && subgenre.BpmMax is not null
-            ? $"{subgenre.BpmMin}–{subgenre.BpmMax}"
-            : subgenre.BpmMin is not null
-                ? $"from {subgenre.BpmMin}"
-                : $"up to {subgenre.BpmMax}";
 }

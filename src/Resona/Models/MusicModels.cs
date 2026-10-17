@@ -162,7 +162,8 @@ public record ModelSubgenre(
     string? Description = null,
     string? ClassificationHint = null,
     int? BpmMin = null,
-    int? BpmMax = null);
+    int? BpmMax = null,
+    bool IsPreferred = false);
 public record ModelSubgenreDistinction(
     int ModelSubgenreId,
     int DistinguishFromModelSubgenreId,
@@ -187,4 +188,14 @@ public record TrackModelGenre(
     string GenreName,
     bool IsEnabled,
     bool IsManual,
+    bool IsPreferred,
+    bool IsReference,
     IReadOnlyList<ModelGenreReason> Reasons);
+public sealed record GenreReferenceTrack(
+    int TrackId,
+    string Title,
+    string? Artist,
+    string FileName)
+{
+    public string DisplayTitle => TrackTitleFormatter.Format(Artist, Title);
+}

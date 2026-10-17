@@ -24,7 +24,9 @@ public partial class SettingsOverlay : UserControl
 {
     private List<ModelGenre> _modelGenres = [];
     private List<ModelSubgenre> _modelSubgenres = [];
-    private Dictionary<int, List<ModelSubgenreDistinction>> _distinctionsBySubgenreId = [];
+    private Dictionary<int, int> _genreUsageCounts = [];
+    private Dictionary<int, int> _genreReferenceCounts = [];
+    private readonly HashSet<int> _expandedSubgenreIds = [];
     private List<Tag> _tags = [];
     private Dictionary<int, int> _tagUsageCounts = [];
     private List<Style> _styles = [];
@@ -41,11 +43,14 @@ public partial class SettingsOverlay : UserControl
     private bool _songFadeSavePending;
     private bool _loadingDiscordPresenceSettings;
     private bool _loadingBrowserCookieSettings;
+    private bool _hasStartedReferencePreview;
 
     public event Action<string>? ToastRequested;
     public event Action? LibraryMetadataChanged;
     public event Action<double>? SongFadeDurationChanged;
     public event Action? DiscordPresenceChanged;
+    public event Action<MusicTrack>? ReferencePreviewRequested;
+    public event Action? ReferencePreviewClosed;
 
     public SettingsOverlay()
     {
@@ -133,9 +138,8 @@ public partial class SettingsOverlay : UserControl
         _isLoading = true;
         _modelGenres = MusicLibraryService.Current.GetModelGenres();
         _modelSubgenres = MusicLibraryService.Current.GetModelSubgenres();
-        _distinctionsBySubgenreId = MusicLibraryService.Current.GetModelSubgenreDistinctions()
-            .GroupBy(item => item.ModelSubgenreId)
-            .ToDictionary(group => group.Key, group => group.ToList());
+        _genreUsageCounts = MusicLibraryService.Current.GetModelSubgenreTrackCounts();
+        _genreReferenceCounts = MusicLibraryService.Current.GetGenreReferenceCounts();
         _selectedModelGenreId = null;
         SearchBox.Text = string.Empty;
         _genreVocabularyLoaded = true;
@@ -150,11 +154,11 @@ public partial class SettingsOverlay : UserControl
 
         var search = SearchBox.Text?.Trim() ?? string.Empty;
         GenreVocabularyRows.Children.Clear();
-        var modelGenreNames = _modelGenres.ToDictionary(genre => genre.Id, genre => genre.Name);
         var choices = _modelSubgenres
             .Where(subgenre => _selectedModelGenreId is null || subgenre.ModelGenreId == _selectedModelGenreId)
-            .Where(subgenre => MatchesSearch(subgenre, modelGenreNames.GetValueOrDefault(subgenre.ModelGenreId, ""), search))
-            .OrderBy(subgenre => modelGenreNames.GetValueOrDefault(subgenre.ModelGenreId, ""), StringComparer.OrdinalIgnoreCase)
+            .Where(subgenre => search.Length == 0
+                               || subgenre.Name.Contains(search, StringComparison.OrdinalIgnoreCase))
+            .OrderByDescending(subgenre => _genreUsageCounts.GetValueOrDefault(subgenre.Id))
             .ThenBy(subgenre => subgenre.Name, StringComparer.OrdinalIgnoreCase)
             .ToList();
         foreach (var subgenre in choices)
@@ -174,13 +178,12 @@ public partial class SettingsOverlay : UserControl
     private void RebuildGenreGroupRows()
     {
         GenreGroupRows.Children.Clear();
-        var availableGroupIds = _modelSubgenres.Select(item => item.ModelGenreId).ToHashSet();
-        if (_selectedModelGenreId is int selectedId && !availableGroupIds.Contains(selectedId))
+        var groupIds = _modelGenres.Select(item => item.Id).ToHashSet();
+        if (_selectedModelGenreId is int selectedId && !groupIds.Contains(selectedId))
             _selectedModelGenreId = null;
 
         var groups = new[] { (Id: (int?)null, Name: "All") }
             .Concat(_modelGenres
-                .Where(genre => availableGroupIds.Contains(genre.Id))
                 .OrderBy(genre => genre.Name, StringComparer.OrdinalIgnoreCase)
                 .Select(genre => (Id: (int?)genre.Id, genre.Name)));
         foreach (var group in groups)
@@ -188,14 +191,20 @@ public partial class SettingsOverlay : UserControl
             var selected = group.Id == _selectedModelGenreId;
             var item = new Border
             {
-                Height = 28,
-                Background = Brushes.Transparent,
-                Padding = new Avalonia.Thickness(2, 0),
+                MinHeight = 34,
+                Background = selected
+                    ? new SolidColorBrush(Color.Parse("#262D3640"))
+                    : Brushes.Transparent,
+                BorderBrush = selected
+                    ? ThemeResources.Brush("Theme.Brush.Accent")
+                    : Brushes.Transparent,
+                BorderThickness = new Avalonia.Thickness(2, 0, 0, 0),
+                Padding = new Avalonia.Thickness(10, 5),
                 Cursor = new Cursor(StandardCursorType.Hand),
                 Child = new TextBlock
                 {
                     Text = group.Name,
-                    FontSize = 10.5,
+                    FontSize = 11,
                     FontWeight = selected ? FontWeight.SemiBold : FontWeight.Normal,
                     Foreground = group.Id is null
                         ? ThemeResources.Brush(selected ? "Theme.Brush.Accent" : "Theme.Brush.TextSecondary")
@@ -216,51 +225,231 @@ public partial class SettingsOverlay : UserControl
         }
     }
 
-    private bool MatchesSearch(ModelSubgenre subgenre, string modelGenreName, string search)
+    private Control CreateGenreVocabularyChoice(ModelSubgenre subgenre)
     {
-        if (search.Length == 0) return true;
-        return modelGenreName.Contains(search, StringComparison.OrdinalIgnoreCase)
-               || subgenre.Name.Contains(search, StringComparison.OrdinalIgnoreCase);
-    }
-
-    private Button CreateGenreVocabularyChoice(ModelSubgenre subgenre)
-    {
-        var text = new TextBlock
+        var expanded = _expandedSubgenreIds.Contains(subgenre.Id);
+        var panel = new StackPanel();
+        var header = new Border
+        {
+            Background = subgenre.IsPreferred
+                ? new SolidColorBrush(Color.Parse("#24364A5E"))
+                : ThemeResources.Brush("Theme.Brush.SurfaceTranslucent"),
+            BorderBrush = subgenre.IsPreferred
+                ? new SolidColorBrush(Color.Parse("#9678A9E6"))
+                : ThemeResources.Brush("Theme.Brush.BorderSubtle"),
+            BorderThickness = new Avalonia.Thickness(subgenre.IsPreferred ? 2 : 1, 1, 1, 1),
+            Padding = new Avalonia.Thickness(10, 8),
+            Cursor = new Cursor(StandardCursorType.Hand)
+        };
+        var headerContent = new Grid
+        {
+            ColumnDefinitions = new ColumnDefinitions("18,*,Auto,32"),
+            ColumnSpacing = 8
+        };
+        headerContent.Children.Add(new TextBlock
+        {
+            Text = expanded ? "⌄" : "›",
+            FontSize = 14,
+            Opacity = 0.62,
+            VerticalAlignment = VerticalAlignment.Center,
+            HorizontalAlignment = HorizontalAlignment.Center
+        });
+        var title = new TextBlock
         {
             Text = subgenre.Name,
-            FontSize = 10.5,
+            FontSize = 12,
             FontWeight = FontWeight.SemiBold,
             Foreground = ThemeResources.Brush("Theme.Brush.TextPrimary"),
             TextTrimming = TextTrimming.CharacterEllipsis,
-            HorizontalAlignment = HorizontalAlignment.Center,
-            VerticalAlignment = VerticalAlignment.Center,
-            TextAlignment = TextAlignment.Center
+            VerticalAlignment = VerticalAlignment.Center
         };
+        Grid.SetColumn(title, 1);
+        headerContent.Children.Add(title);
+        var usageCount = _genreUsageCounts.GetValueOrDefault(subgenre.Id);
+        var usage = new TextBlock
+        {
+            Text = usageCount == 1 ? "1 track" : $"{usageCount} tracks",
+            FontSize = 10,
+            Opacity = 0.52,
+            VerticalAlignment = VerticalAlignment.Center
+        };
+        Grid.SetColumn(usage, 2);
+        headerContent.Children.Add(usage);
+        var preferred = new Button
+        {
+            Content = subgenre.IsPreferred ? "★" : "☆",
+            Width = 28,
+            Height = 24,
+            Padding = new Avalonia.Thickness(0),
+            Background = Brushes.Transparent,
+            BorderThickness = new Avalonia.Thickness(0),
+            Foreground = subgenre.IsPreferred
+                ? ThemeResources.Brush("Theme.Brush.AccentStrong")
+                : ThemeResources.Brush("Theme.Brush.TextMuted"),
+            FontSize = 14,
+            Opacity = subgenre.IsPreferred ? 1 : 0.54,
+            HorizontalContentAlignment = HorizontalAlignment.Center,
+            VerticalContentAlignment = VerticalAlignment.Center
+        };
+        Grid.SetColumn(preferred, 3);
+        headerContent.Children.Add(preferred);
+        ToolTip.SetTip(preferred, subgenre.IsPreferred ? "Remove from preferred genres" : "Add to preferred genres");
+        preferred.Click += (_, e) =>
+        {
+            MusicLibraryService.Current.SetModelSubgenrePreferred(subgenre.Id, !subgenre.IsPreferred);
+            ReloadGenreVocabulary();
+            e.Handled = true;
+        };
+        header.Child = headerContent;
+        header.PointerPressed += (_, e) =>
+        {
+            if (!_expandedSubgenreIds.Add(subgenre.Id))
+                _expandedSubgenreIds.Remove(subgenre.Id);
+            RebuildGenreVocabularyRows();
+            e.Handled = true;
+        };
+        panel.Children.Add(header);
+
+        if (expanded)
+            panel.Children.Add(CreateExpandedSubgenreContent(subgenre));
+
+        return new Border
+        {
+            BorderBrush = ThemeResources.Brush("Theme.Brush.BorderSubtle"),
+            BorderThickness = new Avalonia.Thickness(0, 0, 0, 1),
+            Child = panel
+        };
+    }
+
+    private Control CreateExpandedSubgenreContent(ModelSubgenre subgenre)
+    {
+        var nameBox = CreateSettingsTextBox(subgenre.Name, "Subgenre name");
+        var descriptionBox = new TextBox
+        {
+            Text = subgenre.Description ?? string.Empty,
+            Watermark = "Add a concise description…",
+            AcceptsReturn = true,
+            TextWrapping = TextWrapping.Wrap,
+            Height = 80,
+            MinHeight = 70,
+            Padding = new Avalonia.Thickness(9, 7),
+            FontSize = 11
+        };
+        descriptionBox.Classes.Add("settings-input");
+
+        var details = new StackPanel { Spacing = 10 };
+        details.Children.Add(CreateLabeledField("Name", nameBox));
+        details.Children.Add(CreateLabeledField("Description", descriptionBox));
+
+        var referenceSection = new StackPanel { Spacing = 5 };
+        referenceSection.Children.Add(new TextBlock
+        {
+            Text = $"REFERENCE TRACKS · {_genreReferenceCounts.GetValueOrDefault(subgenre.Id)}/5",
+            FontSize = 9.5,
+            FontWeight = FontWeight.SemiBold,
+            LetterSpacing = 0.8,
+            Opacity = 0.46
+        });
+        var references = MusicLibraryService.Current.GetGenreReferenceTracks(subgenre.Id);
+        if (references.Count == 0)
+        {
+            referenceSection.Children.Add(new TextBlock
+            {
+                Text = "No reference tracks selected.",
+                FontSize = 10.5,
+                Opacity = 0.48,
+                Margin = new Avalonia.Thickness(1, 2)
+            });
+        }
+        else
+        {
+            foreach (var reference in references)
+                referenceSection.Children.Add(CreateReferenceTrackButton(reference));
+        }
+        details.Children.Add(referenceSection);
+
+        var save = new Button
+        {
+            Content = "Save genre",
+            HorizontalAlignment = HorizontalAlignment.Right
+        };
+        save.Classes.Add("settings-action");
+        save.Click += (_, _) =>
+        {
+            try
+            {
+                MusicLibraryService.Current.UpdateModelSubgenreDetails(
+                    subgenre.Id, nameBox.Text ?? subgenre.Name, descriptionBox.Text);
+                ToastRequested?.Invoke($"Saved {nameBox.Text?.Trim()}.");
+                ReloadGenreVocabulary();
+            }
+            catch (Exception exception)
+            {
+                ToastRequested?.Invoke($"Could not save genre: {exception.Message}");
+            }
+        };
+        details.Children.Add(save);
+
+        return new Border
+        {
+            Background = new SolidColorBrush(Color.Parse("#B8121315")),
+            BorderBrush = ThemeResources.Brush("Theme.Brush.BorderSubtle"),
+            BorderThickness = new Avalonia.Thickness(1, 0, 1, 0),
+            Padding = new Avalonia.Thickness(12, 11, 12, 12),
+            Child = details
+        };
+    }
+
+    private Button CreateReferenceTrackButton(GenreReferenceTrack reference)
+    {
+        var content = new Grid { ColumnDefinitions = new ColumnDefinitions("18,*"), ColumnSpacing = 8 };
+        content.Children.Add(new TextBlock
+        {
+            Text = "▶",
+            FontSize = 9,
+            Foreground = ThemeResources.Brush("Theme.Brush.AccentStrong"),
+            VerticalAlignment = VerticalAlignment.Center
+        });
+        var labels = new StackPanel { Spacing = 1 };
+        labels.Children.Add(new TextBlock
+        {
+            Text = reference.Title,
+            FontSize = 10.5,
+            FontWeight = FontWeight.SemiBold,
+            TextTrimming = TextTrimming.CharacterEllipsis
+        });
+        labels.Children.Add(new TextBlock
+        {
+            Text = string.IsNullOrWhiteSpace(reference.Artist) ? "Unknown artist" : reference.Artist,
+            FontSize = 9.5,
+            Opacity = 0.5,
+            TextTrimming = TextTrimming.CharacterEllipsis
+        });
+        Grid.SetColumn(labels, 1);
+        content.Children.Add(labels);
         var button = new Button
         {
-            Content = text,
-            Height = 32,
-            Padding = new Avalonia.Thickness(9, 4),
-            CornerRadius = new Avalonia.CornerRadius(5),
+            Content = content,
+            Padding = new Avalonia.Thickness(8, 5),
+            HorizontalAlignment = HorizontalAlignment.Stretch,
+            HorizontalContentAlignment = HorizontalAlignment.Stretch,
             Background = Brushes.Transparent,
             BorderBrush = ThemeResources.Brush("Theme.Brush.BorderSubtle"),
             BorderThickness = new Avalonia.Thickness(1),
-            HorizontalAlignment = HorizontalAlignment.Stretch,
-            HorizontalContentAlignment = HorizontalAlignment.Center,
-            VerticalContentAlignment = VerticalAlignment.Center,
-            Focusable = false
+            CornerRadius = new Avalonia.CornerRadius(1)
         };
-        ToolTip.SetTip(button, CreateGenreMetadataTooltip(subgenre));
+        button.Click += (_, _) =>
+        {
+            var track = MusicLibraryService.Current.GetTrackById(reference.TrackId);
+            if (track is null)
+            {
+                ToastRequested?.Invoke("The reference track is no longer available.");
+                return;
+            }
+            _hasStartedReferencePreview = true;
+            ReferencePreviewRequested?.Invoke(track);
+        };
         return button;
-    }
-
-    private Control CreateGenreMetadataTooltip(ModelSubgenre subgenre)
-    {
-        var genreName = _modelGenres.FirstOrDefault(item => item.Id == subgenre.ModelGenreId)?.Name ?? "Model genre";
-        var distinctions = _distinctionsBySubgenreId.GetValueOrDefault(subgenre.Id, []);
-        return GenreMetadataTooltipFactory.Create([
-            new GenreMetadataTooltipEntry(subgenre, genreName, distinctions)
-        ]);
     }
 
     private static TextBox CreateSettingsTextBox(string text, string watermark)
@@ -310,9 +499,8 @@ public partial class SettingsOverlay : UserControl
         _isLoading = true;
         _modelGenres = MusicLibraryService.Current.GetModelGenres();
         _modelSubgenres = MusicLibraryService.Current.GetModelSubgenres();
-        _distinctionsBySubgenreId = MusicLibraryService.Current.GetModelSubgenreDistinctions()
-            .GroupBy(item => item.ModelSubgenreId)
-            .ToDictionary(group => group.Key, group => group.ToList());
+        _genreUsageCounts = MusicLibraryService.Current.GetModelSubgenreTrackCounts();
+        _genreReferenceCounts = MusicLibraryService.Current.GetGenreReferenceCounts();
         _isLoading = false;
         CreateSubgenreOverlay.IsVisible = false;
         RebuildGenreGroupRows();
@@ -370,6 +558,9 @@ public partial class SettingsOverlay : UserControl
         var isGenreVocabularyPage = page == SettingsPage.GenreVocabulary;
         var isGeneralPage = page == SettingsPage.General;
         GenreVocabularyPage.IsVisible = isGenreVocabularyPage;
+        GenreToolbar.IsVisible = isGenreVocabularyPage;
+        PageDescriptionText.IsVisible = !isGenreVocabularyPage;
+        SummaryBar.IsVisible = !isGenreVocabularyPage;
         GeneralPage.IsVisible = isGeneralPage;
         TagsPage.IsVisible = page == SettingsPage.Tags;
         StylesPage.IsVisible = page == SettingsPage.Styles;
@@ -388,9 +579,7 @@ public partial class SettingsOverlay : UserControl
             SettingsPage.TagRules => "Tag rules",
             _ => "Genres"
         };
-        PageDescriptionText.Text = isGenreVocabularyPage
-            ? "Review the genre categories and subgenres used directly by the library."
-            : isGeneralPage
+        PageDescriptionText.Text = isGeneralPage
                     ? "Configure downloads, analysis, Discord integration and application updates."
                             : page == SettingsPage.Tags
                                 ? "Maintain your curated labels. Tags can describe mood, themes, situations or workflow states without turning them into genres."
@@ -399,7 +588,7 @@ public partial class SettingsOverlay : UserControl
                             : page == SettingsPage.TagRules
                                     ? "Turn model signals into reviewable tag suggestions. Rules never assign tags automatically in this first version."
                                     : "Compare current system interpretations before turning them into filters.";
-        SummaryText.Text = isGenreVocabularyPage ? BuildSummaryText() : "";
+        SummaryText.Text = string.Empty;
         if (isGenreVocabularyPage) RebuildGenreVocabularyRows();
         if (page == SettingsPage.Tags) ReloadTagManagement();
         if (page == SettingsPage.Styles) ReloadStyleManagement();
@@ -1448,6 +1637,11 @@ public partial class SettingsOverlay : UserControl
     private void OnCloseClicked(object? sender, RoutedEventArgs e)
     {
         PersistPendingSongFadeDuration();
+        if (_hasStartedReferencePreview)
+        {
+            _hasStartedReferencePreview = false;
+            ReferencePreviewClosed?.Invoke();
+        }
         IsVisible = false;
     }
 

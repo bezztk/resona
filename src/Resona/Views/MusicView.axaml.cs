@@ -138,7 +138,8 @@ public partial class MusicView : UserControl
     {
         Library,
         Review,
-        Unassigned
+        Unassigned,
+        GenreCleanup
     }
     private readonly List<FilterGroupControls> _filterGroups = [];
 
@@ -316,6 +317,8 @@ public partial class MusicView : UserControl
             UpdateDiscordPresence();
         };
         SettingsOverlay.LibraryMetadataChanged += RefreshLibraryPresentation;
+        SettingsOverlay.ReferencePreviewRequested += StartTrackPreview;
+        SettingsOverlay.ReferencePreviewClosed += StopTrackPreview;
         _ = ExportObsidianLibraryOnStartupAsync();
     }
 
@@ -374,6 +377,7 @@ public partial class MusicView : UserControl
         EditTrackOverlay.InvalidateLookups();
         LoadLookups();
         RefreshTrackList();
+        RebuildPresetRows();
         PrepareActiveTrackEditor();
     }
 
@@ -800,6 +804,13 @@ public partial class MusicView : UserControl
             UpdateDiscordPresence();
         }
 
+        RebuildPresetRows();
+        if (_activeBuiltInView == LibraryMode.GenreCleanup)
+        {
+            ApplyFilter();
+            return;
+        }
+
         if (filteredIndex >= 0)
             EnsureVisibleWindowAround(filteredIndex);
 
@@ -1058,6 +1069,11 @@ public partial class MusicView : UserControl
     {
         if (_activeBuiltInView == LibraryMode.Unassigned)
             return _allItems.Where(item => _startupUnassignedTrackIds.Contains(item.Track.Id));
+        if (_activeBuiltInView == LibraryMode.GenreCleanup)
+        {
+            var cleanupTrackIds = MusicLibraryService.Current.GetGenreCleanupTrackIds();
+            return _allItems.Where(item => cleanupTrackIds.Contains(item.Track.Id));
+        }
 
         if (_activeCollection is null)
             return _allItems;
@@ -2305,6 +2321,11 @@ public partial class MusicView : UserControl
             LibraryMode.Unassigned,
             "Unassigned",
             $"{_startupUnassignedTrackIds.Count} tracks in no preset or collection."));
+        var genreCleanupCount = MusicLibraryService.Current.GetGenreCleanupTrackIds().Count;
+        BuiltInPresetRows.Children.Add(CreateBuiltInPresetCard(
+            LibraryMode.GenreCleanup,
+            "Genre Cleanup",
+            $"{genreCleanupCount} tracks use a non-preferred genre and are not favorites."));
         PresetRows.Children.Clear();
 
         if (_isCreatingPreset)
@@ -2367,6 +2388,7 @@ public partial class MusicView : UserControl
         {
             LibraryMode.Review => "#A8C69A55",
             LibraryMode.Unassigned => "#A8D89B5A",
+            LibraryMode.GenreCleanup => "#A86A91B8",
             _ => "#A85F7894"
         };
         var button = new Button
@@ -2393,7 +2415,7 @@ public partial class MusicView : UserControl
             _activeFilterPresetName = null;
             _activeBuiltInView = mode;
             _isCreatingPreset = false;
-            if (mode == LibraryMode.Unassigned && _activeCollection is not null)
+            if ((mode is LibraryMode.Unassigned or LibraryMode.GenreCleanup) && _activeCollection is not null)
             {
                 _activeCollection = null;
                 _activeCollectionOrder.Clear();
@@ -4435,6 +4457,12 @@ public partial class MusicView : UserControl
 
     private void TogglePlayPause()
     {
+        if (_isTrackPreviewActive)
+        {
+            StopTrackPreview();
+            return;
+        }
+
         if (_engine.State == EngineState.Playing)
         {
             _engine.Pause();
@@ -4546,6 +4574,9 @@ public partial class MusicView : UserControl
 
     private void PlayTrack(MusicTrack track, bool isCrossfade, bool resetQueue = false)
     {
+        if (_isTrackPreviewActive)
+            AbandonTrackPreview();
+
         var filePath = Path.Combine(Values.TracksDirectory, track.FileName);
 
         if (_engine.ActiveTrackId >= 0 && _engine.ActiveTrackId != track.Id)
@@ -4631,6 +4662,7 @@ public partial class MusicView : UserControl
         catch (Exception exception)
         {
             ShowToast($"Preview could not start: {exception.Message}");
+            StopTrackPreview();
             return;
         }
 
@@ -4697,6 +4729,14 @@ public partial class MusicView : UserControl
         RefreshPlayingMarkers();
     }
 
+    private void AbandonTrackPreview()
+    {
+        _previewPlaybackSnapshot = null;
+        _isTrackPreviewActive = false;
+        _previewTrackId = -1;
+        _isSeeking = false;
+    }
+
     // ─── Engine events ────────────────────────────────────────────────────────
 
     private void OnEngineStateChanged()
@@ -4722,8 +4762,7 @@ public partial class MusicView : UserControl
     {
         if (_isTrackPreviewActive)
         {
-            _nextTrackIndex = -1;
-            UpdateUpcomingBar();
+            StopTrackPreview();
             return;
         }
         FinishListeningSession(markSkipped: false);
@@ -4833,6 +4872,7 @@ public partial class MusicView : UserControl
                 {
                     LibraryMode.Review => "REVIEW",
                     LibraryMode.Unassigned => "UNASSIGNED",
+                    LibraryMode.GenreCleanup => "GENRE CLEANUP",
                     _ => "LIBRARY"
                 }
                 : $"PRESET · {_activeFilterPresetName.ToUpperInvariant()}";

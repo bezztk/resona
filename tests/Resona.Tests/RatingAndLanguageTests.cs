@@ -216,6 +216,11 @@ public sealed class RatingAndLanguageTests : IDisposable
                 needs_reevaluation INTEGER NOT NULL DEFAULT 0,
                 is_public INTEGER NOT NULL DEFAULT 1
             );
+            CREATE TABLE track_styles (
+                track_id INTEGER NOT NULL REFERENCES tracks(id) ON DELETE CASCADE,
+                style_id INTEGER NOT NULL,
+                PRIMARY KEY (track_id, style_id)
+            );
             INSERT INTO ratings(name, sort_order) VALUES
                 ('Avoid', 1), ('Okay', 2), ('Good', 3), ('Great', 4), ('Favorite', 5);");
     }

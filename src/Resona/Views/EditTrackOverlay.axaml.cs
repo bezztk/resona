@@ -1223,6 +1223,7 @@ public partial class EditTrackOverlay : UserControl
     {
         LoadModelMetadata();
         var assignments = CurrentModelGenreAssignments(track);
+        var referenceCounts = MusicLibraryService.Current.GetGenreReferenceCounts();
         _modelGenreIds = assignments.Select(assignment => assignment.GenreId).ToHashSet();
         ModelSelectedGenresSection.IsVisible = _modelSubgenresById.Count > 0;
         ModelSelectedGenresPanel.Children.Clear();
@@ -1241,13 +1242,13 @@ public partial class EditTrackOverlay : UserControl
             };
             var content = new Grid
             {
-                ColumnDefinitions = new ColumnDefinitions(hasPrediction ? "180,*,48,22" : "*,Auto,22"),
+                ColumnDefinitions = new ColumnDefinitions(hasPrediction ? "180,*,48,24,22" : "*,Auto,24,22"),
                 ColumnSpacing = hasPrediction ? 12 : 10,
                 VerticalAlignment = VerticalAlignment.Center
             };
             var genreName = new TextBlock
             {
-                Text = assignment.GenreName,
+                Text = assignment.IsPreferred ? $"★  {assignment.GenreName}" : assignment.GenreName,
                 FontSize = 12,
                 FontWeight = Avalonia.Media.FontWeight.SemiBold,
                 Foreground = ThemeResources.Brush("Theme.Brush.TextStrong"),
@@ -1298,6 +1299,57 @@ public partial class EditTrackOverlay : UserControl
                 content.Children.Add(detail);
             }
 
+            var referenceCount = referenceCounts.GetValueOrDefault(assignment.GenreId);
+            var referenceAtLimit = referenceCount >= 5 && !assignment.IsReference;
+            var reference = new Border
+            {
+                Width = 22,
+                Height = 22,
+                Background = Brushes.Transparent,
+                Opacity = referenceAtLimit ? 0.24 : assignment.IsReference ? 1 : 0.5,
+                VerticalAlignment = VerticalAlignment.Center,
+                HorizontalAlignment = HorizontalAlignment.Center,
+                Cursor = new Cursor(StandardCursorType.Hand),
+                Child = new TextBlock
+                {
+                    Text = assignment.IsReference ? "◆" : "◇",
+                    FontSize = 12,
+                    Foreground = assignment.IsReference
+                        ? ThemeResources.Brush("Theme.Brush.AccentStrong")
+                        : ThemeResources.Brush("Theme.Brush.TextSecondary"),
+                    HorizontalAlignment = HorizontalAlignment.Center,
+                    VerticalAlignment = VerticalAlignment.Center
+                }
+            };
+            Grid.SetColumn(reference, hasPrediction ? 3 : 2);
+            content.Children.Add(reference);
+            ToolTip.SetTip(reference, assignment.IsReference
+                ? $"Remove as reference track · {referenceCount}/5 references"
+                : referenceAtLimit
+                    ? "Reference limit reached · 5/5 references"
+                    : $"Mark as reference track · {referenceCount}/5 references");
+            reference.PointerPressed += (_, e) =>
+            {
+                if (referenceAtLimit)
+                {
+                    ToastRequested?.Invoke("This genre already has five reference tracks.");
+                    e.Handled = true;
+                    return;
+                }
+
+                try
+                {
+                    MusicLibraryService.Current.SetTrackGenreReference(
+                        track.Id, assignment.GenreId, !assignment.IsReference);
+                    ShowModelSelectedGenres(track);
+                }
+                catch (Exception exception)
+                {
+                    ToastRequested?.Invoke(exception.Message);
+                }
+                e.Handled = true;
+            };
+
             var remove = new Border
             {
                 Width = 22,
@@ -1317,7 +1369,7 @@ public partial class EditTrackOverlay : UserControl
                     VerticalAlignment = VerticalAlignment.Center
                 }
             };
-            Grid.SetColumn(remove, hasPrediction ? 3 : 2);
+            Grid.SetColumn(remove, hasPrediction ? 4 : 3);
             content.Children.Add(remove);
             container.Child = content;
             remove.PointerPressed += (_, e) =>
@@ -1366,6 +1418,8 @@ public partial class EditTrackOverlay : UserControl
                 subgenre.Name,
                 true,
                 true,
+                subgenre.IsPreferred,
+                false,
                 predictionReasonsBySubgenreId.GetValueOrDefault(genreId, []));
         }
 
@@ -1417,7 +1471,9 @@ public partial class EditTrackOverlay : UserControl
             var confidenceBrush = AnalysisColorScale.GenreConfidence(prediction.Score);
             content.Children.Add(new TextBlock
             {
-                Text = prediction.ModelSubgenreName,
+                Text = _modelSubgenresById.GetValueOrDefault(prediction.ModelSubgenreId)?.IsPreferred == true
+                    ? $"★  {prediction.ModelSubgenreName}"
+                    : prediction.ModelSubgenreName,
                 FontSize = 11,
                 FontWeight = FontWeight.SemiBold,
                 Foreground = ThemeResources.Brush("Theme.Brush.TextStrong"),
@@ -1633,7 +1689,9 @@ public partial class EditTrackOverlay : UserControl
         };
         content.Children.Add(new TextBlock
         {
-            Text = usage.ModelSubgenreName,
+            Text = _modelSubgenresById.GetValueOrDefault(usage.ModelSubgenreId)?.IsPreferred == true
+                ? $"★  {usage.ModelSubgenreName}"
+                : usage.ModelSubgenreName,
             FontSize = 11,
             FontWeight = FontWeight.SemiBold,
             Foreground = ThemeResources.Brush("Theme.Brush.TextStrong"),
@@ -1682,7 +1740,7 @@ public partial class EditTrackOverlay : UserControl
         var selected = _pendingEnabledModelGenreIds.Contains(subgenre.Id);
         var text = new TextBlock
         {
-            Text = subgenre.Name,
+            Text = subgenre.IsPreferred ? $"★  {subgenre.Name}" : subgenre.Name,
             FontSize = 10.5,
             FontWeight = FontWeight.SemiBold,
             Foreground = ThemeResources.Brush(selected
