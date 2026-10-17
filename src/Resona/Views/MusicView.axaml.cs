@@ -5152,8 +5152,7 @@ public partial class MusicView : UserControl
                 FontSize = 12,
                 FontWeight = FontWeight.Medium
             },
-            IsEnabled = true,
-            FontSize = 8
+            IsEnabled = true
         };
         parent.Classes.Add("track-context-item");
         parent.Classes.Add("track-context-submenu");

@@ -759,7 +759,7 @@
                     Background="Transparent"
                     ClipToBounds="False"
                     CornerRadius="0,0,0,0"
-                    BorderBrush="#5B5444"
+                    BorderBrush="#8A7C6F56"
                     BorderThickness="0,1,0,0">
                 <Border CornerRadius="0,0,0,0"
                         ClipToBounds="True"
@@ -768,14 +768,14 @@
                         <Image x:Name="PlayerArtworkBackground"
                                Margin="-28"
                                Stretch="UniformToFill"
-                               Opacity="0.45"
+                               Opacity="0.30"
                                IsVisible="False"
                                IsHitTestVisible="False">
                             <Image.Effect>
                                 <BlurEffect Radius="22"/>
                             </Image.Effect>
                         </Image>
-                        <Rectangle Fill="#B8111214"
+                        <Rectangle Fill="#E6111214"
                                    IsHitTestVisible="False"/>
                         <Grid Margin="16,8,16,10"
                               RowDefinitions="22,28,*"

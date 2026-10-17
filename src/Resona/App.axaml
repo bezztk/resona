@@ -60,10 +60,10 @@
         <Style Selector="MenuItem.track-context-item:disabled">
             <Setter Property="Opacity" Value="0.42"/>
         </Style>
-        <Style Selector="MenuItem.track-context-submenu /template/ PathIcon">
-            <Setter Property="Width" Value="5"/>
+        <Style Selector="MenuItem.track-context-submenu /template/ Path#PART_ChevronPath">
+            <Setter Property="Width" Value="4"/>
             <Setter Property="Height" Value="8"/>
-            <Setter Property="Opacity" Value="0.42"/>
+            <Setter Property="Opacity" Value="0.36"/>
         </Style>
         <Style Selector="Separator.track-context-separator">
             <Setter Property="Height" Value="1"/>
