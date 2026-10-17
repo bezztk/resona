@@ -14,6 +14,10 @@ public class MusicDatabase
     private const string AssetBaseUri = "avares://Resona/Assets/";
     private const string RemovedMoodThemeModelName = "mtg_" + "jamen" + "do_" + "mood" + "theme";
     private static readonly string[] DefaultStyleNames = ["Nightcore", "Reverb", "Sped Up", "Slowed"];
+    private static readonly HashSet<string> ConfirmedLegacyManualSubgenres = new(StringComparer.OrdinalIgnoreCase)
+    {
+        "Electronic\0Frenchcore"
+    };
     private readonly string _databasePath;
     private readonly string _connectionString;
 
@@ -296,11 +300,9 @@ public class MusicDatabase
         EnsureColumn(conn, "model_subgenres", "bpm_min", "INTEGER NULL");
         EnsureColumn(conn, "model_subgenres", "bpm_max", "INTEGER NULL");
         EnsureColumn(conn, "model_subgenres", "is_preferred", "INTEGER NOT NULL DEFAULT 0");
-        var hadManualGenreFlag = ColumnExists(conn, "model_subgenres", "is_manual");
         EnsureTrackGenreSourceSchema(conn);
         EnsureGenreCurationSchema(conn);
-        if (!hadManualGenreFlag)
-            BackfillManualSubgenres(conn);
+        SynchronizeManualSubgenres(conn);
         RenameLegacySkipRating(conn);
         DropTrackWorkflowGuards(conn);
         NormalizeTrackWorkflowState(conn);
@@ -350,16 +352,37 @@ public class MusicDatabase
             END;");
     }
 
-    private static void BackfillManualSubgenres(SqliteConnection conn)
+    private static void SynchronizeManualSubgenres(SqliteConnection conn)
     {
-        ExecuteNonQuery(conn, "UPDATE model_subgenres SET is_manual = 1");
-        foreach (var item in ReadAsset<List<ModelSubgenreMetadataSeed>>("Models/maest-genre-metadata.json"))
-            ExecuteNonQuery(conn, @"
-                UPDATE model_subgenres
-                SET is_manual = 0
-                WHERE name = $subgenre
-                  AND model_genre_id = (SELECT id FROM model_genres WHERE name = $genre)",
-                ("$genre", item.Genre), ("$subgenre", item.Subgenre));
+        var modelCatalog = ReadAsset<List<ModelSubgenreMetadataSeed>>("Models/maest-genre-metadata.json")
+            .Select(item => $"{item.Genre.Trim()}\0{item.Subgenre.Trim()}")
+            .ToHashSet(StringComparer.OrdinalIgnoreCase);
+        var corrections = new List<(int Id, bool IsManual)>();
+
+        using (var command = conn.CreateCommand())
+        {
+            command.CommandText = @"
+                SELECT ms.id, mg.name, ms.name, ms.is_manual
+                FROM model_subgenres ms
+                JOIN model_genres mg ON mg.id = ms.model_genre_id";
+            using var reader = command.ExecuteReader();
+            while (reader.Read())
+            {
+                var key = $"{reader.GetString(1).Trim()}\0{reader.GetString(2).Trim()}";
+                // Manual is an origin marker. Never clear it merely because a later
+                // model catalog learned the same name.
+                var shouldBeManual = reader.GetInt32(3) != 0
+                    || ConfirmedLegacyManualSubgenres.Contains(key)
+                    || !modelCatalog.Contains(key);
+                if (reader.GetInt32(3) != (shouldBeManual ? 1 : 0))
+                    corrections.Add((reader.GetInt32(0), shouldBeManual));
+            }
+        }
+
+        foreach (var correction in corrections)
+            ExecuteNonQuery(conn,
+                "UPDATE model_subgenres SET is_manual = $isManual WHERE id = $id",
+                ("$isManual", correction.IsManual ? 1 : 0), ("$id", correction.Id));
     }
 
     private static void CreateCollectionSchema(SqliteConnection conn)
