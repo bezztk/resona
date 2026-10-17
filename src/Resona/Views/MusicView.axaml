@@ -5,6 +5,12 @@
              x:Class="Resona.Views.MusicView">
 
     <UserControl.Styles>
+        <Style Selector="Border.filter-surface TextBlock">
+            <Setter Property="FontFamily" Value="Consolas"/>
+        </Style>
+        <Style Selector="Border.filter-surface Button">
+            <Setter Property="FontFamily" Value="Consolas"/>
+        </Style>
         <Style Selector="Button">
             <Setter Property="CornerRadius" Value="{DynamicResource Theme.Corner.Control}"/>
             <Setter Property="BorderBrush" Value="{DynamicResource Theme.Brush.Border}"/>
@@ -90,13 +96,14 @@
             <Setter Property="Foreground" Value="{DynamicResource Theme.Brush.TextStrong}"/>
         </Style>
         <Style Selector="Button.filter-sort">
-            <Setter Property="Height" Value="38"/>
-            <Setter Property="Padding" Value="12,0"/>
-            <Setter Property="Background" Value="#0FFFFFFF"/>
-            <Setter Property="BorderBrush" Value="#2EFFFFFF"/>
+            <Setter Property="Height" Value="36"/>
+            <Setter Property="Padding" Value="10,0"/>
+            <Setter Property="Background" Value="#FF15171A"/>
+            <Setter Property="BorderBrush" Value="#66707882"/>
             <Setter Property="BorderThickness" Value="1"/>
-            <Setter Property="CornerRadius" Value="8"/>
+            <Setter Property="CornerRadius" Value="2"/>
             <Setter Property="Foreground" Value="{DynamicResource Theme.Brush.TextSecondary}"/>
+            <Setter Property="FontFamily" Value="Consolas"/>
             <Setter Property="HorizontalAlignment" Value="Stretch"/>
             <Setter Property="HorizontalContentAlignment" Value="Stretch"/>
             <Setter Property="VerticalContentAlignment" Value="Center"/>
@@ -113,12 +120,12 @@
         </Style>
         <Style Selector="Button.filter-sort-direction">
             <Setter Property="Width" Value="42"/>
-            <Setter Property="Height" Value="38"/>
+            <Setter Property="Height" Value="36"/>
             <Setter Property="Padding" Value="0"/>
-            <Setter Property="Background" Value="#0FFFFFFF"/>
-            <Setter Property="BorderBrush" Value="#2EFFFFFF"/>
+            <Setter Property="Background" Value="#FF15171A"/>
+            <Setter Property="BorderBrush" Value="#66707882"/>
             <Setter Property="BorderThickness" Value="1"/>
-            <Setter Property="CornerRadius" Value="8"/>
+            <Setter Property="CornerRadius" Value="2"/>
             <Setter Property="Foreground" Value="{DynamicResource Theme.Brush.TextSecondary}"/>
             <Setter Property="FontSize" Value="16"/>
             <Setter Property="HorizontalContentAlignment" Value="Center"/>
@@ -131,24 +138,27 @@
             <Setter Property="Foreground" Value="{DynamicResource Theme.Brush.TextPrimary}"/>
         </Style>
         <Style Selector="Button.filter-sort-option">
-            <Setter Property="Width" Value="264"/>
-            <Setter Property="Height" Value="36"/>
-            <Setter Property="Padding" Value="10,0"/>
+            <Setter Property="Height" Value="32"/>
+            <Setter Property="Padding" Value="9,0"/>
             <Setter Property="Background" Value="Transparent"/>
-            <Setter Property="BorderThickness" Value="0"/>
-            <Setter Property="CornerRadius" Value="6"/>
+            <Setter Property="BorderBrush" Value="Transparent"/>
+            <Setter Property="BorderThickness" Value="2,0,0,0"/>
+            <Setter Property="CornerRadius" Value="0"/>
             <Setter Property="Foreground" Value="{DynamicResource Theme.Brush.TextSecondary}"/>
+            <Setter Property="FontFamily" Value="Consolas"/>
+            <Setter Property="HorizontalAlignment" Value="Stretch"/>
             <Setter Property="HorizontalContentAlignment" Value="Stretch"/>
             <Setter Property="VerticalContentAlignment" Value="Center"/>
             <Setter Property="Cursor" Value="Hand"/>
         </Style>
         <Style Selector="Button.filter-sort-option:pointerover">
-            <Setter Property="Background" Value="#16FFFFFF"/>
+            <Setter Property="Background" Value="#FF292C31"/>
             <Setter Property="Foreground" Value="{DynamicResource Theme.Brush.TextPrimary}"/>
-            <Setter Property="BorderBrush" Value="Transparent"/>
+            <Setter Property="BorderBrush" Value="#8A89919A"/>
         </Style>
         <Style Selector="Button.filter-sort-option.selected">
-            <Setter Property="Background" Value="#263E6591"/>
+            <Setter Property="Background" Value="#FF222831"/>
+            <Setter Property="BorderBrush" Value="#FF78A9E6"/>
             <Setter Property="Foreground" Value="#E7F1FB"/>
         </Style>
         <Style Selector="Button.preset-action">
@@ -912,6 +922,7 @@
                     BorderThickness="0"
                     ClipToBounds="True">
                 <Border x:Name="FilterSurface"
+                        Classes="filter-surface"
                         Background="#F2121212"
                         BorderThickness="0,0,0,1"
                         BorderBrush="#14FFFFFF">
@@ -950,7 +961,7 @@
                         </Button>
                     </Grid>
 
-                    <Grid Grid.Row="1" ColumnDefinitions="330,49,*">
+                    <Grid Grid.Row="1" ColumnDefinitions="330,28,*">
                         <ScrollViewer Grid.Column="0"
                                       VerticalScrollBarVisibility="Auto"
                                       HorizontalScrollBarVisibility="Disabled">
@@ -961,31 +972,6 @@
                                                    FontSize="10" FontWeight="SemiBold"
                                                    Opacity="0.42" LetterSpacing="1"/>
                                         <StackPanel x:Name="BuiltInPresetRows" Spacing="7"/>
-                                    </StackPanel>
-
-                                    <Rectangle Height="1" Fill="{DynamicResource Theme.Brush.Divider}"/>
-
-                                    <StackPanel Spacing="7">
-                                    <Grid ColumnDefinitions="*,Auto" ColumnSpacing="8">
-                                        <TextBlock Text="YOUR PRESETS"
-                                                   FontSize="10" FontWeight="SemiBold"
-                                                   Opacity="0.42" LetterSpacing="1"
-                                                   VerticalAlignment="Center"/>
-                                        <Button Grid.Column="1"
-                                                x:Name="AddPresetButton"
-                                                Classes="bare-add"
-                                                Click="OnAddPresetClicked"
-                                                Width="28"
-                                                Height="28"
-                                                Padding="0"
-                                                HorizontalContentAlignment="Center"
-                                                VerticalContentAlignment="Center"
-                                                ToolTip.Tip="Create preset">
-                                            <TextBlock Text="+" FontSize="17" Margin="0,-2,0,0"
-                                                       HorizontalAlignment="Center" VerticalAlignment="Center"/>
-                                        </Button>
-                                    </Grid>
-                                    <StackPanel x:Name="PresetRows" Spacing="7"/>
                                     </StackPanel>
 
                                     <Rectangle Height="1" Fill="{DynamicResource Theme.Brush.Divider}" Margin="0,5,0,0"/>
@@ -1023,16 +1009,17 @@
                                                         <Setter Property="Padding" Value="0"/>
                                                         <Setter Property="Background" Value="Transparent"/>
                                                         <Setter Property="BorderThickness" Value="0"/>
-                                                        <Setter Property="CornerRadius" Value="10"/>
+                                                        <Setter Property="CornerRadius" Value="0"/>
                                                     </ControlTheme>
                                                 </Flyout.FlyoutPresenterTheme>
-                                                <Border Width="280" Padding="8" Background="#FC191A1D"
-                                                        BorderBrush="#3EFFFFFF" BorderThickness="1" CornerRadius="10">
-                                                    <StackPanel Spacing="2">
+                                                <Border Width="267" Padding="3" Background="#FF151619"
+                                                        BorderBrush="#8A656A72" BorderThickness="1" CornerRadius="2">
+                                                    <StackPanel Spacing="0">
                                                         <TextBlock Text="SORT TRACKS BY"
-                                                                   Margin="10,5,10,7"
+                                                                   Margin="9,6,9,5"
+                                                                   FontFamily="Consolas"
                                                                    FontSize="9" FontWeight="SemiBold"
-                                                                   LetterSpacing="0.8" Opacity="0.42"/>
+                                                                   LetterSpacing="1" Opacity="0.55"/>
                                                         <Button x:Name="FilterSortNameOption" Classes="filter-sort-option selected"
                                                                 Tag="0" Click="OnFilterSortOptionClicked">
                                                             <Grid ColumnDefinitions="18,*" ColumnSpacing="8">
@@ -1058,9 +1045,17 @@
                                                                 <TextBlock Grid.Column="1" Text="Downloaded at" FontSize="11.5" VerticalAlignment="Center"/>
                                                             </Grid>
                                                         </Button>
+                                                        <Button x:Name="FilterSortDurationOption" Classes="filter-sort-option"
+                                                                Tag="3" Click="OnFilterSortOptionClicked">
+                                                            <Grid ColumnDefinitions="18,*" ColumnSpacing="8">
+                                                                <Image x:Name="FilterSortDurationCheck" Source="{SvgImage /Assets/check.svg}"
+                                                                       Width="12" Height="12" Opacity="0"/>
+                                                                <TextBlock Grid.Column="1" Text="Duration" FontSize="11.5" VerticalAlignment="Center"/>
+                                                            </Grid>
+                                                        </Button>
                                                         <Button x:Name="FilterSortCollectionOption" Classes="filter-sort-option"
                                                                 IsVisible="False"
-                                                                Tag="3" Click="OnFilterSortOptionClicked">
+                                                                Tag="4" Click="OnFilterSortOptionClicked">
                                                             <Grid ColumnDefinitions="18,*" ColumnSpacing="8">
                                                                 <Image x:Name="FilterSortCollectionCheck" Source="{SvgImage /Assets/check.svg}"
                                                                        Width="12" Height="12" Opacity="0"/>
@@ -1103,18 +1098,20 @@
                                                    VerticalAlignment="Center"/>
                                         <Border Grid.Column="1"
                                                 Width="140" Height="26"
-                                                Background="{DynamicResource Theme.Brush.Surface}"
-                                                BorderBrush="{DynamicResource Theme.Brush.BorderStrong}"
+                                                Background="#FF15171A"
+                                                BorderBrush="#66707882"
                                                 BorderThickness="1"
-                                                CornerRadius="6"
+                                                CornerRadius="2"
                                                 ClipToBounds="True">
                                             <Grid ColumnDefinitions="69,69">
                                                 <Border x:Name="RatingModeIndicator"
                                                         Grid.ColumnSpan="2"
                                                         Width="69"
+                                                        Height="2"
+                                                        VerticalAlignment="Bottom"
                                                         HorizontalAlignment="Left"
-                                                        Background="{DynamicResource Theme.Brush.AccentSurface}"
-                                                        CornerRadius="5,0,0,5"
+                                                        Background="#FF78A9E6"
+                                                        CornerRadius="0"
                                                         IsHitTestVisible="False">
                                                     <Border.RenderTransform>
                                                         <TranslateTransform>
@@ -1129,13 +1126,13 @@
                                                 <Border Grid.Column="0" Background="Transparent" Cursor="Hand"
                                                         PointerPressed="OnAllRatingsPressed">
                                                     <TextBlock x:Name="AllRatingsText" Text="All"
-                                                               FontSize="10" FontWeight="SemiBold"
+                                                               FontFamily="Consolas" FontSize="10" FontWeight="SemiBold"
                                                                HorizontalAlignment="Center" VerticalAlignment="Center"/>
                                                 </Border>
                                                 <Border Grid.Column="1" Background="Transparent" Cursor="Hand"
                                                         PointerPressed="OnManualRatingsPressed">
                                                     <TextBlock x:Name="ManualRatingsText" Text="Manual"
-                                                               FontSize="10" FontWeight="SemiBold"
+                                                               FontFamily="Consolas" FontSize="10" FontWeight="SemiBold"
                                                                HorizontalAlignment="Center" VerticalAlignment="Center"/>
                                                 </Border>
                                             </Grid>
@@ -1143,7 +1140,7 @@
                                     </Grid>
                                     <StackPanel x:Name="RatingButtonsPanel"
                                                 IsVisible="False"
-                                                Spacing="5"/>
+                                                Spacing="3"/>
                                 </StackPanel>
 
                                 <Rectangle Height="1" Fill="{DynamicResource Theme.Brush.Divider}"/>
@@ -1156,13 +1153,38 @@
                                                LetterSpacing="1"/>
                                     <StackPanel x:Name="FilterGroupsPanel" Spacing="8"/>
                                 </StackPanel>
+
+                                <Rectangle Height="1" Fill="{DynamicResource Theme.Brush.Divider}"/>
+
+                                <StackPanel Spacing="7">
+                                    <Grid ColumnDefinitions="*,Auto" ColumnSpacing="8">
+                                        <TextBlock Text="YOUR PRESETS"
+                                                   FontSize="10" FontWeight="SemiBold"
+                                                   Opacity="0.5" LetterSpacing="1"
+                                                   VerticalAlignment="Center"/>
+                                        <Button Grid.Column="1"
+                                                x:Name="AddPresetButton"
+                                                Classes="bare-add"
+                                                Click="OnAddPresetClicked"
+                                                Width="28"
+                                                Height="28"
+                                                Padding="0"
+                                                HorizontalContentAlignment="Center"
+                                                VerticalContentAlignment="Center"
+                                                ToolTip.Tip="Create preset">
+                                            <TextBlock Text="+" FontSize="17" Margin="0,-2,0,0"
+                                                       HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                        </Button>
+                                    </Grid>
+                                    <StackPanel x:Name="PresetRows" Spacing="7"/>
+                                </StackPanel>
                             </StackPanel>
                         </ScrollViewer>
 
                         <Rectangle Grid.Column="1"
                                    Width="1"
                                    HorizontalAlignment="Center"
-                                   Fill="{DynamicResource Theme.Brush.Divider}"/>
+                                   Fill="#66757D86"/>
 
                         <DockPanel Grid.Column="2" LastChildFill="True">
                                 <Grid DockPanel.Dock="Top" Margin="0,0,0,10">

@@ -4,6 +4,22 @@
              x:Class="Resona.Views.SettingsOverlay">
 
     <UserControl.Styles>
+        <Style Selector="TextBlock">
+            <Setter Property="FontFamily" Value="Consolas"/>
+            <Setter Property="LetterSpacing" Value="0.12"/>
+        </Style>
+        <Style Selector="Button">
+            <Setter Property="FontFamily" Value="Consolas"/>
+        </Style>
+        <Style Selector="ToggleButton">
+            <Setter Property="FontFamily" Value="Consolas"/>
+        </Style>
+        <Style Selector="TextBox">
+            <Setter Property="FontFamily" Value="Consolas"/>
+        </Style>
+        <Style Selector="ComboBox">
+            <Setter Property="FontFamily" Value="Consolas"/>
+        </Style>
         <Style Selector="ToggleButton.settings-nav">
             <Setter Property="Cursor" Value="Hand"/>
             <Setter Property="Padding" Value="11,8"/>
@@ -11,8 +27,9 @@
             <Setter Property="HorizontalAlignment" Value="Stretch"/>
             <Setter Property="HorizontalContentAlignment" Value="Left"/>
             <Setter Property="Background" Value="Transparent"/>
-            <Setter Property="BorderThickness" Value="0"/>
-            <Setter Property="CornerRadius" Value="{DynamicResource Theme.Corner.Small}"/>
+            <Setter Property="BorderBrush" Value="Transparent"/>
+            <Setter Property="BorderThickness" Value="2,0,0,0"/>
+            <Setter Property="CornerRadius" Value="0"/>
             <Setter Property="Foreground" Value="{DynamicResource Theme.Brush.TextMuted}"/>
             <Setter Property="FontSize" Value="12"/>
         </Style>
@@ -22,6 +39,7 @@
         </Style>
         <Style Selector="ToggleButton.settings-nav:checked">
             <Setter Property="Background" Value="{DynamicResource Theme.Brush.SurfaceSelected}"/>
+            <Setter Property="BorderBrush" Value="#FF78A9E6"/>
             <Setter Property="Foreground" Value="{DynamicResource Theme.Brush.TextStrong}"/>
             <Setter Property="FontWeight" Value="SemiBold"/>
         </Style>
@@ -29,7 +47,7 @@
             <Setter Property="Height" Value="34"/>
             <Setter Property="Background" Value="{DynamicResource Theme.Brush.Input}"/>
             <Setter Property="BorderBrush" Value="{DynamicResource Theme.Brush.Border}"/>
-            <Setter Property="CornerRadius" Value="{DynamicResource Theme.Corner.Small}"/>
+            <Setter Property="CornerRadius" Value="2"/>
             <Setter Property="FontSize" Value="12"/>
             <Setter Property="Padding" Value="10,6"/>
             <Setter Property="VerticalContentAlignment" Value="Center"/>
@@ -74,7 +92,7 @@
             <Setter Property="Height" Value="34"/>
             <Setter Property="Background" Value="{DynamicResource Theme.Brush.Input}"/>
             <Setter Property="BorderBrush" Value="{DynamicResource Theme.Brush.Border}"/>
-            <Setter Property="CornerRadius" Value="{DynamicResource Theme.Corner.Small}"/>
+            <Setter Property="CornerRadius" Value="2"/>
             <Setter Property="FontSize" Value="12"/>
             <Setter Property="Padding" Value="10,5"/>
             <Setter Property="VerticalContentAlignment" Value="Center"/>
@@ -84,7 +102,7 @@
             <Setter Property="Padding" Value="12,5"/>
             <Setter Property="Background" Value="{DynamicResource Theme.Brush.SurfaceHover}"/>
             <Setter Property="BorderBrush" Value="{DynamicResource Theme.Brush.BorderStrong}"/>
-            <Setter Property="CornerRadius" Value="{DynamicResource Theme.Corner.Small}"/>
+            <Setter Property="CornerRadius" Value="2"/>
             <Setter Property="FontSize" Value="11"/>
             <Setter Property="HorizontalContentAlignment" Value="Center"/>
             <Setter Property="VerticalContentAlignment" Value="Center"/>
@@ -95,7 +113,7 @@
             <Setter Property="Padding" Value="0"/>
             <Setter Property="Background" Value="Transparent"/>
             <Setter Property="BorderBrush" Value="{DynamicResource Theme.Brush.Border}"/>
-            <Setter Property="CornerRadius" Value="{DynamicResource Theme.Corner.Small}"/>
+            <Setter Property="CornerRadius" Value="1"/>
             <Setter Property="FontSize" Value="10.5"/>
             <Setter Property="Opacity" Value="0.82"/>
             <Setter Property="HorizontalContentAlignment" Value="Center"/>
@@ -137,10 +155,10 @@
         </Style>
     </UserControl.Styles>
 
-    <Border BorderBrush="#14FFFFFF" BorderThickness="0,0,0,1">
-    <Grid ColumnDefinitions="244,1,*" Background="#202020">
+    <Border BorderBrush="#52656A72" BorderThickness="0,0,0,1">
+    <Grid ColumnDefinitions="244,1,*" Background="#FF1B1D20">
         <!-- Settings navigation -->
-        <Border Grid.Column="0" Background="#171717" Padding="16,20,16,16">
+        <Border Grid.Column="0" Background="#FF141619" Padding="16,20,16,16">
             <Grid RowDefinitions="Auto,*">
                 <StackPanel Grid.Row="0">
                     <TextBlock Text="Settings" FontSize="18" FontWeight="SemiBold"/>
@@ -254,7 +272,7 @@
                             HorizontalAlignment="Stretch" VerticalAlignment="Center"
                             Background="{DynamicResource Theme.Brush.Surface}"
                             BorderBrush="{DynamicResource Theme.Brush.BorderStrong}"
-                            BorderThickness="1" CornerRadius="7" Padding="16">
+                            BorderThickness="1" CornerRadius="2" Padding="16">
                         <StackPanel Spacing="12">
                             <TextBlock x:Name="CreateSubgenreTitleText"
                                        Text="Create subgenre"
@@ -283,7 +301,7 @@
                                 Background="{DynamicResource Theme.Brush.SurfaceTranslucent}"
                                 BorderBrush="{DynamicResource Theme.Brush.BorderSubtle}"
                                 BorderThickness="1"
-                                CornerRadius="7"
+                                CornerRadius="2"
                                 Padding="12">
                             <StackPanel Spacing="10">
                                 <Grid ColumnDefinitions="*,Auto" ColumnSpacing="16">
@@ -527,7 +545,7 @@
                             Background="{DynamicResource Theme.Brush.Surface}"
                             BorderBrush="{DynamicResource Theme.Brush.BorderStrong}"
                             BorderThickness="1"
-                            CornerRadius="7"
+                            CornerRadius="2"
                             Padding="16">
                         <StackPanel Spacing="12">
                             <TextBlock Text="Create tag" FontSize="14" FontWeight="SemiBold"
@@ -583,7 +601,7 @@
                             Background="{DynamicResource Theme.Brush.Surface}"
                             BorderBrush="{DynamicResource Theme.Brush.BorderStrong}"
                             BorderThickness="1"
-                            CornerRadius="7"
+                            CornerRadius="2"
                             Padding="16">
                         <StackPanel Spacing="12">
                             <TextBlock Text="Create style" FontSize="14" FontWeight="SemiBold"

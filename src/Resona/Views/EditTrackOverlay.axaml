@@ -7,14 +7,25 @@
 
     <Panel>
         <Panel.Styles>
+            <Style Selector="TextBlock">
+                <Setter Property="FontFamily" Value="Consolas"/>
+                <Setter Property="LetterSpacing" Value="0.15"/>
+            </Style>
+            <Style Selector="Button">
+                <Setter Property="FontFamily" Value="Consolas"/>
+                <Setter Property="CornerRadius" Value="2"/>
+            </Style>
             <Style Selector="Border.edit-section">
                 <Setter Property="Background" Value="Transparent"/>
-                <Setter Property="BorderThickness" Value="0"/>
+                <Setter Property="BorderBrush" Value="#38656A72"/>
+                <Setter Property="BorderThickness" Value="0,0,0,1"/>
+                <Setter Property="CornerRadius" Value="0"/>
                 <Setter Property="Padding" Value="12,8"/>
             </Style>
             <Style Selector="TextBox">
                 <Setter Property="Background" Value="#E6171611"/>
                 <Setter Property="BorderBrush" Value="{DynamicResource Theme.Brush.BorderStrong}"/>
+                <Setter Property="FontFamily" Value="Consolas"/>
             </Style>
             <Style Selector="TextBox.compact-search">
                 <Setter Property="Background" Value="Transparent"/>
@@ -55,6 +66,8 @@
             <Style Selector="ComboBox">
                 <Setter Property="Background" Value="#E6171611"/>
                 <Setter Property="BorderBrush" Value="{DynamicResource Theme.Brush.BorderStrong}"/>
+                <Setter Property="CornerRadius" Value="2"/>
+                <Setter Property="FontFamily" Value="Consolas"/>
             </Style>
             <Style Selector="ToggleButton.edit-chip:pointerover">
                 <Setter Property="Background" Value="#14FFFFFF"/>
@@ -180,7 +193,8 @@
                                     Background="#0CFFFFFF"
                                     BorderBrush="#28FFFFFF"
                                     BorderThickness="1"
-                                    CornerRadius="5"
+                                    CornerRadius="1"
+                                    FontFamily="Consolas"
                                     FontSize="9.5"
                                     Content="Remove Rating"
                                     Opacity="0.68"
@@ -685,7 +699,7 @@
                         IsVisible="False"
                         Background="#C0181A1D">
                     <Border Width="300" HorizontalAlignment="Center" VerticalAlignment="Center"
-                            Background="#242119" BorderBrush="#71805A" BorderThickness="1" CornerRadius="9" Padding="24,20">
+                            Background="#242119" BorderBrush="#71805A" BorderThickness="1" CornerRadius="2" Padding="24,20">
                         <StackPanel Spacing="12">
                             <Grid ColumnDefinitions="*,Auto">
                                 <TextBlock Text="Analyzing track…" FontSize="15" FontWeight="SemiBold" TextAlignment="Center"/>

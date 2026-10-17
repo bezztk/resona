@@ -24,7 +24,7 @@ using Resona.Services;
 
 namespace Resona.Views;
 
-public enum LibrarySortBy { Name, Rating, DownloadedAt, CollectionOrder }
+public enum LibrarySortBy { Name, Rating, DownloadedAt, Duration, CollectionOrder }
 public enum LibrarySortDirection { Ascending, Descending }
 
 public partial class MusicView : UserControl
@@ -401,7 +401,8 @@ public partial class MusicView : UserControl
         {
             LibrarySortBy.Rating => 1,
             LibrarySortBy.DownloadedAt => 2,
-            LibrarySortBy.CollectionOrder => 3,
+            LibrarySortBy.Duration => 3,
+            LibrarySortBy.CollectionOrder => 4,
             _ => 0
         };
         FilterSortText.Text = SortLabel(selectedIndex);
@@ -418,7 +419,8 @@ public partial class MusicView : UserControl
         {
             1 => LibrarySortBy.Rating,
             2 => LibrarySortBy.DownloadedAt,
-            3 when _activeCollection is not null => LibrarySortBy.CollectionOrder,
+            3 => LibrarySortBy.Duration,
+            4 when _activeCollection is not null => LibrarySortBy.CollectionOrder,
             _ => LibrarySortBy.Name
         };
         if (nextSort == LibrarySortBy.DownloadedAt && _sortBy != LibrarySortBy.DownloadedAt)
@@ -441,7 +443,8 @@ public partial class MusicView : UserControl
     {
         1 => "Rating",
         2 => "Downloaded at",
-        3 => "Collection order",
+        3 => "Duration",
+        4 => "Collection order",
         _ => "Name"
     };
 
@@ -452,6 +455,7 @@ public partial class MusicView : UserControl
             (FilterSortNameOption, FilterSortNameCheck),
             (FilterSortRatingOption, FilterSortRatingCheck),
             (FilterSortDownloadedOption, FilterSortDownloadedCheck),
+            (FilterSortDurationOption, FilterSortDurationCheck),
             (FilterSortCollectionOption, FilterSortCollectionCheck)
         };
 
@@ -1167,6 +1171,14 @@ public partial class MusicView : UserControl
                 _filteredItems
                     .OrderByDescending(item => DownloadedAtSortValue(item.Track.DownloadedAt))
                     .ThenBy(item => item.Track.Title, StringComparer.OrdinalIgnoreCase),
+            LibrarySortBy.Duration when _sortDirection == LibrarySortDirection.Ascending =>
+                _filteredItems
+                    .OrderBy(item => item.Track.DurationSeconds ?? int.MaxValue)
+                    .ThenBy(item => item.Track.Title, StringComparer.OrdinalIgnoreCase),
+            LibrarySortBy.Duration =>
+                _filteredItems
+                    .OrderByDescending(item => item.Track.DurationSeconds ?? int.MinValue)
+                    .ThenBy(item => item.Track.Title, StringComparer.OrdinalIgnoreCase),
             _ =>
                 _filteredItems.OrderBy(item => item.Track.Title, StringComparer.OrdinalIgnoreCase)
                     .ThenBy(item => item.Track.Title, StringComparer.OrdinalIgnoreCase)
@@ -1531,9 +1543,6 @@ public partial class MusicView : UserControl
         RatingButtonsPanel.IsVisible = _manualRatingFilter;
         if (RatingModeIndicator.RenderTransform is TranslateTransform transform)
             transform.X = _manualRatingFilter ? 69 : 0;
-        RatingModeIndicator.CornerRadius = _manualRatingFilter
-            ? new CornerRadius(0, 5, 5, 0)
-            : new CornerRadius(5, 0, 0, 5);
         AllRatingsText.Foreground = ThemeResources.Brush(_manualRatingFilter
             ? "Theme.Brush.TextMuted"
             : "Theme.Brush.TextStrong");
@@ -1551,12 +1560,13 @@ public partial class MusicView : UserControl
             var button = new Button
             {
                 Content = rating.Name,
-                Height = 31,
+                Height = 28,
                 HorizontalAlignment = HorizontalAlignment.Stretch,
                 HorizontalContentAlignment = HorizontalAlignment.Center,
                 VerticalContentAlignment = VerticalAlignment.Center,
-                FontSize = 11,
+                FontSize = 10.5,
                 FontWeight = FontWeight.SemiBold,
+                FontFamily = new FontFamily("Consolas"),
                 Background = selected
                     ? new SolidColorBrush(Color.FromArgb(76, accent.R, accent.G, accent.B))
                     : ThemeResources.Brush("Theme.Brush.Surface"),
@@ -1567,7 +1577,7 @@ public partial class MusicView : UserControl
                     ? new SolidColorBrush(RatingForegroundColor(rating.Name))
                     : ThemeResources.Brush("Theme.Brush.TextMuted"),
                 BorderThickness = new Thickness(1),
-                CornerRadius = new CornerRadius(5),
+                CornerRadius = new CornerRadius(1),
                 Opacity = selected ? 1 : 0.62,
                 Cursor = new Cursor(StandardCursorType.Hand)
             };
@@ -1790,7 +1800,7 @@ public partial class MusicView : UserControl
         {
             Width = 38,
             Height = 38,
-            CornerRadius = new CornerRadius(7),
+            CornerRadius = new CornerRadius(2),
             ClipToBounds = true,
             Background = Brush("#30322E"),
             BorderBrush = Brush("#38FFFFFF"),
@@ -1834,7 +1844,7 @@ public partial class MusicView : UserControl
             Background = isSelected ? Brush("#2C2F6E63") : ThemeResources.Brush("Theme.Brush.Surface"),
             BorderBrush = isSelected ? Brush("#9A52CBB4") : ThemeResources.Brush("Theme.Brush.BorderSubtle"),
             BorderThickness = new Thickness(1),
-            CornerRadius = new CornerRadius(7),
+            CornerRadius = new CornerRadius(2),
             Padding = new Thickness(8),
             Cursor = new Cursor(StandardCursorType.Hand)
         };
@@ -1900,7 +1910,7 @@ public partial class MusicView : UserControl
         {
             BorderBrush = ThemeResources.Brush("Theme.Brush.BorderSubtle"),
             BorderThickness = new Thickness(1),
-            CornerRadius = new CornerRadius(7),
+            CornerRadius = new CornerRadius(2),
             Padding = new Thickness(10),
             Child = panel
         };
@@ -1968,7 +1978,7 @@ public partial class MusicView : UserControl
             Background = Brushes.Transparent,
             BorderBrush = Brush("#66FF465B"),
             BorderThickness = new Thickness(1),
-            CornerRadius = new CornerRadius(5),
+            CornerRadius = new CornerRadius(2),
             HorizontalAlignment = HorizontalAlignment.Right,
             VerticalAlignment = VerticalAlignment.Top
         };
@@ -1980,7 +1990,7 @@ public partial class MusicView : UserControl
             Background = Brush("#30322E"),
             BorderBrush = ThemeResources.Brush("Theme.Brush.BorderSubtle"),
             BorderThickness = new Thickness(1),
-            CornerRadius = new CornerRadius(7),
+            CornerRadius = new CornerRadius(2),
             ClipToBounds = true
         };
         if (BitmapFromCollection(collection.Id) is { } previewBitmap)
@@ -2074,7 +2084,7 @@ public partial class MusicView : UserControl
                 Background = Brush("#FC191A1D"),
                 BorderBrush = Brush("#3EFFFFFF"),
                 BorderThickness = new Thickness(1),
-                CornerRadius = new CornerRadius(8),
+                CornerRadius = new CornerRadius(2),
                 Child = new StackPanel
                 {
                     Spacing = 9,
@@ -2364,7 +2374,7 @@ public partial class MusicView : UserControl
             Background = isSelected ? Brush("#2BFFFFFF") : Brushes.Transparent,
             BorderBrush = isSelected ? Brush(accent) : ThemeResources.Brush("Theme.Brush.BorderSubtle"),
             BorderThickness = new Thickness(1),
-            CornerRadius = new CornerRadius(7),
+            CornerRadius = new CornerRadius(2),
             Padding = new Thickness(10, 8),
             Cursor = new Cursor(StandardCursorType.Hand)
         };
@@ -2456,7 +2466,7 @@ public partial class MusicView : UserControl
                 ? Brush("#A078A9E6")
                 : ThemeResources.Brush("Theme.Brush.BorderSubtle"),
             BorderThickness = new Thickness(1),
-            CornerRadius = new CornerRadius(7),
+            CornerRadius = new CornerRadius(2),
             Padding = new Thickness(10, 8),
             Cursor = new Cursor(StandardCursorType.Hand)
         };
@@ -2524,7 +2534,7 @@ public partial class MusicView : UserControl
                 Background = Brush("#FA1A1B1E"),
                 BorderBrush = Brush("#3EFFFFFF"),
                 BorderThickness = new Thickness(1),
-                CornerRadius = new CornerRadius(8),
+                CornerRadius = new CornerRadius(2),
                 Child = new StackPanel
                 {
                     Spacing = 9,
@@ -2587,7 +2597,7 @@ public partial class MusicView : UserControl
                 Background = Brush("#FA1A1B1E"),
                 BorderBrush = Brush("#3EFFFFFF"),
                 BorderThickness = new Thickness(1),
-                CornerRadius = new CornerRadius(8),
+                CornerRadius = new CornerRadius(2),
                 Child = new StackPanel
                 {
                     Spacing = 9,
@@ -2701,7 +2711,7 @@ public partial class MusicView : UserControl
             Background = Brushes.Transparent,
             BorderBrush = ThemeResources.Brush("Theme.Brush.BorderSubtle"),
             BorderThickness = new Thickness(1),
-            CornerRadius = new CornerRadius(7),
+            CornerRadius = new CornerRadius(2),
             Padding = new Thickness(10)
         };
         border.Child = panel;
@@ -3253,7 +3263,7 @@ public partial class MusicView : UserControl
         {
             Width = 5,
             Height = 5,
-            CornerRadius = new CornerRadius(3),
+            CornerRadius = new CornerRadius(1),
             Background = exclude
                 ? ThemeResources.Brush("Theme.Brush.DangerText")
                 : Brush("#78A9E6"),
@@ -3267,7 +3277,7 @@ public partial class MusicView : UserControl
         return new Border
         {
             Background = Brush("#12FFFFFF"),
-            CornerRadius = new CornerRadius(5),
+            CornerRadius = new CornerRadius(2),
             Padding = new Thickness(9, 5, 4, 5),
             Child = row
         };
@@ -3971,7 +3981,7 @@ public partial class MusicView : UserControl
             Content = text,
             Height = 32,
             Padding = new Thickness(9, 4),
-            CornerRadius = new CornerRadius(5),
+            CornerRadius = new CornerRadius(2),
             Background = isSelected ? Brush("#263E6591") : Brushes.Transparent,
             BorderBrush = isSelected ? Brush("#7A78A9E6") : Brush("#36FFFFFF"),
             BorderThickness = new Thickness(1),
@@ -4015,7 +4025,7 @@ public partial class MusicView : UserControl
             Content = content,
             Height = 34,
             Padding = new Thickness(9, 3),
-            CornerRadius = new CornerRadius(5),
+            CornerRadius = new CornerRadius(2),
             Background = isSelected ? Brush("#263E6591") : Brushes.Transparent,
             BorderBrush = isSelected ? Brush("#7A78A9E6") : Brush("#36FFFFFF"),
             BorderThickness = new Thickness(1),

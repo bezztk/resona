@@ -820,6 +820,8 @@ public partial class EditTrackOverlay : UserControl
                 Text = rating.Name.ToUpperInvariant(),
                 FontSize = 9,
                 FontWeight = FontWeight.SemiBold,
+                FontFamily = new FontFamily("Consolas"),
+                LetterSpacing = 0.7,
                 TextAlignment = TextAlignment.Center,
                 TextTrimming = TextTrimming.CharacterEllipsis,
                 HorizontalAlignment = HorizontalAlignment.Stretch,
@@ -831,7 +833,7 @@ public partial class EditTrackOverlay : UserControl
                 Width = 76,
                 Height = 32,
                 Padding = new Thickness(5, 2),
-                CornerRadius = new CornerRadius(5),
+                CornerRadius = new CornerRadius(1),
                 HorizontalContentAlignment = HorizontalAlignment.Stretch,
                 VerticalContentAlignment = VerticalAlignment.Center,
                 Cursor = new Cursor(StandardCursorType.Hand)
