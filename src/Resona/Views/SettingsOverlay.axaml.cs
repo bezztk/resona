@@ -45,6 +45,7 @@ public partial class SettingsOverlay : UserControl
     private bool _loadingDiscordPresenceSettings;
     private bool _loadingBrowserCookieSettings;
     private bool _hasStartedReferencePreview;
+    private bool _preferredGenresFirst;
 
     public event Action<string>? ToastRequested;
     public event Action? LibraryMetadataChanged;
@@ -156,15 +157,8 @@ public partial class SettingsOverlay : UserControl
     {
         if (_isLoading || !_genreVocabularyLoaded) return;
 
-        var search = SearchBox.Text?.Trim() ?? string.Empty;
         GenreVocabularyRows.Children.Clear();
-        var choices = _modelSubgenres
-            .Where(subgenre => _selectedModelGenreId is null || subgenre.ModelGenreId == _selectedModelGenreId)
-            .Where(subgenre => search.Length == 0
-                               || subgenre.Name.Contains(search, StringComparison.OrdinalIgnoreCase))
-            .OrderByDescending(subgenre => _genreUsageCounts.GetValueOrDefault(subgenre.Id))
-            .ThenBy(subgenre => subgenre.Name, StringComparer.OrdinalIgnoreCase)
-            .ToList();
+        var choices = CurrentGenreChoices();
         foreach (var subgenre in choices)
             GenreVocabularyRows.Children.Add(CreateGenreVocabularyChoice(subgenre));
 
@@ -177,6 +171,19 @@ public partial class SettingsOverlay : UserControl
                 Margin = new Avalonia.Thickness(0, 8, 0, 4)
             });
         UpdateSummary();
+    }
+
+    private List<ModelSubgenre> CurrentGenreChoices()
+    {
+        var search = SearchBox.Text?.Trim() ?? string.Empty;
+        return _modelSubgenres
+            .Where(subgenre => _selectedModelGenreId is null || subgenre.ModelGenreId == _selectedModelGenreId)
+            .Where(subgenre => search.Length == 0
+                               || subgenre.Name.Contains(search, StringComparison.OrdinalIgnoreCase))
+            .OrderByDescending(subgenre => _preferredGenresFirst && subgenre.IsPreferred)
+            .ThenByDescending(subgenre => _genreUsageCounts.GetValueOrDefault(subgenre.Id))
+            .ThenBy(subgenre => subgenre.Name, StringComparer.OrdinalIgnoreCase)
+            .ToList();
     }
 
     private void RebuildGenreGroupRows()
@@ -329,6 +336,7 @@ public partial class SettingsOverlay : UserControl
             if (index >= 0)
                 _modelSubgenres[index] = updated;
             RefreshGenreVocabularyChoice(updated.Id);
+            RepositionGenreVocabularyChoice(updated.Id);
             PreferredGenresChanged?.Invoke();
             e.Handled = true;
         };
@@ -420,7 +428,7 @@ public partial class SettingsOverlay : UserControl
         {
             var save = new Button
             {
-                Content = "Save genre",
+                Content = "Save changes",
                 HorizontalAlignment = HorizontalAlignment.Right
             };
             save.Classes.Add("settings-action");
@@ -443,6 +451,7 @@ public partial class SettingsOverlay : UserControl
                     if (index >= 0)
                         _modelSubgenres[index] = updated;
                     RefreshGenreVocabularyChoice(updated.Id);
+                    RepositionGenreVocabularyChoice(updated.Id);
                     GenreDetailsChanged?.Invoke(updated.Id);
                 }
                 catch (Exception exception)
@@ -555,6 +564,27 @@ public partial class SettingsOverlay : UserControl
         }
     }
 
+    private void RepositionGenreVocabularyChoice(int subgenreId)
+    {
+        var orderedIds = CurrentGenreChoices().Select(item => item.Id).ToList();
+        var desiredIndex = orderedIds.IndexOf(subgenreId);
+        if (desiredIndex < 0)
+            return;
+
+        for (var currentIndex = 0; currentIndex < GenreVocabularyRows.Children.Count; currentIndex++)
+        {
+            if (GenreVocabularyRows.Children[currentIndex] is not Control { Tag: int id } || id != subgenreId)
+                continue;
+
+            if (currentIndex == desiredIndex)
+                return;
+            var card = GenreVocabularyRows.Children[currentIndex];
+            GenreVocabularyRows.Children.RemoveAt(currentIndex);
+            GenreVocabularyRows.Children.Insert(desiredIndex, card);
+            return;
+        }
+    }
+
     private static TextBox CreateSettingsTextBox(string text, string watermark)
     {
         var box = new TextBox
@@ -567,6 +597,12 @@ public partial class SettingsOverlay : UserControl
         };
         box.Classes.Add("settings-input");
         return box;
+    }
+
+    private void OnPreferredFirstClicked(object? sender, RoutedEventArgs e)
+    {
+        _preferredGenresFirst = PreferredFirstToggle.IsChecked == true;
+        RebuildGenreVocabularyRows();
     }
 
     private static Avalonia.Svg.Skia.Svg CreateSvgIcon(string path, double size) => new(new Uri("avares://Resona/"))

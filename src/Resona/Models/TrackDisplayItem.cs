@@ -82,6 +82,9 @@ public record TrackDisplayItem(
         ? string.Empty
         : "  ·  ";
 
+    public bool HasStyleText => !string.IsNullOrWhiteSpace(StyleText);
+    public string StyleSeparatorText => HasStyleText && GenreDisplays.Count > 0 ? "  ·  " : string.Empty;
+
     public string DownloadedDateText
     {
         get

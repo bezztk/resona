@@ -234,13 +234,28 @@
                     <TextBlock x:Name="PageTitleText" FontSize="18" FontWeight="SemiBold"/>
                     <TextBlock x:Name="PageDescriptionText" FontSize="11" Opacity="0.58" TextWrapping="Wrap"/>
                 </StackPanel>
-                <Grid x:Name="GenreToolbar" Grid.Column="1" ColumnDefinitions="*,28" ColumnSpacing="8"
+                <Grid x:Name="GenreToolbar" Grid.Column="1" ColumnDefinitions="*,96,28" ColumnSpacing="8"
                       IsVisible="False" VerticalAlignment="Center">
                     <TextBox x:Name="SearchBox" Classes="compact-search"
                              Height="26" MinHeight="26" MaxHeight="26"
                              VerticalContentAlignment="Center"
                              Watermark="Search subgenres…"/>
-                    <Button Grid.Column="1"
+                    <ToggleButton x:Name="PreferredFirstToggle"
+                                  Grid.Column="1"
+                                  Content="Preferred first"
+                                  Height="26"
+                                  Padding="7,2"
+                                  FontSize="9.5"
+                                  IsChecked="False"
+                                  Background="Transparent"
+                                  BorderBrush="{DynamicResource Theme.Brush.BorderSubtle}"
+                                  BorderThickness="1"
+                                  CornerRadius="1"
+                                  HorizontalContentAlignment="Center"
+                                  VerticalContentAlignment="Center"
+                                  ToolTip.Tip="Show preferred genres before other genres"
+                                  Click="OnPreferredFirstClicked"/>
+                    <Button Grid.Column="2"
                             Width="28" Height="28" Padding="0"
                             Background="Transparent" BorderThickness="0"
                             HorizontalContentAlignment="Center"
