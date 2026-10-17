@@ -26,6 +26,7 @@ public partial class SettingsOverlay : UserControl
     private List<ModelSubgenre> _modelSubgenres = [];
     private Dictionary<int, int> _genreUsageCounts = [];
     private Dictionary<int, int> _genreReferenceCounts = [];
+    private Dictionary<int, List<GenreReferenceTrack>> _genreReferenceTracks = [];
     private readonly HashSet<int> _editingSubgenreIds = [];
     private List<Tag> _tags = [];
     private Dictionary<int, int> _tagUsageCounts = [];
@@ -47,6 +48,8 @@ public partial class SettingsOverlay : UserControl
 
     public event Action<string>? ToastRequested;
     public event Action? LibraryMetadataChanged;
+    public event Action<int>? GenreDetailsChanged;
+    public event Action? PreferredGenresChanged;
     public event Action<double>? SongFadeDurationChanged;
     public event Action? DiscordPresenceChanged;
     public event Action<MusicTrack>? ReferencePreviewRequested;
@@ -139,7 +142,8 @@ public partial class SettingsOverlay : UserControl
         _modelGenres = MusicLibraryService.Current.GetModelGenres();
         _modelSubgenres = MusicLibraryService.Current.GetModelSubgenres();
         _genreUsageCounts = MusicLibraryService.Current.GetModelSubgenreTrackCounts();
-        _genreReferenceCounts = MusicLibraryService.Current.GetGenreReferenceCounts();
+        _genreReferenceTracks = MusicLibraryService.Current.GetAllGenreReferenceTracks();
+        _genreReferenceCounts = _genreReferenceTracks.ToDictionary(item => item.Key, item => item.Value.Count);
         _selectedModelGenreId = null;
         SearchBox.Text = string.Empty;
         _genreVocabularyLoaded = true;
@@ -239,7 +243,7 @@ public partial class SettingsOverlay : UserControl
         };
         var headerContent = new Grid
         {
-            ColumnDefinitions = new ColumnDefinitions("*,Auto,28"),
+            ColumnDefinitions = new ColumnDefinitions("*,Auto,Auto,28"),
             ColumnSpacing = 8
         };
         Control title;
@@ -270,6 +274,28 @@ public partial class SettingsOverlay : UserControl
         };
         Grid.SetColumn(usage, 1);
         headerContent.Children.Add(usage);
+        var edit = new Button
+        {
+            Content = editing ? "Cancel" : "Edit",
+            MinWidth = 46,
+            Height = 25,
+            Padding = new Avalonia.Thickness(8, 0),
+            FontSize = 10,
+            Background = Brushes.Transparent,
+            BorderBrush = ThemeResources.Brush("Theme.Brush.BorderSubtle"),
+            BorderThickness = new Avalonia.Thickness(1),
+            CornerRadius = new Avalonia.CornerRadius(1),
+            HorizontalContentAlignment = HorizontalAlignment.Center,
+            VerticalContentAlignment = VerticalAlignment.Center
+        };
+        Grid.SetColumn(edit, 2);
+        headerContent.Children.Add(edit);
+        edit.Click += (_, _) =>
+        {
+            if (!_editingSubgenreIds.Add(subgenre.Id))
+                _editingSubgenreIds.Remove(subgenre.Id);
+            RefreshGenreVocabularyChoice(subgenre.Id);
+        };
         var preferred = new Button
         {
             Width = 28,
@@ -292,13 +318,18 @@ public partial class SettingsOverlay : UserControl
                 StrokeThickness = 1
             }
         };
-        Grid.SetColumn(preferred, 2);
+        Grid.SetColumn(preferred, 3);
         headerContent.Children.Add(preferred);
         ToolTip.SetTip(preferred, subgenre.IsPreferred ? "Remove from preferred genres" : "Add to preferred genres");
         preferred.Click += (_, e) =>
         {
-            MusicLibraryService.Current.SetModelSubgenrePreferred(subgenre.Id, !subgenre.IsPreferred);
-            ReloadGenreVocabulary();
+            var updated = subgenre with { IsPreferred = !subgenre.IsPreferred };
+            MusicLibraryService.Current.SetModelSubgenrePreferred(updated.Id, updated.IsPreferred);
+            var index = _modelSubgenres.FindIndex(item => item.Id == updated.Id);
+            if (index >= 0)
+                _modelSubgenres[index] = updated;
+            RefreshGenreVocabularyChoice(updated.Id);
+            PreferredGenresChanged?.Invoke();
             e.Handled = true;
         };
         header.Child = headerContent;
@@ -307,6 +338,7 @@ public partial class SettingsOverlay : UserControl
 
         return new Border
         {
+            Tag = subgenre.Id,
             BorderBrush = ThemeResources.Brush("Theme.Brush.BorderSubtle"),
             BorderThickness = new Avalonia.Thickness(0, 0, 0, 1),
             Child = panel
@@ -317,8 +349,7 @@ public partial class SettingsOverlay : UserControl
     {
         TextBox? descriptionBox = null;
         var details = new StackPanel { Spacing = 9 };
-        var descriptionHeader = new Grid { ColumnDefinitions = new ColumnDefinitions("*,Auto") };
-        descriptionHeader.Children.Add(new TextBlock
+        details.Children.Add(new TextBlock
         {
             Text = "DESCRIPTION",
             FontSize = 9,
@@ -326,27 +357,6 @@ public partial class SettingsOverlay : UserControl
             FontWeight = FontWeight.SemiBold,
             VerticalAlignment = VerticalAlignment.Center
         });
-        var edit = new Button
-        {
-            Content = editing ? "Cancel" : "Edit",
-            MinWidth = 46,
-            Height = 25,
-            Padding = new Avalonia.Thickness(8, 2),
-            FontSize = 10,
-            Background = Brushes.Transparent,
-            BorderBrush = ThemeResources.Brush("Theme.Brush.BorderSubtle"),
-            BorderThickness = new Avalonia.Thickness(1),
-            CornerRadius = new Avalonia.CornerRadius(1)
-        };
-        Grid.SetColumn(edit, 1);
-        descriptionHeader.Children.Add(edit);
-        edit.Click += (_, _) =>
-        {
-            if (!_editingSubgenreIds.Add(subgenre.Id))
-                _editingSubgenreIds.Remove(subgenre.Id);
-            RebuildGenreVocabularyRows();
-        };
-        details.Children.Add(descriptionHeader);
 
         if (editing)
         {
@@ -388,7 +398,7 @@ public partial class SettingsOverlay : UserControl
             LetterSpacing = 0.8,
             Opacity = 0.46
         });
-        var references = MusicLibraryService.Current.GetGenreReferenceTracks(subgenre.Id);
+        var references = _genreReferenceTracks.GetValueOrDefault(subgenre.Id, []);
         if (references.Count == 0)
         {
             referenceSection.Children.Add(new TextBlock
@@ -402,7 +412,7 @@ public partial class SettingsOverlay : UserControl
         else
         {
             foreach (var reference in references)
-                referenceSection.Children.Add(CreateReferenceTrackButton(reference));
+                referenceSection.Children.Add(CreateReferenceTrackRow(subgenre.Id, reference, editing));
         }
         details.Children.Add(referenceSection);
 
@@ -422,7 +432,18 @@ public partial class SettingsOverlay : UserControl
                         subgenre.Id, nameBox?.Text ?? subgenre.Name, descriptionBox?.Text);
                     _editingSubgenreIds.Remove(subgenre.Id);
                     ToastRequested?.Invoke($"Saved {nameBox?.Text?.Trim()}.");
-                    ReloadGenreVocabulary();
+                    var updated = subgenre with
+                    {
+                        Name = (nameBox?.Text ?? subgenre.Name).Trim(),
+                        Description = string.IsNullOrWhiteSpace(descriptionBox?.Text)
+                            ? null
+                            : descriptionBox.Text.Trim()
+                    };
+                    var index = _modelSubgenres.FindIndex(item => item.Id == updated.Id);
+                    if (index >= 0)
+                        _modelSubgenres[index] = updated;
+                    RefreshGenreVocabularyChoice(updated.Id);
+                    GenreDetailsChanged?.Invoke(updated.Id);
                 }
                 catch (Exception exception)
                 {
@@ -442,7 +463,7 @@ public partial class SettingsOverlay : UserControl
         };
     }
 
-    private Button CreateReferenceTrackButton(GenreReferenceTrack reference)
+    private Control CreateReferenceTrackRow(int genreId, GenreReferenceTrack reference, bool editing)
     {
         var label = new TextBlock
         {
@@ -473,7 +494,65 @@ public partial class SettingsOverlay : UserControl
             _hasStartedReferencePreview = true;
             ReferencePreviewRequested?.Invoke(track);
         };
-        return button;
+        if (!editing)
+            return button;
+
+        var row = new Grid { ColumnDefinitions = new ColumnDefinitions("*,26"), ColumnSpacing = 5 };
+        row.Children.Add(button);
+        var remove = new Button
+        {
+            Content = new Avalonia.Svg.Skia.Svg(new Uri("avares://Resona/"))
+            {
+                Path = "/Assets/close.svg",
+                Width = 9,
+                Height = 9,
+                Stretch = Stretch.Uniform
+            },
+            Width = 26,
+            Height = 26,
+            Padding = new Avalonia.Thickness(0),
+            Background = Brushes.Transparent,
+            BorderBrush = ThemeResources.Brush("Theme.Brush.BorderSubtle"),
+            BorderThickness = new Avalonia.Thickness(1),
+            CornerRadius = new Avalonia.CornerRadius(1),
+            HorizontalContentAlignment = HorizontalAlignment.Center,
+            VerticalContentAlignment = VerticalAlignment.Center
+        };
+        Grid.SetColumn(remove, 1);
+        row.Children.Add(remove);
+        ToolTip.SetTip(remove, "Remove reference track");
+        remove.Click += (_, _) =>
+        {
+            try
+            {
+                MusicLibraryService.Current.SetTrackGenreReference(reference.TrackId, genreId, false);
+                if (_genreReferenceTracks.TryGetValue(genreId, out var cached))
+                    cached.RemoveAll(item => item.TrackId == reference.TrackId);
+                _genreReferenceCounts[genreId] = _genreReferenceTracks.GetValueOrDefault(genreId, []).Count;
+                RefreshGenreVocabularyChoice(genreId);
+            }
+            catch (Exception exception)
+            {
+                ToastRequested?.Invoke(exception.Message);
+            }
+        };
+        return row;
+    }
+
+    private void RefreshGenreVocabularyChoice(int subgenreId)
+    {
+        var subgenre = _modelSubgenres.FirstOrDefault(item => item.Id == subgenreId);
+        if (subgenre is null)
+            return;
+
+        for (var index = 0; index < GenreVocabularyRows.Children.Count; index++)
+        {
+            if (GenreVocabularyRows.Children[index] is Control { Tag: int id } && id == subgenreId)
+            {
+                GenreVocabularyRows.Children[index] = CreateGenreVocabularyChoice(subgenre);
+                return;
+            }
+        }
     }
 
     private static TextBox CreateSettingsTextBox(string text, string watermark)
@@ -523,8 +602,8 @@ public partial class SettingsOverlay : UserControl
         _isLoading = true;
         _modelGenres = MusicLibraryService.Current.GetModelGenres();
         _modelSubgenres = MusicLibraryService.Current.GetModelSubgenres();
-        _genreUsageCounts = MusicLibraryService.Current.GetModelSubgenreTrackCounts();
-        _genreReferenceCounts = MusicLibraryService.Current.GetGenreReferenceCounts();
+        _genreReferenceTracks = MusicLibraryService.Current.GetAllGenreReferenceTracks();
+        _genreReferenceCounts = _genreReferenceTracks.ToDictionary(item => item.Key, item => item.Value.Count);
         _isLoading = false;
         CreateSubgenreOverlay.IsVisible = false;
         RebuildGenreGroupRows();

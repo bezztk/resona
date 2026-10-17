@@ -282,6 +282,7 @@
                                   HorizontalScrollBarVisibility="Disabled"
                                   VerticalContentAlignment="Top">
                         <StackPanel x:Name="GenreVocabularyRows"
+                                    MinWidth="300"
                                     MaxWidth="500"
                                     HorizontalAlignment="Stretch"
                                     Spacing="6"

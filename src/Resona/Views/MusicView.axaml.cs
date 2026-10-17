@@ -317,6 +317,8 @@ public partial class MusicView : UserControl
             UpdateDiscordPresence();
         };
         SettingsOverlay.LibraryMetadataChanged += RefreshLibraryPresentation;
+        SettingsOverlay.GenreDetailsChanged += RefreshGenreDetails;
+        SettingsOverlay.PreferredGenresChanged += RefreshPreferredGenrePresentation;
         SettingsOverlay.ReferencePreviewRequested += StartTrackPreview;
         SettingsOverlay.ReferencePreviewClosed += StopTrackPreview;
         _ = ExportObsidianLibraryOnStartupAsync();
@@ -378,6 +380,40 @@ public partial class MusicView : UserControl
         LoadLookups();
         RefreshTrackList();
         RebuildPresetRows();
+        PrepareActiveTrackEditor();
+    }
+
+    private void RefreshPreferredGenrePresentation()
+    {
+        EditTrackOverlay.InvalidateLookups();
+        RebuildPresetRows();
+        if (_activeBuiltInView == LibraryMode.GenreCleanup)
+            ApplyFilter();
+    }
+
+    private void RefreshGenreDetails(int genreId)
+    {
+        EditTrackOverlay.InvalidateLookups();
+        LoadLookups();
+
+        foreach (var trackId in _allTrackGenreIds
+                     .Where(item => item.Value.Contains(genreId))
+                     .Select(item => item.Key)
+                     .ToList())
+        {
+            var index = _allItems.FindIndex(item => item.Track.Id == trackId);
+            if (index < 0)
+                continue;
+
+            var previous = _allItems[index];
+            var updated = CreateTrackDisplayItem(previous.Track, previous.NeedsAnalysis);
+            ApplyCollectionDisplay(updated);
+            updated.Thumbnail = previous.Thumbnail;
+            previous.Thumbnail = null;
+            _allItems[index] = updated;
+        }
+
+        ApplyFilter();
         PrepareActiveTrackEditor();
     }
 

@@ -2659,6 +2659,35 @@ public class MusicDatabase
         return tracks;
     }
 
+    public Dictionary<int, List<GenreReferenceTrack>> GetAllGenreReferenceTracks()
+    {
+        using var conn = Open();
+        using var cmd = conn.CreateCommand();
+        cmd.CommandText = @"
+            SELECT track_genres.genre_id, tracks.id, tracks.title, tracks.artist,
+                   channels.name, tracks.file_name
+            FROM track_genres
+            JOIN tracks ON tracks.id = track_genres.track_id
+            LEFT JOIN channels ON channels.id = tracks.channel_id
+            WHERE track_genres.is_enabled = 1
+              AND track_genres.is_reference = 1
+            ORDER BY track_genres.genre_id, COALESCE(tracks.artist, ''), tracks.title";
+        using var reader = cmd.ExecuteReader();
+        var result = new Dictionary<int, List<GenreReferenceTrack>>();
+        while (reader.Read())
+        {
+            var genreId = reader.GetInt32(0);
+            if (!result.TryGetValue(genreId, out var references))
+                result[genreId] = references = [];
+            references.Add(new GenreReferenceTrack(
+                reader.GetInt32(1), reader.GetString(2),
+                reader.IsDBNull(3) ? null : reader.GetString(3),
+                reader.IsDBNull(4) ? null : reader.GetString(4),
+                reader.GetString(5)));
+        }
+        return result;
+    }
+
     public Dictionary<int, int> GetGenreReferenceCounts()
     {
         using var conn = Open();
