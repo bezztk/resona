@@ -496,25 +496,27 @@
                 <Border Grid.Column="0" Margin="-18,0,-18,0">
                     <Border.Background>
                         <LinearGradientBrush StartPoint="0%,50%" EndPoint="100%,50%">
-                            <GradientStop Offset="0" Color="#82090A0C"/>
-                            <GradientStop Offset="0.72" Color="#3E0C0D0F"/>
-                            <GradientStop Offset="1" Color="#000C0D0F"/>
+                            <GradientStop Offset="0" Color="#D9090A0C"/>
+                            <GradientStop Offset="0.58" Color="#900B0C0E"/>
+                            <GradientStop Offset="0.84" Color="#4C0C0D0F"/>
+                            <GradientStop Offset="1" Color="#080C0D0F"/>
                         </LinearGradientBrush>
                     </Border.Background>
                     <Border.Effect>
-                        <BlurEffect Radius="18"/>
+                        <BlurEffect Radius="28"/>
                     </Border.Effect>
                 </Border>
                 <Border Grid.Column="2" Margin="-18,0,-18,0">
                     <Border.Background>
                         <LinearGradientBrush StartPoint="0%,50%" EndPoint="100%,50%">
-                            <GradientStop Offset="0" Color="#000C0D0F"/>
-                            <GradientStop Offset="0.28" Color="#3E0C0D0F"/>
-                            <GradientStop Offset="1" Color="#82090A0C"/>
+                            <GradientStop Offset="0" Color="#080C0D0F"/>
+                            <GradientStop Offset="0.16" Color="#4C0C0D0F"/>
+                            <GradientStop Offset="0.42" Color="#900B0C0E"/>
+                            <GradientStop Offset="1" Color="#D9090A0C"/>
                         </LinearGradientBrush>
                     </Border.Background>
                     <Border.Effect>
-                        <BlurEffect Radius="18"/>
+                        <BlurEffect Radius="28"/>
                     </Border.Effect>
                 </Border>
             </Grid>
@@ -672,28 +674,11 @@
                                             <TextBlock Grid.Column="1" Text="{Binding ChannelSeparatorText}"
                                                        FontSize="10" Opacity="0.38"
                                                        VerticalAlignment="Center"/>
-                                            <Grid Grid.Column="2" ColumnDefinitions="*,Auto,Auto">
-                                                <views:TrackGenreSummaryControl Grid.Column="0"
-                                                                                Genres="{Binding GenreDisplays}"
-                                                                                HorizontalAlignment="Stretch"
-                                                                                VerticalAlignment="Center"/>
-                                                <TextBlock Grid.Column="1"
-                                                           Text="{Binding StyleSeparatorText}"
-                                                           IsVisible="{Binding HasStyleText}"
-                                                           FontSize="10"
-                                                           Opacity="0.34"
-                                                           VerticalAlignment="Center"/>
-                                                <TextBlock Grid.Column="2"
-                                                           Text="{Binding StyleText}"
-                                                           IsVisible="{Binding HasStyleText}"
-                                                           MaxWidth="150"
-                                                           FontSize="10"
-                                                           FontWeight="Medium"
-                                                           Foreground="#A8A7B6D8"
-                                                           Opacity="0.68"
-                                                           TextTrimming="CharacterEllipsis"
-                                                           VerticalAlignment="Center"/>
-                                            </Grid>
+                                            <views:TrackGenreSummaryControl Grid.Column="2"
+                                                                            Genres="{Binding GenreDisplays}"
+                                                                            StyleText="{Binding StyleText}"
+                                                                            HorizontalAlignment="Stretch"
+                                                                            VerticalAlignment="Center"/>
                                         </Grid>
                                     </Grid>
 
