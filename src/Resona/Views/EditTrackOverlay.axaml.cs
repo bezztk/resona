@@ -1310,13 +1310,17 @@ public partial class EditTrackOverlay : UserControl
                 VerticalAlignment = VerticalAlignment.Center,
                 HorizontalAlignment = HorizontalAlignment.Center,
                 Cursor = new Cursor(StandardCursorType.Hand),
-                Child = new TextBlock
+                Child = new Avalonia.Controls.Shapes.Ellipse
                 {
-                    Text = assignment.IsReference ? "◆" : "◇",
-                    FontSize = 12,
-                    Foreground = assignment.IsReference
-                        ? ThemeResources.Brush("Theme.Brush.AccentStrong")
-                        : ThemeResources.Brush("Theme.Brush.TextSecondary"),
+                    Width = 9,
+                    Height = 9,
+                    Fill = assignment.IsReference
+                        ? new SolidColorBrush(Color.Parse("#FF78A9E6"))
+                        : Brushes.Transparent,
+                    Stroke = assignment.IsReference
+                        ? new SolidColorBrush(Color.Parse("#FFD5E8FF"))
+                        : new SolidColorBrush(Color.Parse("#90AEB7C2")),
+                    StrokeThickness = 1,
                     HorizontalAlignment = HorizontalAlignment.Center,
                     VerticalAlignment = VerticalAlignment.Center
                 }

@@ -195,7 +195,11 @@ public sealed record GenreReferenceTrack(
     int TrackId,
     string Title,
     string? Artist,
+    string? ChannelName,
     string FileName)
 {
     public string DisplayTitle => TrackTitleFormatter.Format(Artist, Title);
+    public string DisplayArtist => !string.IsNullOrWhiteSpace(Artist)
+        ? Artist.Trim()
+        : ChannelNameFormatter.Format(ChannelName) ?? "Unknown artist";
 }

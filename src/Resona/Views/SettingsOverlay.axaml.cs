@@ -26,7 +26,7 @@ public partial class SettingsOverlay : UserControl
     private List<ModelSubgenre> _modelSubgenres = [];
     private Dictionary<int, int> _genreUsageCounts = [];
     private Dictionary<int, int> _genreReferenceCounts = [];
-    private readonly HashSet<int> _expandedSubgenreIds = [];
+    private readonly HashSet<int> _editingSubgenreIds = [];
     private List<Tag> _tags = [];
     private Dictionary<int, int> _tagUsageCounts = [];
     private List<Style> _styles = [];
@@ -227,43 +227,38 @@ public partial class SettingsOverlay : UserControl
 
     private Control CreateGenreVocabularyChoice(ModelSubgenre subgenre)
     {
-        var expanded = _expandedSubgenreIds.Contains(subgenre.Id);
+        var editing = _editingSubgenreIds.Contains(subgenre.Id);
+        var mainGenreName = _modelGenres.FirstOrDefault(item => item.Id == subgenre.ModelGenreId)?.Name;
         var panel = new StackPanel();
         var header = new Border
         {
-            Background = subgenre.IsPreferred
-                ? new SolidColorBrush(Color.Parse("#24364A5E"))
-                : ThemeResources.Brush("Theme.Brush.SurfaceTranslucent"),
-            BorderBrush = subgenre.IsPreferred
-                ? new SolidColorBrush(Color.Parse("#9678A9E6"))
-                : ThemeResources.Brush("Theme.Brush.BorderSubtle"),
-            BorderThickness = new Avalonia.Thickness(subgenre.IsPreferred ? 2 : 1, 1, 1, 1),
+            Background = ThemeResources.Brush("Theme.Brush.SurfaceTranslucent"),
+            BorderBrush = ThemeResources.Brush("Theme.Brush.BorderSubtle"),
+            BorderThickness = new Avalonia.Thickness(1),
             Padding = new Avalonia.Thickness(10, 8),
-            Cursor = new Cursor(StandardCursorType.Hand)
         };
         var headerContent = new Grid
         {
-            ColumnDefinitions = new ColumnDefinitions("18,*,Auto,32"),
+            ColumnDefinitions = new ColumnDefinitions("*,Auto,28"),
             ColumnSpacing = 8
         };
-        headerContent.Children.Add(new TextBlock
+        Control title;
+        if (editing)
         {
-            Text = expanded ? "⌄" : "›",
-            FontSize = 14,
-            Opacity = 0.62,
-            VerticalAlignment = VerticalAlignment.Center,
-            HorizontalAlignment = HorizontalAlignment.Center
-        });
-        var title = new TextBlock
+            title = CreateSettingsTextBox(subgenre.Name, "Subgenre name");
+        }
+        else
         {
-            Text = subgenre.Name,
-            FontSize = 12,
-            FontWeight = FontWeight.SemiBold,
-            Foreground = ThemeResources.Brush("Theme.Brush.TextPrimary"),
-            TextTrimming = TextTrimming.CharacterEllipsis,
-            VerticalAlignment = VerticalAlignment.Center
-        };
-        Grid.SetColumn(title, 1);
+            title = new TextBlock
+            {
+                Text = subgenre.Name,
+                FontSize = 12,
+                FontWeight = FontWeight.SemiBold,
+                Foreground = MainGenrePalette.For(mainGenreName),
+                TextTrimming = TextTrimming.CharacterEllipsis,
+                VerticalAlignment = VerticalAlignment.Center
+            };
+        }
         headerContent.Children.Add(title);
         var usageCount = _genreUsageCounts.GetValueOrDefault(subgenre.Id);
         var usage = new TextBlock
@@ -273,25 +268,31 @@ public partial class SettingsOverlay : UserControl
             Opacity = 0.52,
             VerticalAlignment = VerticalAlignment.Center
         };
-        Grid.SetColumn(usage, 2);
+        Grid.SetColumn(usage, 1);
         headerContent.Children.Add(usage);
         var preferred = new Button
         {
-            Content = subgenre.IsPreferred ? "★" : "☆",
             Width = 28,
             Height = 24,
             Padding = new Avalonia.Thickness(0),
             Background = Brushes.Transparent,
             BorderThickness = new Avalonia.Thickness(0),
-            Foreground = subgenre.IsPreferred
-                ? ThemeResources.Brush("Theme.Brush.AccentStrong")
-                : ThemeResources.Brush("Theme.Brush.TextMuted"),
-            FontSize = 14,
-            Opacity = subgenre.IsPreferred ? 1 : 0.54,
             HorizontalContentAlignment = HorizontalAlignment.Center,
-            VerticalContentAlignment = VerticalAlignment.Center
+            VerticalContentAlignment = VerticalAlignment.Center,
+            Content = new Avalonia.Controls.Shapes.Ellipse
+            {
+                Width = 9,
+                Height = 9,
+                Fill = subgenre.IsPreferred
+                    ? new SolidColorBrush(Color.Parse("#FF78A9E6"))
+                    : Brushes.Transparent,
+                Stroke = subgenre.IsPreferred
+                    ? new SolidColorBrush(Color.Parse("#FFD5E8FF"))
+                    : new SolidColorBrush(Color.Parse("#90AEB7C2")),
+                StrokeThickness = 1
+            }
         };
-        Grid.SetColumn(preferred, 3);
+        Grid.SetColumn(preferred, 2);
         headerContent.Children.Add(preferred);
         ToolTip.SetTip(preferred, subgenre.IsPreferred ? "Remove from preferred genres" : "Add to preferred genres");
         preferred.Click += (_, e) =>
@@ -301,17 +302,8 @@ public partial class SettingsOverlay : UserControl
             e.Handled = true;
         };
         header.Child = headerContent;
-        header.PointerPressed += (_, e) =>
-        {
-            if (!_expandedSubgenreIds.Add(subgenre.Id))
-                _expandedSubgenreIds.Remove(subgenre.Id);
-            RebuildGenreVocabularyRows();
-            e.Handled = true;
-        };
         panel.Children.Add(header);
-
-        if (expanded)
-            panel.Children.Add(CreateExpandedSubgenreContent(subgenre));
+        panel.Children.Add(CreateExpandedSubgenreContent(subgenre, editing, title as TextBox));
 
         return new Border
         {
@@ -321,25 +313,71 @@ public partial class SettingsOverlay : UserControl
         };
     }
 
-    private Control CreateExpandedSubgenreContent(ModelSubgenre subgenre)
+    private Control CreateExpandedSubgenreContent(ModelSubgenre subgenre, bool editing, TextBox? nameBox)
     {
-        var nameBox = CreateSettingsTextBox(subgenre.Name, "Subgenre name");
-        var descriptionBox = new TextBox
+        TextBox? descriptionBox = null;
+        var details = new StackPanel { Spacing = 9 };
+        var descriptionHeader = new Grid { ColumnDefinitions = new ColumnDefinitions("*,Auto") };
+        descriptionHeader.Children.Add(new TextBlock
         {
-            Text = subgenre.Description ?? string.Empty,
-            Watermark = "Add a concise description…",
-            AcceptsReturn = true,
-            TextWrapping = TextWrapping.Wrap,
-            Height = 80,
-            MinHeight = 70,
-            Padding = new Avalonia.Thickness(9, 7),
-            FontSize = 11
+            Text = "DESCRIPTION",
+            FontSize = 9,
+            Opacity = 0.42,
+            FontWeight = FontWeight.SemiBold,
+            VerticalAlignment = VerticalAlignment.Center
+        });
+        var edit = new Button
+        {
+            Content = editing ? "Cancel" : "Edit",
+            MinWidth = 46,
+            Height = 25,
+            Padding = new Avalonia.Thickness(8, 2),
+            FontSize = 10,
+            Background = Brushes.Transparent,
+            BorderBrush = ThemeResources.Brush("Theme.Brush.BorderSubtle"),
+            BorderThickness = new Avalonia.Thickness(1),
+            CornerRadius = new Avalonia.CornerRadius(1)
         };
-        descriptionBox.Classes.Add("settings-input");
+        Grid.SetColumn(edit, 1);
+        descriptionHeader.Children.Add(edit);
+        edit.Click += (_, _) =>
+        {
+            if (!_editingSubgenreIds.Add(subgenre.Id))
+                _editingSubgenreIds.Remove(subgenre.Id);
+            RebuildGenreVocabularyRows();
+        };
+        details.Children.Add(descriptionHeader);
 
-        var details = new StackPanel { Spacing = 10 };
-        details.Children.Add(CreateLabeledField("Name", nameBox));
-        details.Children.Add(CreateLabeledField("Description", descriptionBox));
+        if (editing)
+        {
+            descriptionBox = new TextBox
+            {
+                Text = subgenre.Description ?? string.Empty,
+                Watermark = "Add a concise description…",
+                AcceptsReturn = true,
+                TextWrapping = TextWrapping.Wrap,
+                Height = 64,
+                MinHeight = 56,
+                Padding = new Avalonia.Thickness(9, 6),
+                FontSize = 10.5,
+                VerticalContentAlignment = VerticalAlignment.Top
+            };
+            descriptionBox.Classes.Add("settings-input");
+            details.Children.Add(descriptionBox);
+        }
+        else
+        {
+            details.Children.Add(new TextBlock
+            {
+                Text = string.IsNullOrWhiteSpace(subgenre.Description)
+                    ? "No description."
+                    : subgenre.Description,
+                FontSize = 10.5,
+                Opacity = string.IsNullOrWhiteSpace(subgenre.Description) ? 0.42 : 0.74,
+                TextWrapping = TextWrapping.Wrap,
+                Margin = new Avalonia.Thickness(1, 0, 1, 2)
+            });
+        }
 
         var referenceSection = new StackPanel { Spacing = 5 };
         referenceSection.Children.Add(new TextBlock
@@ -368,27 +406,31 @@ public partial class SettingsOverlay : UserControl
         }
         details.Children.Add(referenceSection);
 
-        var save = new Button
+        if (editing)
         {
-            Content = "Save genre",
-            HorizontalAlignment = HorizontalAlignment.Right
-        };
-        save.Classes.Add("settings-action");
-        save.Click += (_, _) =>
-        {
-            try
+            var save = new Button
             {
-                MusicLibraryService.Current.UpdateModelSubgenreDetails(
-                    subgenre.Id, nameBox.Text ?? subgenre.Name, descriptionBox.Text);
-                ToastRequested?.Invoke($"Saved {nameBox.Text?.Trim()}.");
-                ReloadGenreVocabulary();
-            }
-            catch (Exception exception)
+                Content = "Save genre",
+                HorizontalAlignment = HorizontalAlignment.Right
+            };
+            save.Classes.Add("settings-action");
+            save.Click += (_, _) =>
             {
-                ToastRequested?.Invoke($"Could not save genre: {exception.Message}");
-            }
-        };
-        details.Children.Add(save);
+                try
+                {
+                    MusicLibraryService.Current.UpdateModelSubgenreDetails(
+                        subgenre.Id, nameBox?.Text ?? subgenre.Name, descriptionBox?.Text);
+                    _editingSubgenreIds.Remove(subgenre.Id);
+                    ToastRequested?.Invoke($"Saved {nameBox?.Text?.Trim()}.");
+                    ReloadGenreVocabulary();
+                }
+                catch (Exception exception)
+                {
+                    ToastRequested?.Invoke($"Could not save genre: {exception.Message}");
+                }
+            };
+            details.Children.Add(save);
+        }
 
         return new Border
         {
@@ -402,35 +444,17 @@ public partial class SettingsOverlay : UserControl
 
     private Button CreateReferenceTrackButton(GenreReferenceTrack reference)
     {
-        var content = new Grid { ColumnDefinitions = new ColumnDefinitions("18,*"), ColumnSpacing = 8 };
-        content.Children.Add(new TextBlock
+        var label = new TextBlock
         {
-            Text = "▶",
-            FontSize = 9,
-            Foreground = ThemeResources.Brush("Theme.Brush.AccentStrong"),
-            VerticalAlignment = VerticalAlignment.Center
-        });
-        var labels = new StackPanel { Spacing = 1 };
-        labels.Children.Add(new TextBlock
-        {
-            Text = reference.Title,
-            FontSize = 10.5,
-            FontWeight = FontWeight.SemiBold,
-            TextTrimming = TextTrimming.CharacterEllipsis
-        });
-        labels.Children.Add(new TextBlock
-        {
-            Text = string.IsNullOrWhiteSpace(reference.Artist) ? "Unknown artist" : reference.Artist,
-            FontSize = 9.5,
-            Opacity = 0.5,
-            TextTrimming = TextTrimming.CharacterEllipsis
-        });
-        Grid.SetColumn(labels, 1);
-        content.Children.Add(labels);
+            Text = $"{reference.Title}  by  {reference.DisplayArtist}",
+            FontSize = 10,
+            TextTrimming = TextTrimming.CharacterEllipsis,
+            Opacity = 0.78
+        };
         var button = new Button
         {
-            Content = content,
-            Padding = new Avalonia.Thickness(8, 5),
+            Content = label,
+            Padding = new Avalonia.Thickness(7, 4),
             HorizontalAlignment = HorizontalAlignment.Stretch,
             HorizontalContentAlignment = HorizontalAlignment.Stretch,
             Background = Brushes.Transparent,

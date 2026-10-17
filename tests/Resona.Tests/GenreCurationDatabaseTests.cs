@@ -90,6 +90,11 @@ public sealed class GenreCurationDatabaseTests : IDisposable
             );
             INSERT INTO ratings (name, sort_order) VALUES ('Good', 1), ('Timeless', 2);
 
+            CREATE TABLE channels (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                name TEXT NOT NULL
+            );
+
             CREATE TABLE model_genres (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
                 name TEXT NOT NULL UNIQUE
@@ -111,6 +116,7 @@ public sealed class GenreCurationDatabaseTests : IDisposable
             CREATE TABLE tracks (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
                 rating_id INTEGER NULL REFERENCES ratings(id),
+                channel_id INTEGER NULL REFERENCES channels(id),
                 title TEXT NOT NULL,
                 artist TEXT NULL,
                 file_name TEXT NOT NULL UNIQUE,

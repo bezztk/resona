@@ -229,8 +229,8 @@
 
         <!-- Settings content -->
         <Grid Grid.Column="2" RowDefinitions="Auto,1,*,Auto">
-            <Grid Grid.Row="0" ColumnDefinitions="*,320,Auto" ColumnSpacing="12" Margin="30,20,22,16">
-                <StackPanel Spacing="2">
+            <Grid Grid.Row="0" ColumnDefinitions="*,320,Auto" ColumnSpacing="12" Margin="30,16,22,16">
+                <StackPanel Spacing="2" VerticalAlignment="Center">
                     <TextBlock x:Name="PageTitleText" FontSize="18" FontWeight="SemiBold"/>
                     <TextBlock x:Name="PageDescriptionText" FontSize="11" Opacity="0.58" TextWrapping="Wrap"/>
                 </StackPanel>
@@ -271,18 +271,19 @@
             <Rectangle Grid.Row="1" Fill="#18808080"/>
 
             <Grid x:Name="GenreVocabularyPage" Grid.Row="2"
-                  Margin="30,22,30,0" MaxWidth="960" HorizontalAlignment="Center">
-                <Grid ColumnDefinitions="300,21,*">
-                    <ScrollViewer Padding="0,0,14,0" HorizontalScrollBarVisibility="Disabled">
+                  HorizontalAlignment="Stretch">
+                <Grid ColumnDefinitions="200,1,*">
+                    <ScrollViewer Padding="22,12,14,0" HorizontalScrollBarVisibility="Disabled">
                         <StackPanel x:Name="GenreGroupRows"/>
                     </ScrollViewer>
                     <Border Grid.Column="1" Width="1"
-                            Background="#80656A72"
-                            Margin="10,0"/>
-                    <ScrollViewer Grid.Column="2" Padding="10,0,16,0"
+                            Background="#80656A72"/>
+                    <ScrollViewer Grid.Column="2" Padding="20,12,16,0"
                                   HorizontalScrollBarVisibility="Disabled"
                                   VerticalContentAlignment="Top">
                         <StackPanel x:Name="GenreVocabularyRows"
+                                    MaxWidth="500"
+                                    HorizontalAlignment="Stretch"
                                     Spacing="6"
                                     VerticalAlignment="Top"
                                     Margin="0,0,0,18"/>

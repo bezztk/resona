@@ -2638,9 +2638,10 @@ public class MusicDatabase
         using var conn = Open();
         using var cmd = conn.CreateCommand();
         cmd.CommandText = @"
-            SELECT tracks.id, tracks.title, tracks.artist, tracks.file_name
+            SELECT tracks.id, tracks.title, tracks.artist, channels.name, tracks.file_name
             FROM track_genres
             JOIN tracks ON tracks.id = track_genres.track_id
+            LEFT JOIN channels ON channels.id = tracks.channel_id
             WHERE track_genres.genre_id = $genreId
               AND track_genres.is_enabled = 1
               AND track_genres.is_reference = 1
@@ -2652,7 +2653,9 @@ public class MusicDatabase
         while (reader.Read())
             tracks.Add(new GenreReferenceTrack(
                 reader.GetInt32(0), reader.GetString(1),
-                reader.IsDBNull(2) ? null : reader.GetString(2), reader.GetString(3)));
+                reader.IsDBNull(2) ? null : reader.GetString(2),
+                reader.IsDBNull(3) ? null : reader.GetString(3),
+                reader.GetString(4)));
         return tracks;
     }
 
