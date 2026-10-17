@@ -3931,28 +3931,7 @@ public partial class MusicView : UserControl
 
     private FilterSection CreateLanguageFilterSection(MultiSelectFilterControl languageCtrl)
     {
-        var expanded = false;
-        var contentPanel = new StackPanel { Spacing = 7, IsVisible = false };
-        var chevron = new Avalonia.Controls.Shapes.Path
-        {
-            Width = 5,
-            Height = 9,
-            HorizontalAlignment = HorizontalAlignment.Center,
-            VerticalAlignment = VerticalAlignment.Center,
-            Data = Geometry.Parse("M 0 0 L 4 4.5 L 0 9"),
-            Stroke = ThemeResources.Brush("Theme.Brush.TextSecondary"),
-            StrokeThickness = 1,
-            RenderTransformOrigin = RelativePoint.Center,
-            RenderTransform = new RotateTransform(0)
-        };
-        var chevronContainer = new Border
-        {
-            Width = 14,
-            Height = 14,
-            HorizontalAlignment = HorizontalAlignment.Center,
-            VerticalAlignment = VerticalAlignment.Center,
-            Child = chevron
-        };
+        var contentPanel = new StackPanel { Spacing = 7 };
         var selectedSummary = new TextBlock
         {
             FontSize = 9.5,
@@ -3961,10 +3940,9 @@ public partial class MusicView : UserControl
         };
         var headerGrid = new Grid
         {
-            ColumnDefinitions = new ColumnDefinitions("Auto,*,Auto"),
+            ColumnDefinitions = new ColumnDefinitions("*,Auto"),
             ColumnSpacing = 6
         };
-        headerGrid.Children.Add(chevronContainer);
         var title = new TextBlock
         {
             Text = "Languages",
@@ -3972,14 +3950,12 @@ public partial class MusicView : UserControl
             FontWeight = FontWeight.SemiBold,
             VerticalAlignment = VerticalAlignment.Center
         };
-        Grid.SetColumn(title, 1);
         headerGrid.Children.Add(title);
-        Grid.SetColumn(selectedSummary, 2);
+        Grid.SetColumn(selectedSummary, 1);
         headerGrid.Children.Add(selectedSummary);
         var header = new Border
         {
             Background = Brushes.Transparent,
-            Cursor = new Cursor(StandardCursorType.Hand),
             Padding = new Thickness(0, 3),
             Child = headerGrid
         };
@@ -4034,14 +4010,6 @@ public partial class MusicView : UserControl
 
             contentPanel.Children.Add(rows);
         }
-
-        header.PointerPressed += (_, e) =>
-        {
-            expanded = !expanded;
-            contentPanel.IsVisible = expanded;
-            ((RotateTransform)chevron.RenderTransform!).Angle = expanded ? 90 : 0;
-            e.Handled = true;
-        };
 
         RebuildLanguages();
         var border = new Border

@@ -626,12 +626,15 @@
                                                                   Gap="6"
                                                                   HorizontalAlignment="Stretch">
                                             <TextBlock
-                                                       Text="{Binding Track.DisplayTitle}"
                                                        Foreground="{Binding TitleBrush}"
                                                        FontSize="13.5"
                                                        FontWeight="SemiBold"
                                                        VerticalAlignment="Center"
-                                                       TextTrimming="CharacterEllipsis"/>
+                                                       TextTrimming="CharacterEllipsis">
+                                                <Run Text="{Binding ArtistText}" Foreground="#A6ADB3"/>
+                                                <Run Text="{Binding ArtistTitleSeparatorText}" Foreground="#C2C3BE"/>
+                                                <Run Text="{Binding TrackTitleText}" Foreground="{Binding TitleBrush}"/>
+                                            </TextBlock>
                                             <views:TrackTagSummaryControl Tags="{Binding TagDisplays}"
                                                                           Margin="0,0,8,0"
                                                                           HorizontalAlignment="Stretch"
