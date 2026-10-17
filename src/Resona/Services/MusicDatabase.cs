@@ -203,6 +203,7 @@ public class MusicDatabase
                 bpm_min         INTEGER NULL,
                 bpm_max         INTEGER NULL,
                 is_preferred    INTEGER NOT NULL DEFAULT 0,
+                is_manual       INTEGER NOT NULL DEFAULT 0,
                 UNIQUE (model_genre_id, name)
             );
 
@@ -295,8 +296,11 @@ public class MusicDatabase
         EnsureColumn(conn, "model_subgenres", "bpm_min", "INTEGER NULL");
         EnsureColumn(conn, "model_subgenres", "bpm_max", "INTEGER NULL");
         EnsureColumn(conn, "model_subgenres", "is_preferred", "INTEGER NOT NULL DEFAULT 0");
+        var hadManualGenreFlag = ColumnExists(conn, "model_subgenres", "is_manual");
         EnsureTrackGenreSourceSchema(conn);
         EnsureGenreCurationSchema(conn);
+        if (!hadManualGenreFlag)
+            BackfillManualSubgenres(conn);
         RenameLegacySkipRating(conn);
         DropTrackWorkflowGuards(conn);
         NormalizeTrackWorkflowState(conn);
@@ -315,6 +319,7 @@ public class MusicDatabase
     internal static void EnsureGenreCurationSchema(SqliteConnection conn)
     {
         EnsureColumn(conn, "model_subgenres", "is_preferred", "INTEGER NOT NULL DEFAULT 0");
+        EnsureColumn(conn, "model_subgenres", "is_manual", "INTEGER NOT NULL DEFAULT 0");
         EnsureColumn(conn, "track_genres", "is_reference", "INTEGER NOT NULL DEFAULT 0");
         ExecuteNonQuery(conn, @"
             UPDATE track_genres SET is_reference = 0 WHERE is_enabled = 0;
@@ -343,6 +348,18 @@ public class MusicDatabase
                         THEN RAISE(ABORT, 'a genre can have at most five reference tracks')
                 END;
             END;");
+    }
+
+    private static void BackfillManualSubgenres(SqliteConnection conn)
+    {
+        ExecuteNonQuery(conn, "UPDATE model_subgenres SET is_manual = 1");
+        foreach (var item in ReadAsset<List<ModelSubgenreMetadataSeed>>("Models/maest-genre-metadata.json"))
+            ExecuteNonQuery(conn, @"
+                UPDATE model_subgenres
+                SET is_manual = 0
+                WHERE name = $subgenre
+                  AND model_genre_id = (SELECT id FROM model_genres WHERE name = $genre)",
+                ("$genre", item.Genre), ("$subgenre", item.Subgenre));
     }
 
     private static void CreateCollectionSchema(SqliteConnection conn)
@@ -2576,7 +2593,7 @@ public class MusicDatabase
     {
         using var conn = Open();
         using var cmd = conn.CreateCommand();
-        cmd.CommandText = @"SELECT id, model_genre_id, name, description, classification_hint, bpm_min, bpm_max, is_preferred
+        cmd.CommandText = @"SELECT id, model_genre_id, name, description, classification_hint, bpm_min, bpm_max, is_preferred, is_manual
                             FROM model_subgenres
                             WHERE $modelGenreId IS NULL OR model_genre_id = $modelGenreId
                             ORDER BY name";
@@ -2589,7 +2606,8 @@ public class MusicDatabase
             reader.IsDBNull(4) ? null : reader.GetString(4),
             reader.IsDBNull(5) ? null : reader.GetInt32(5),
             reader.IsDBNull(6) ? null : reader.GetInt32(6),
-            reader.GetInt32(7) != 0));
+            reader.GetInt32(7) != 0,
+            reader.GetInt32(8) != 0));
         return subgenres;
     }
 
@@ -2763,8 +2781,8 @@ public class MusicDatabase
     {
         using var conn = Open();
         ExecuteNonQuery(conn, @"
-            INSERT INTO model_subgenres (model_genre_id, name)
-            VALUES ($modelGenreId, $name)",
+            INSERT INTO model_subgenres (model_genre_id, name, is_manual)
+            VALUES ($modelGenreId, $name, 1)",
             ("$modelGenreId", modelGenreId), ("$name", name.Trim()));
     }
 

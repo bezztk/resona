@@ -32,6 +32,15 @@ public sealed class GenreCurationDatabaseTests : IDisposable
     }
 
     [Fact]
+    public void Newly_created_subgenres_are_persisted_as_manual()
+    {
+        _database.AddModelSubgenre(1, "Handmade genre");
+
+        var genre = _database.GetModelSubgenres().Single(item => item.Name == "Handmade genre");
+        Assert.True(genre.IsManual);
+    }
+
+    [Fact]
     public void Reference_limit_is_enforced_and_disabling_assignment_clears_reference()
     {
         var genreId = GenreId("Ambient");

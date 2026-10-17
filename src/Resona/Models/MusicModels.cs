@@ -163,7 +163,8 @@ public record ModelSubgenre(
     string? ClassificationHint = null,
     int? BpmMin = null,
     int? BpmMax = null,
-    bool IsPreferred = false);
+    bool IsPreferred = false,
+    bool IsManual = false);
 public record ModelSubgenreDistinction(
     int ModelSubgenreId,
     int DistinguishFromModelSubgenreId,

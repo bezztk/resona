@@ -253,14 +253,16 @@ public partial class SettingsOverlay : UserControl
             ColumnDefinitions = new ColumnDefinitions("*,Auto,Auto,28"),
             ColumnSpacing = 8
         };
-        Control title;
-        if (editing)
+        TextBox? nameBox = null;
+        Control titleName;
+        if (editing && subgenre.IsManual)
         {
-            title = CreateSettingsTextBox(subgenre.Name, "Subgenre name");
+            nameBox = CreateSettingsTextBox(subgenre.Name, "Subgenre name");
+            titleName = nameBox;
         }
         else
         {
-            title = new TextBlock
+            titleName = new TextBlock
             {
                 Text = subgenre.Name,
                 FontSize = 12,
@@ -269,6 +271,22 @@ public partial class SettingsOverlay : UserControl
                 TextTrimming = TextTrimming.CharacterEllipsis,
                 VerticalAlignment = VerticalAlignment.Center
             };
+        }
+        var title = new Grid { ColumnDefinitions = new ColumnDefinitions("*,Auto"), ColumnSpacing = 5 };
+        title.Children.Add(titleName);
+        if (subgenre.IsManual)
+        {
+            var manualLabel = new TextBlock
+            {
+                Text = "· manual",
+                FontSize = 8.5,
+                FontWeight = FontWeight.Normal,
+                Foreground = ThemeResources.Brush("Theme.Brush.TextMuted"),
+                Opacity = 0.52,
+                VerticalAlignment = VerticalAlignment.Center
+            };
+            Grid.SetColumn(manualLabel, 1);
+            title.Children.Add(manualLabel);
         }
         headerContent.Children.Add(title);
         var usageCount = _genreUsageCounts.GetValueOrDefault(subgenre.Id);
@@ -342,7 +360,7 @@ public partial class SettingsOverlay : UserControl
         };
         header.Child = headerContent;
         panel.Children.Add(header);
-        panel.Children.Add(CreateExpandedSubgenreContent(subgenre, editing, title as TextBox));
+        panel.Children.Add(CreateExpandedSubgenreContent(subgenre, editing, nameBox));
 
         return new Border
         {
