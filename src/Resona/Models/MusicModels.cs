@@ -75,17 +75,10 @@ public static class TrackLanguageCatalog
 {
     public static readonly IReadOnlyList<TrackLanguage> All =
     [
-        new("zxx", "Instrumental"), new("mul", "Mixed / multilingual"),
+        new("mul", "Multilingual"), new("ar", "Arabic"), new("fa", "Persian"),
         new("en", "English"), new("de", "German"), new("es", "Spanish"),
-        new("pt-BR", "Portuguese (Brazil)"), new("fr", "French"), new("it", "Italian"),
-        new("nl", "Dutch"), new("ru", "Russian"), new("uk", "Ukrainian"),
-        new("pl", "Polish"), new("tr", "Turkish"), new("ar", "Arabic"),
-        new("fa", "Persian"), new("hi", "Hindi"), new("bn", "Bengali"),
-        new("zh", "Mandarin Chinese"), new("ja", "Japanese"), new("ko", "Korean"),
-        new("vi", "Vietnamese"), new("th", "Thai"), new("id", "Indonesian"),
-        new("sv", "Swedish"), new("no", "Norwegian"), new("fi", "Finnish"),
-        new("el", "Greek"), new("he", "Hebrew"), new("ro", "Romanian"),
-        new("cs", "Czech"), new("sr", "Serbian")
+        new("fr", "French"), new("ru", "Russian"), new("tr", "Turkish"),
+        new("cn", "Chinese"), new("ja", "Japanese"), new("ko", "Korean")
     ];
 
     public static string? Name(string? code) => All
