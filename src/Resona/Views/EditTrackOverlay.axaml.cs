@@ -1552,12 +1552,13 @@ public partial class EditTrackOverlay : UserControl
         if (_modelSubgenresById.Count == 0)
         {
             AddModelGenreSection.IsVisible = false;
+            ManageGenresButton.IsVisible = false;
             return;
         }
 
         AddModelGenreSection.IsVisible = true;
+        ManageGenresButton.IsVisible = true;
         var availableGenres = _modelSubgenresById.Values.ToList();
-        ((RotateTransform)AllGenresChevron.RenderTransform!).Angle = _areAllGenresExpanded ? 90 : 0;
         AllGenresPanel.IsVisible = _areAllGenresExpanded;
 
         ModelGenreGroupsPanel.Children.Clear();
@@ -1711,14 +1712,13 @@ public partial class EditTrackOverlay : UserControl
         check.IsVisible = selected;
     }
 
-    private void OnAllGenresHeaderPressed(object? sender, PointerPressedEventArgs e)
+    private void OnManageGenresClicked(object? sender, RoutedEventArgs e)
     {
         if (_track is null)
             return;
 
         _areAllGenresExpanded = !_areAllGenresExpanded;
         RebuildModelGenreChoices();
-        e.Handled = true;
     }
 
     private void OnModelGenreSearchChanged(object? sender, TextChangedEventArgs e)
