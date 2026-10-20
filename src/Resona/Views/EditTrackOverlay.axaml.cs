@@ -163,7 +163,7 @@ public partial class EditTrackOverlay : UserControl
         _areLanguagesExpanded = false;
         SetAnalysisDetailsExpanded(false);
         SetStylesExpanded(false);
-        SetTagsExpanded(false);
+        SetTagsExpanded(true);
         LoadLookups();
         Prefill(track);
         _preparedTrackId = track.Id;

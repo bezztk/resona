@@ -41,7 +41,7 @@
     </UserControl.Styles>
 
     <Border BorderBrush="#14FFFFFF" BorderThickness="0,0,0,1">
-    <Grid RowDefinitions="Auto,*">
+    <Grid RowDefinitions="62,*">
         <Rectangle x:Name="ImportAtmosphereTint"
                    Grid.RowSpan="2"
                    Opacity="0.12"
@@ -55,7 +55,7 @@
             </Rectangle.Fill>
         </Rectangle>
 
-        <Border Grid.Row="0" Background="Transparent" BorderBrush="{DynamicResource Theme.Brush.Border}" BorderThickness="0,0,0,1" Padding="26,16">
+        <Border Grid.Row="0" Background="Transparent" BorderBrush="{DynamicResource Theme.Brush.Border}" BorderThickness="0,0,0,1" Padding="20,12">
             <Grid ColumnDefinitions="*,Auto">
                 <TextBlock Text="Import"
                            FontSize="18"
