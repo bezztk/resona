@@ -296,7 +296,6 @@ public class MusicDatabase
         EnsureColumn(conn, "tracks", "artist", "TEXT NULL");
         EnsureColumn(conn, "tracks", "rating_band", "TEXT NULL");
         EnsureColumn(conn, "ratings", "display_name", "TEXT NOT NULL DEFAULT ''");
-        EnsureCurrentRatings(conn);
         EnsureColumn(conn, "tracks", "is_public", "INTEGER NOT NULL DEFAULT 1");
         EnsureColumn(conn, "tracks", "needs_reevaluation", "INTEGER NOT NULL DEFAULT 0");
         EnsureColumn(conn, "track_analysis", "analysis_duration_ms", "INTEGER NULL");
@@ -579,53 +578,6 @@ public class MusicDatabase
             )");
         tx.Commit();
     }
-
-    internal static void EnsureCurrentRatings(SqliteConnection conn)
-    {
-        EnsureColumn(conn, "ratings", "display_name", "TEXT NOT NULL DEFAULT ''");
-        using var tx = conn.BeginTransaction();
-        ExecuteInsert(conn, tx, @"
-            UPDATE tracks
-            SET rating_id = NULL, rating_band = NULL
-            WHERE rating_id IN (SELECT id FROM ratings WHERE name IN ('Avoid', 'Skip'))");
-        ExecuteInsert(conn, tx, "DELETE FROM ratings WHERE name IN ('Avoid', 'Skip')");
-        ExecuteInsert(conn, tx, @"
-            UPDATE tracks
-            SET rating_id = (SELECT id FROM ratings WHERE name = $timeless)
-            WHERE rating_id = (SELECT id FROM ratings WHERE name = 'Favorite')
-              AND EXISTS (SELECT 1 FROM ratings WHERE name = $timeless)",
-            ("$timeless", RatingNames.Timeless));
-        ExecuteInsert(conn, tx, @"
-            DELETE FROM ratings
-            WHERE name = 'Favorite'
-              AND EXISTS (SELECT 1 FROM ratings WHERE name = $timeless)",
-            ("$timeless", RatingNames.Timeless));
-        ExecuteInsert(conn, tx, @"
-            UPDATE ratings SET name = $timeless
-            WHERE name = 'Favorite'
-              AND NOT EXISTS (SELECT 1 FROM ratings WHERE name = $timeless)",
-            ("$timeless", RatingNames.Timeless));
-        ExecuteInsert(conn, tx, "UPDATE ratings SET sort_order = sort_order + 1000");
-        UpsertRating(conn, tx, RatingNames.Okay, "Brauchbar", 1);
-        UpsertRating(conn, tx, RatingNames.Good, "Gelungen", 2);
-        UpsertRating(conn, tx, RatingNames.Great, "Ausgezeichnet", 3);
-        UpsertRating(conn, tx, RatingNames.Amazing, "Herausragend", 4);
-        UpsertRating(conn, tx, RatingNames.Timeless, "Unvergleichlich", 5);
-        tx.Commit();
-    }
-
-    private static void UpsertRating(
-        SqliteConnection conn,
-        SqliteTransaction tx,
-        string name,
-        string displayName,
-        int sortOrder) => ExecuteInsert(conn, tx, @"
-            INSERT INTO ratings (name, display_name, sort_order)
-            VALUES ($name, $displayName, $sortOrder)
-            ON CONFLICT(name) DO UPDATE SET
-                display_name = excluded.display_name,
-                sort_order = excluded.sort_order",
-        ("$name", name), ("$displayName", displayName), ("$sortOrder", sortOrder));
 
     private static void CreateTagSchema(SqliteConnection conn)
     {

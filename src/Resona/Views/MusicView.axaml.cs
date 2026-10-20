@@ -4740,6 +4740,7 @@ public partial class MusicView : UserControl
         UpdateUpcomingBar();
         UpdateButtonStates();
         RefreshPlayingMarkers();
+        SettingsOverlay.NotifyReferencePreviewStopped();
     }
 
     private void AbandonTrackPreview()
@@ -4748,6 +4749,7 @@ public partial class MusicView : UserControl
         _isTrackPreviewActive = false;
         _previewTrackId = -1;
         _isSeeking = false;
+        SettingsOverlay.NotifyReferencePreviewStopped();
     }
 
     // ─── Engine events ────────────────────────────────────────────────────────

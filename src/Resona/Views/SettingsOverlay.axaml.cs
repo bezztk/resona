@@ -45,6 +45,7 @@ public partial class SettingsOverlay : UserControl
     private bool _loadingDiscordPresenceSettings;
     private bool _loadingBrowserCookieSettings;
     private bool _hasStartedReferencePreview;
+    private int? _activeReferencePreviewTrackId;
     private bool _preferredGenresFirst;
 
     public event Action<string>? ToastRequested;
@@ -226,11 +227,31 @@ public partial class SettingsOverlay : UserControl
         });
         Grid.SetColumn(stats, 1);
         row.Children.Add(stats);
+        var preferredFirst = new ToggleButton
+        {
+            Content = "Preferred first",
+            Height = 26,
+            Padding = new Avalonia.Thickness(8, 2),
+            FontSize = 9.5,
+            IsChecked = _preferredGenresFirst,
+            Background = Brushes.Transparent,
+            BorderBrush = ThemeResources.Brush("Theme.Brush.BorderSubtle"),
+            BorderThickness = new Avalonia.Thickness(1),
+            CornerRadius = new Avalonia.CornerRadius(1),
+            HorizontalAlignment = HorizontalAlignment.Right,
+            HorizontalContentAlignment = HorizontalAlignment.Center,
+            VerticalContentAlignment = VerticalAlignment.Center
+        };
+        ToolTip.SetTip(preferredFirst, "Show preferred genres before other genres");
+        preferredFirst.Click += OnPreferredFirstClicked;
+        var content = new StackPanel { Spacing = 8 };
+        content.Children.Add(row);
+        content.Children.Add(preferredFirst);
         return new Border
         {
             Padding = new Avalonia.Thickness(2, 3, 2, 9),
             Margin = new Avalonia.Thickness(0, 0, 0, 3),
-            Child = row
+            Child = content
         };
     }
 
@@ -484,12 +505,14 @@ public partial class SettingsOverlay : UserControl
 
     private Control CreateReferenceTrackRow(int genreId, GenreReferenceTrack reference, bool editing)
     {
+        var isActivePreview = _activeReferencePreviewTrackId == reference.TrackId;
         var label = new TextBlock
         {
-            Text = $"{reference.Title}  by  {reference.DisplayArtist}",
+            Text = $"{(isActivePreview ? "■" : "▶")}  {reference.Title}  by  {reference.DisplayArtist}",
             FontSize = 10,
             TextTrimming = TextTrimming.CharacterEllipsis,
-            Opacity = 0.78
+            Opacity = isActivePreview ? 1 : 0.78,
+            Foreground = isActivePreview ? ThemeResources.Brush("Theme.Brush.Accent") : null
         };
         var button = new Button
         {
@@ -497,21 +520,38 @@ public partial class SettingsOverlay : UserControl
             Padding = new Avalonia.Thickness(7, 4),
             HorizontalAlignment = HorizontalAlignment.Stretch,
             HorizontalContentAlignment = HorizontalAlignment.Stretch,
-            Background = Brushes.Transparent,
-            BorderBrush = ThemeResources.Brush("Theme.Brush.BorderSubtle"),
+            Background = isActivePreview
+                ? new SolidColorBrush(Color.Parse("#2638BDF8"))
+                : Brushes.Transparent,
+            BorderBrush = isActivePreview
+                ? new SolidColorBrush(Color.Parse("#7A38BDF8"))
+                : ThemeResources.Brush("Theme.Brush.BorderSubtle"),
             BorderThickness = new Avalonia.Thickness(1),
             CornerRadius = new Avalonia.CornerRadius(1)
         };
         button.Click += (_, _) =>
         {
+            if (_activeReferencePreviewTrackId == reference.TrackId)
+            {
+                StopReferencePreview();
+                return;
+            }
+
             var track = MusicLibraryService.Current.GetTrackById(reference.TrackId);
             if (track is null)
             {
                 ToastRequested?.Invoke("The reference track is no longer available.");
                 return;
             }
+            if (!File.Exists(System.IO.Path.Combine(Values.TracksDirectory, track.FileName)))
+            {
+                ToastRequested?.Invoke("The audio file for this track is not available.");
+                return;
+            }
             _hasStartedReferencePreview = true;
+            _activeReferencePreviewTrackId = reference.TrackId;
             ReferencePreviewRequested?.Invoke(track);
+            RebuildEditSubgenreReferences(genreId);
         };
         if (!editing)
             return button;
@@ -544,6 +584,8 @@ public partial class SettingsOverlay : UserControl
         {
             try
             {
+                if (_activeReferencePreviewTrackId == reference.TrackId)
+                    StopReferencePreview();
                 MusicLibraryService.Current.SetTrackGenreReference(reference.TrackId, genreId, false);
                 if (_genreReferenceTracks.TryGetValue(genreId, out var cached))
                     cached.RemoveAll(item => item.TrackId == reference.TrackId);
@@ -558,6 +600,27 @@ public partial class SettingsOverlay : UserControl
             }
         };
         return row;
+    }
+
+    private void StopReferencePreview()
+    {
+        if (!_hasStartedReferencePreview) return;
+
+        _hasStartedReferencePreview = false;
+        _activeReferencePreviewTrackId = null;
+        ReferencePreviewClosed?.Invoke();
+        if (_editingSubgenreId is int genreId)
+            RebuildEditSubgenreReferences(genreId);
+    }
+
+    public void NotifyReferencePreviewStopped()
+    {
+        if (!_hasStartedReferencePreview && _activeReferencePreviewTrackId is null) return;
+
+        _hasStartedReferencePreview = false;
+        _activeReferencePreviewTrackId = null;
+        if (_editingSubgenreId is int genreId)
+            RebuildEditSubgenreReferences(genreId);
     }
 
     private void RefreshGenreVocabularyChoice(int subgenreId)
@@ -613,7 +676,7 @@ public partial class SettingsOverlay : UserControl
 
     private void OnPreferredFirstClicked(object? sender, RoutedEventArgs e)
     {
-        _preferredGenresFirst = PreferredFirstToggle.IsChecked == true;
+        _preferredGenresFirst = sender is ToggleButton { IsChecked: true };
         RebuildGenreVocabularyRows();
     }
 
@@ -771,6 +834,7 @@ public partial class SettingsOverlay : UserControl
 
     private void OnCancelEditSubgenreClicked(object? sender, RoutedEventArgs e)
     {
+        StopReferencePreview();
         _editingSubgenreId = null;
         EditSubgenreOverlay.IsVisible = false;
     }
@@ -798,6 +862,7 @@ public partial class SettingsOverlay : UserControl
             if (isHidden != subgenre.IsHidden)
                 MusicLibraryService.Current.SetModelSubgenreHidden(id, isHidden);
 
+            StopReferencePreview();
             _editingSubgenreId = null;
             EditSubgenreOverlay.IsVisible = false;
             ReloadGenreVocabulary();
@@ -1839,11 +1904,7 @@ public partial class SettingsOverlay : UserControl
         CreateSubgenreOverlay.IsVisible = false;
         EditSubgenreOverlay.IsVisible = false;
         _editingSubgenreId = null;
-        if (_hasStartedReferencePreview)
-        {
-            _hasStartedReferencePreview = false;
-            ReferencePreviewClosed?.Invoke();
-        }
+        StopReferencePreview();
         IsVisible = false;
     }
 
