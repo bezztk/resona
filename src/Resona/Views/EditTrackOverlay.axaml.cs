@@ -1284,23 +1284,32 @@ public partial class EditTrackOverlay : UserControl
             var enabled = assignment.IsEnabled;
             var container = new Border
             {
-                Background = Brushes.Transparent,
-                BorderThickness = new Avalonia.Thickness(0),
-                Padding = new Avalonia.Thickness(0, 2),
-                Opacity = enabled ? 1 : 0.48
+                Background = assignment.IsReference
+                    ? new SolidColorBrush(Color.Parse("#2638BDF8"))
+                    : Brushes.Transparent,
+                BorderBrush = assignment.IsReference
+                    ? new SolidColorBrush(Color.Parse("#8038BDF8"))
+                    : Brushes.Transparent,
+                BorderThickness = new Avalonia.Thickness(1),
+                CornerRadius = new Avalonia.CornerRadius(2),
+                Padding = new Avalonia.Thickness(8, 3),
+                Opacity = enabled ? 1 : 0.48,
+                Cursor = new Cursor(StandardCursorType.Hand)
             };
             var content = new Grid
             {
-                ColumnDefinitions = new ColumnDefinitions(hasPrediction ? "180,*,48,24,22" : "*,Auto,24,22"),
+                ColumnDefinitions = new ColumnDefinitions(hasPrediction ? "180,*,48" : "*,Auto"),
                 ColumnSpacing = hasPrediction ? 12 : 10,
                 VerticalAlignment = VerticalAlignment.Center
             };
             var genreName = new TextBlock
             {
-                Text = assignment.IsPreferred ? $"★  {assignment.GenreName}" : assignment.GenreName,
+                Text = assignment.GenreName,
                 FontSize = 12,
                 FontWeight = Avalonia.Media.FontWeight.SemiBold,
-                Foreground = ThemeResources.Brush("Theme.Brush.TextStrong"),
+                Foreground = ThemeResources.Brush(assignment.IsPreferred
+                    ? "Theme.Brush.Accent"
+                    : "Theme.Brush.TextStrong"),
                 VerticalAlignment = Avalonia.Layout.VerticalAlignment.Center,
                 TextTrimming = TextTrimming.CharacterEllipsis
             };
@@ -1350,46 +1359,13 @@ public partial class EditTrackOverlay : UserControl
 
             var referenceCount = referenceCounts.GetValueOrDefault(assignment.GenreId);
             var referenceAtLimit = referenceCount >= 5 && !assignment.IsReference;
-            var reference = new Border
+            var referenceAction = new MenuItem
             {
-                Width = 22,
-                Height = 22,
-                Background = Brushes.Transparent,
-                Opacity = referenceAtLimit ? 0.24 : assignment.IsReference ? 1 : 0.5,
-                VerticalAlignment = VerticalAlignment.Center,
-                HorizontalAlignment = HorizontalAlignment.Center,
-                Cursor = new Cursor(StandardCursorType.Hand),
-                Child = new Avalonia.Controls.Shapes.Ellipse
-                {
-                    Width = 9,
-                    Height = 9,
-                    Fill = assignment.IsReference
-                        ? new SolidColorBrush(Color.Parse("#FF78A9E6"))
-                        : Brushes.Transparent,
-                    Stroke = assignment.IsReference
-                        ? new SolidColorBrush(Color.Parse("#FFD5E8FF"))
-                        : new SolidColorBrush(Color.Parse("#90AEB7C2")),
-                    StrokeThickness = 1,
-                    HorizontalAlignment = HorizontalAlignment.Center,
-                    VerticalAlignment = VerticalAlignment.Center
-                }
+                Header = assignment.IsReference ? "Remove reference" : "Mark as reference",
+                IsEnabled = !referenceAtLimit
             };
-            Grid.SetColumn(reference, hasPrediction ? 3 : 2);
-            content.Children.Add(reference);
-            ToolTip.SetTip(reference, assignment.IsReference
-                ? $"Remove as reference track · {referenceCount}/5 references"
-                : referenceAtLimit
-                    ? "Reference limit reached · 5/5 references"
-                    : $"Mark as reference track · {referenceCount}/5 references");
-            reference.PointerPressed += (_, e) =>
+            referenceAction.Click += (_, _) =>
             {
-                if (referenceAtLimit)
-                {
-                    ToastRequested?.Invoke("This genre already has five reference tracks.");
-                    e.Handled = true;
-                    return;
-                }
-
                 try
                 {
                     MusicLibraryService.Current.SetTrackGenreReference(
@@ -1400,38 +1376,28 @@ public partial class EditTrackOverlay : UserControl
                 {
                     ToastRequested?.Invoke(exception.Message);
                 }
-                e.Handled = true;
             };
-
-            var remove = new Border
+            var removeAction = new MenuItem
             {
-                Width = 22,
-                Height = 22,
-                Background = Brushes.Transparent,
-                Opacity = 0.56,
-                VerticalAlignment = VerticalAlignment.Center,
-                HorizontalAlignment = HorizontalAlignment.Center,
-                Cursor = new Cursor(StandardCursorType.Hand),
-                Child = new Avalonia.Svg.Skia.Svg(new Uri("avares://Resona/"))
-                {
-                    Path = "/Assets/close.svg",
-                    Width = 10,
-                    Height = 10,
-                    Stretch = Stretch.Uniform,
-                    HorizontalAlignment = HorizontalAlignment.Center,
-                    VerticalAlignment = VerticalAlignment.Center
-                }
+                Header = "Deselect genre"
             };
-            Grid.SetColumn(remove, hasPrediction ? 4 : 3);
-            content.Children.Add(remove);
-            container.Child = content;
-            remove.PointerPressed += (_, e) =>
+            removeAction.Click += (_, _) =>
             {
                 _pendingEnabledModelGenreIds.Remove(assignment.GenreId);
                 ShowModelSelectedGenres(track);
                 ShowDetectedGenres(track);
                 RebuildModelGenreChoices();
                 AutoSaveChanges();
+            };
+            var actionsMenu = new ContextMenu
+            {
+                Placement = PlacementMode.Pointer,
+                ItemsSource = new object[] { referenceAction, removeAction }
+            };
+            container.Child = content;
+            container.PointerPressed += (_, e) =>
+            {
+                actionsMenu.Open(container);
                 e.Handled = true;
             };
             IEnumerable<int> tooltipIds = hasPrediction
@@ -1517,19 +1483,20 @@ public partial class EditTrackOverlay : UserControl
             };
             var content = new Grid
             {
-                ColumnDefinitions = new ColumnDefinitions("180,*,48,20"),
+                ColumnDefinitions = new ColumnDefinitions("180,*,48"),
                 ColumnSpacing = 12,
                 VerticalAlignment = VerticalAlignment.Center
             };
             var confidenceBrush = AnalysisColorScale.GenreConfidence(prediction.Score);
             content.Children.Add(new TextBlock
             {
-                Text = _modelSubgenresById.GetValueOrDefault(prediction.ModelSubgenreId)?.IsPreferred == true
-                    ? $"★  {prediction.ModelSubgenreName}"
-                    : prediction.ModelSubgenreName,
+                Text = prediction.ModelSubgenreName,
                 FontSize = 11,
                 FontWeight = FontWeight.SemiBold,
-                Foreground = ThemeResources.Brush("Theme.Brush.TextStrong"),
+                Foreground = ThemeResources.Brush(
+                    _modelSubgenresById.GetValueOrDefault(prediction.ModelSubgenreId)?.IsPreferred == true
+                        ? "Theme.Brush.Accent"
+                        : "Theme.Brush.TextStrong"),
                 TextTrimming = TextTrimming.CharacterEllipsis
             });
             var confidenceBar = new ProgressBar
@@ -1555,18 +1522,6 @@ public partial class EditTrackOverlay : UserControl
             };
             Grid.SetColumn(score, 2);
             content.Children.Add(score);
-            var add = new TextBlock
-            {
-                Text = "+",
-                Width = 20,
-                FontSize = 16,
-                Foreground = ThemeResources.Brush("Theme.Brush.TextStrong"),
-                Opacity = 0.58,
-                TextAlignment = TextAlignment.Center,
-                VerticalAlignment = VerticalAlignment.Center
-            };
-            Grid.SetColumn(add, 3);
-            content.Children.Add(add);
             container.Child = content;
             container.PointerPressed += (_, _) =>
             {
@@ -1683,12 +1638,12 @@ public partial class EditTrackOverlay : UserControl
         var selected = _pendingEnabledModelGenreIds.Contains(subgenre.Id);
         var text = new TextBlock
         {
-            Text = subgenre.IsPreferred ? $"★  {subgenre.Name}" : subgenre.Name,
+            Text = subgenre.Name,
             FontSize = 10.5,
             FontWeight = FontWeight.SemiBold,
-            Foreground = ThemeResources.Brush(selected
-                ? "Theme.Brush.TextStrong"
-                : "Theme.Brush.TextPrimary"),
+            Foreground = ThemeResources.Brush(subgenre.IsPreferred
+                ? "Theme.Brush.Accent"
+                : selected ? "Theme.Brush.TextStrong" : "Theme.Brush.TextPrimary"),
             TextTrimming = TextTrimming.CharacterEllipsis,
             HorizontalAlignment = HorizontalAlignment.Center,
             VerticalAlignment = VerticalAlignment.Center,
@@ -1705,7 +1660,7 @@ public partial class EditTrackOverlay : UserControl
             HorizontalContentAlignment = HorizontalAlignment.Center,
             VerticalContentAlignment = VerticalAlignment.Center
         };
-        ApplyModelGenreChoiceVisual(button, text, selected);
+        ApplyModelGenreChoiceVisual(button, text, selected, subgenre.IsPreferred);
         button.Classes.Add("edit-choice");
         ToolTip.SetTip(button, CreateModelMetadataTooltip([subgenre.Id]));
         button.Click += (_, _) =>
@@ -1717,14 +1672,15 @@ public partial class EditTrackOverlay : UserControl
             ApplyModelGenreChoiceVisual(
                 button,
                 text,
-                _pendingEnabledModelGenreIds.Contains(subgenre.Id));
+                _pendingEnabledModelGenreIds.Contains(subgenre.Id),
+                subgenre.IsPreferred);
             ShowModelSelectedGenres(_track);
             ShowDetectedGenres(_track);
         };
         return button;
     }
 
-    private static void ApplyModelGenreChoiceVisual(Button button, TextBlock text, bool selected)
+    private static void ApplyModelGenreChoiceVisual(Button button, TextBlock text, bool selected, bool isPreferred)
     {
         button.Background = selected
             ? new SolidColorBrush(Color.FromArgb(46, 255, 255, 255))
@@ -1732,9 +1688,9 @@ public partial class EditTrackOverlay : UserControl
         button.BorderBrush = selected
             ? new SolidColorBrush(Color.FromArgb(160, 255, 255, 255))
             : ThemeResources.Brush("Theme.Brush.BorderSubtle");
-        text.Foreground = ThemeResources.Brush(selected
-            ? "Theme.Brush.TextStrong"
-            : "Theme.Brush.TextPrimary");
+        text.Foreground = ThemeResources.Brush(isPreferred
+            ? "Theme.Brush.Accent"
+            : selected ? "Theme.Brush.TextStrong" : "Theme.Brush.TextPrimary");
     }
 
     private void OnAllGenresHeaderPressed(object? sender, PointerPressedEventArgs e)
