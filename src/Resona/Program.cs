@@ -14,6 +14,10 @@ sealed class Program
     [STAThread]
     public static void Main(string[] args)
     {
+        VelopackApp.Build().Run();
+
+        UserDataLayoutMigration.RunForCurrentUser();
+
         if (Array.Exists(args, argument => string.Equals(
                 argument, "--migrate-track-filenames", StringComparison.OrdinalIgnoreCase)))
         {
@@ -23,8 +27,6 @@ sealed class Program
                 $"MissingFiles={result.MissingFiles}; Backup={result.BackupPath ?? "none"}");
             return;
         }
-
-        VelopackApp.Build().Run();
 
         using var singleInstance = SingleInstanceCoordinator.Start();
         if (!singleInstance.IsPrimary)

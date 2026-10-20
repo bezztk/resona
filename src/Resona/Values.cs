@@ -4,6 +4,7 @@ using System.IO;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using Resona.Models;
+using Resona.Services;
 
 namespace Resona;
 
@@ -198,7 +199,7 @@ public static class Values
         if (OperatingSystem.IsWindows())
             return Path.Combine(
                 Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
-                "Resona");
+                UserDataLayoutMigration.DataDirectoryName);
 
         return Path.Combine(
             AbsoluteEnvironmentPath("XDG_CONFIG_HOME")
