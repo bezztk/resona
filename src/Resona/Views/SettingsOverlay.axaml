@@ -207,7 +207,7 @@
                             <TextBlock Text="CLASSIFICATION" FontSize="10" FontWeight="SemiBold"
                                        Opacity="0.4" LetterSpacing="0.8" Margin="10,0,0,4"/>
                             <ToggleButton x:Name="GenreVocabularyNavButton" Classes="settings-nav"
-                                          Content="Genres" Tag="genres"
+                                          Content="Manage Genres" Tag="genres"
                                           Click="OnSettingsNavigationClicked"/>
                             <ToggleButton x:Name="TagsNavButton" Classes="settings-nav"
                                           Content="Tags" Tag="tags"
@@ -320,9 +320,17 @@
                                        Text="Create subgenre"
                                        FontSize="14" FontWeight="SemiBold"
                                        HorizontalAlignment="Center"/>
+                            <StackPanel Spacing="4">
+                                <TextBlock Text="MAIN GENRE" FontSize="9.5" FontWeight="SemiBold" Opacity="0.45"/>
+                                <ComboBox x:Name="NewSubgenreMainGenreBox" Height="32"
+                                          HorizontalAlignment="Stretch"/>
+                            </StackPanel>
+                            <StackPanel Spacing="4">
+                                <TextBlock Text="SUBGENRE NAME" FontSize="9.5" FontWeight="SemiBold" Opacity="0.45"/>
                             <TextBox x:Name="NewSubgenreBox" Classes="settings-input"
                                      Watermark="Enter subgenre name"
                                      KeyDown="OnNewSubgenreKeyDown"/>
+                            </StackPanel>
                             <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Spacing="8">
                                 <Button Classes="settings-action" Content="Cancel"
                                         Click="OnCancelCreateSubgenreClicked"/>
@@ -330,6 +338,49 @@
                                         Click="OnAddSubgenreClicked"/>
                             </StackPanel>
                         </StackPanel>
+                    </Border>
+                </Border>
+
+                <Border x:Name="EditSubgenreOverlay"
+                        ZIndex="11"
+                        IsVisible="False"
+                        Background="#99000000">
+                    <Border Width="430" MaxHeight="620" Margin="24"
+                            HorizontalAlignment="Center" VerticalAlignment="Center"
+                            Background="{DynamicResource Theme.Brush.Surface}"
+                            BorderBrush="{DynamicResource Theme.Brush.BorderStrong}"
+                            BorderThickness="1" CornerRadius="2" Padding="18">
+                        <Grid RowDefinitions="Auto,*,Auto" RowSpacing="14">
+                            <StackPanel Spacing="3">
+                                <TextBlock Text="Edit subgenre" FontSize="14" FontWeight="SemiBold"/>
+                                <TextBlock x:Name="EditSubgenreMainGenreText" FontSize="10.5" Opacity="0.55"/>
+                            </StackPanel>
+                            <ScrollViewer Grid.Row="1" HorizontalScrollBarVisibility="Disabled">
+                                <StackPanel Spacing="12">
+                                    <StackPanel Spacing="4">
+                                        <TextBlock Text="NAME" FontSize="9.5" FontWeight="SemiBold" Opacity="0.45"/>
+                                        <TextBox x:Name="EditSubgenreNameBox" Classes="settings-input"/>
+                                    </StackPanel>
+                                    <StackPanel Spacing="4">
+                                        <TextBlock Text="DESCRIPTION" FontSize="9.5" FontWeight="SemiBold" Opacity="0.45"/>
+                                        <TextBox x:Name="EditSubgenreDescriptionBox" Classes="settings-input"
+                                                 Watermark="Add a concise description…"
+                                                 AcceptsReturn="True" TextWrapping="Wrap"
+                                                 Height="80" VerticalContentAlignment="Top"/>
+                                    </StackPanel>
+                                    <CheckBox x:Name="EditSubgenrePreferredToggle" Content="Preferred genre"/>
+                                    <CheckBox x:Name="EditSubgenreHiddenToggle"
+                                              Content="Hidden throughout the application"/>
+                                    <StackPanel x:Name="EditSubgenreReferencesPanel" Spacing="5"/>
+                                </StackPanel>
+                            </ScrollViewer>
+                            <StackPanel Grid.Row="2" Orientation="Horizontal" HorizontalAlignment="Right" Spacing="8">
+                                <Button Classes="settings-action" Content="Cancel"
+                                        Click="OnCancelEditSubgenreClicked"/>
+                                <Button Classes="settings-action" Content="Save changes"
+                                        Click="OnSaveSubgenreClicked"/>
+                            </StackPanel>
+                        </Grid>
                     </Border>
                 </Border>
             </Grid>

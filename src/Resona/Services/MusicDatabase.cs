@@ -211,6 +211,7 @@ public class MusicDatabase
                 bpm_max         INTEGER NULL,
                 is_preferred    INTEGER NOT NULL DEFAULT 0,
                 is_manual       INTEGER NOT NULL DEFAULT 0,
+                is_hidden       INTEGER NOT NULL DEFAULT 0,
                 UNIQUE (model_genre_id, name)
             );
 
@@ -304,6 +305,7 @@ public class MusicDatabase
         EnsureColumn(conn, "model_subgenres", "bpm_min", "INTEGER NULL");
         EnsureColumn(conn, "model_subgenres", "bpm_max", "INTEGER NULL");
         EnsureColumn(conn, "model_subgenres", "is_preferred", "INTEGER NOT NULL DEFAULT 0");
+        EnsureColumn(conn, "model_subgenres", "is_hidden", "INTEGER NOT NULL DEFAULT 0");
         EnsureTrackGenreSourceSchema(conn);
         EnsureGenreCurationSchema(conn);
         SynchronizeManualSubgenres(conn);
@@ -410,6 +412,7 @@ public class MusicDatabase
     {
         EnsureColumn(conn, "model_subgenres", "is_preferred", "INTEGER NOT NULL DEFAULT 0");
         EnsureColumn(conn, "model_subgenres", "is_manual", "INTEGER NOT NULL DEFAULT 0");
+        EnsureColumn(conn, "model_subgenres", "is_hidden", "INTEGER NOT NULL DEFAULT 0");
         EnsureColumn(conn, "track_genres", "is_reference", "INTEGER NOT NULL DEFAULT 0");
         ExecuteNonQuery(conn, @"
             UPDATE track_genres SET is_reference = 0 WHERE is_enabled = 0;
@@ -1729,7 +1732,10 @@ public class MusicDatabase
     {
         using var conn = Open();
         using var cmd = conn.CreateCommand();
-        cmd.CommandText = "SELECT track_id, genre_id FROM track_genres WHERE is_enabled = 1";
+        cmd.CommandText = @"SELECT track_genres.track_id, track_genres.genre_id
+                            FROM track_genres
+                            JOIN model_subgenres ON model_subgenres.id = track_genres.genre_id
+                            WHERE track_genres.is_enabled = 1 AND model_subgenres.is_hidden = 0";
         return ReadTrackIdMap(cmd);
     }
 
@@ -1737,7 +1743,12 @@ public class MusicDatabase
     {
         using var conn = Open();
         using var cmd = conn.CreateCommand();
-        cmd.CommandText = "SELECT genre_id FROM track_genres WHERE track_id = $trackId AND is_enabled = 1";
+        cmd.CommandText = @"SELECT track_genres.genre_id
+                            FROM track_genres
+                            JOIN model_subgenres ON model_subgenres.id = track_genres.genre_id
+                            WHERE track_genres.track_id = $trackId
+                              AND track_genres.is_enabled = 1
+                              AND model_subgenres.is_hidden = 0";
         cmd.Parameters.AddWithValue("$trackId", trackId);
         using var reader = cmd.ExecuteReader();
         var genreIds = new List<int>();
@@ -1757,6 +1768,7 @@ public class MusicDatabase
                             LEFT JOIN track_analysis analysis ON analysis.track_id = track_genres.track_id
                             LEFT JOIN track_genre_predictions predictions ON predictions.track_analysis_id = analysis.id AND predictions.model_subgenre_id = msg.id
                             WHERE track_genres.track_id = $trackId
+                              AND msg.is_hidden = 0
                             ORDER BY predictions.score IS NULL, predictions.score DESC, msg.name";
         cmd.Parameters.AddWithValue("$trackId", trackId);
         using var reader = cmd.ExecuteReader();
@@ -2503,6 +2515,7 @@ public class MusicDatabase
         cmd.CommandText = @"SELECT model_subgenres.id, model_genres.name || ' → ' || model_subgenres.name
                             FROM model_subgenres
                             JOIN model_genres ON model_genres.id = model_subgenres.model_genre_id
+                            WHERE model_subgenres.is_hidden = 0
                             ORDER BY model_genres.name, model_subgenres.name";
         return ReadLookupList(cmd, (id, name) => new Genre(id, name));
     }
@@ -2708,15 +2721,17 @@ public class MusicDatabase
         return ReadLookupList(cmd, (id, name) => new ModelGenre(id, name));
     }
 
-    public List<ModelSubgenre> GetModelSubgenres(int? modelGenreId = null)
+    public List<ModelSubgenre> GetModelSubgenres(int? modelGenreId = null, bool includeHidden = false)
     {
         using var conn = Open();
         using var cmd = conn.CreateCommand();
-        cmd.CommandText = @"SELECT id, model_genre_id, name, description, classification_hint, bpm_min, bpm_max, is_preferred, is_manual
+        cmd.CommandText = @"SELECT id, model_genre_id, name, description, classification_hint, bpm_min, bpm_max, is_preferred, is_manual, is_hidden
                             FROM model_subgenres
-                            WHERE $modelGenreId IS NULL OR model_genre_id = $modelGenreId
+                            WHERE ($modelGenreId IS NULL OR model_genre_id = $modelGenreId)
+                              AND ($includeHidden = 1 OR is_hidden = 0)
                             ORDER BY name";
         cmd.Parameters.AddWithValue("$modelGenreId", modelGenreId is null ? DBNull.Value : modelGenreId.Value);
+        cmd.Parameters.AddWithValue("$includeHidden", includeHidden ? 1 : 0);
         using var reader = cmd.ExecuteReader();
         var subgenres = new List<ModelSubgenre>();
         while (reader.Read()) subgenres.Add(new ModelSubgenre(
@@ -2726,7 +2741,8 @@ public class MusicDatabase
             reader.IsDBNull(5) ? null : reader.GetInt32(5),
             reader.IsDBNull(6) ? null : reader.GetInt32(6),
             reader.GetInt32(7) != 0,
-            reader.GetInt32(8) != 0));
+            reader.GetInt32(8) != 0,
+            reader.GetInt32(9) != 0));
         return subgenres;
     }
 
@@ -2752,6 +2768,14 @@ public class MusicDatabase
         ExecuteNonQuery(conn,
             "UPDATE model_subgenres SET is_preferred = $isPreferred WHERE id = $id",
             ("$id", id), ("$isPreferred", isPreferred ? 1 : 0));
+    }
+
+    public void SetModelSubgenreHidden(int id, bool isHidden)
+    {
+        using var conn = Open();
+        ExecuteNonQuery(conn,
+            "UPDATE model_subgenres SET is_hidden = $isHidden WHERE id = $id",
+            ("$id", id), ("$isHidden", isHidden ? 1 : 0));
     }
 
     public void UpdateModelSubgenreDetails(int id, string name, string? description)
@@ -2888,6 +2912,7 @@ public class MusicDatabase
             WHERE tracks.library_state <> 'Rejected'
               AND track_genres.is_enabled = 1
               AND model_subgenres.is_preferred = 0
+              AND model_subgenres.is_hidden = 0
               AND COALESCE(ratings.name, '') NOT IN ('Favorite', $timeless)";
         cmd.Parameters.AddWithValue("$timeless", RatingNames.Timeless);
         using var reader = cmd.ExecuteReader();
@@ -2932,8 +2957,10 @@ public class MusicDatabase
             SELECT distinctions.model_subgenre_id, distinctions.distinguish_from_model_subgenre_id,
                    genres.name, subgenres.name, distinctions.difference
             FROM model_subgenre_distinctions distinctions
+            JOIN model_subgenres source_subgenres ON source_subgenres.id = distinctions.model_subgenre_id
             JOIN model_subgenres subgenres ON subgenres.id = distinctions.distinguish_from_model_subgenre_id
             JOIN model_genres genres ON genres.id = subgenres.model_genre_id
+            WHERE source_subgenres.is_hidden = 0 AND subgenres.is_hidden = 0
             ORDER BY distinctions.model_subgenre_id, genres.name, subgenres.name";
         using var reader = cmd.ExecuteReader();
         var distinctions = new List<ModelSubgenreDistinction>();
@@ -2954,6 +2981,7 @@ public class MusicDatabase
             JOIN model_genres ON model_genres.id = model_subgenres.model_genre_id
             WHERE track_genres.is_enabled = 1
               AND track_genres.is_manual = 1
+              AND model_subgenres.is_hidden = 0
             GROUP BY model_subgenres.id, model_subgenres.model_genre_id, model_subgenres.name, model_genres.name
             ORDER BY usage_count DESC, model_genres.name, model_subgenres.name
             LIMIT $limit";
@@ -2983,6 +3011,7 @@ public class MusicDatabase
             JOIN model_subgenres ON model_subgenres.id = predictions.model_subgenre_id
             JOIN model_genres ON model_genres.id = model_subgenres.model_genre_id
             WHERE analysis.track_id = $trackId
+              AND model_subgenres.is_hidden = 0
             ORDER BY predictions.score DESC";
         cmd.Parameters.AddWithValue("$trackId", trackId);
         using var reader = cmd.ExecuteReader();
@@ -3061,7 +3090,9 @@ public class MusicDatabase
             SELECT DISTINCT analysis.track_id, predictions.model_subgenre_id, $assignedAt, 1, 0
             FROM track_genre_predictions predictions
             JOIN track_analysis analysis ON analysis.id = predictions.track_analysis_id
+            JOIN model_subgenres ON model_subgenres.id = predictions.model_subgenre_id
             WHERE predictions.score > 0.25 AND ($trackId IS NULL OR analysis.track_id = $trackId)
+              AND model_subgenres.is_hidden = 0
             ON CONFLICT(track_id, genre_id) DO UPDATE SET assigned_at = excluded.assigned_at",
             ("$trackId", trackId), ("$assignedAt", DateTime.UtcNow.ToString("O")));
     }

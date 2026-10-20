@@ -264,7 +264,8 @@ public class MusicLibraryService
     public string? DeleteStyleIfUnused(int id) => _db.DeleteStyleIfUnused(id);
     public List<Rating> GetRatings() => _db.GetRatings();
     public List<ModelGenre> GetModelGenres() => _db.GetModelGenres();
-    public List<ModelSubgenre> GetModelSubgenres(int? modelGenreId = null) => _db.GetModelSubgenres(modelGenreId);
+    public List<ModelSubgenre> GetModelSubgenres(int? modelGenreId = null, bool includeHidden = false) =>
+        _db.GetModelSubgenres(modelGenreId, includeHidden);
     public Dictionary<int, int> GetModelSubgenreTrackCounts() => _db.GetModelSubgenreTrackCounts();
     public Dictionary<int, int> GetGenreReferenceCounts() => _db.GetGenreReferenceCounts();
     public List<GenreReferenceTrack> GetGenreReferenceTracks(int genreId) => _db.GetGenreReferenceTracks(genreId);
@@ -273,6 +274,7 @@ public class MusicLibraryService
     public HashSet<int> GetGenreCleanupTrackIds() => _db.GetGenreCleanupTrackIds();
     public void AddModelSubgenre(int modelGenreId, string name) => _db.AddModelSubgenre(modelGenreId, name);
     public void SetModelSubgenrePreferred(int id, bool isPreferred) => _db.SetModelSubgenrePreferred(id, isPreferred);
+    public void SetModelSubgenreHidden(int id, bool isHidden) => _db.SetModelSubgenreHidden(id, isHidden);
     public void SetTrackGenreReference(int trackId, int genreId, bool isReference) =>
         _db.SetTrackGenreReference(trackId, genreId, isReference);
     public void UpdateModelSubgenreDetails(int id, string name, string? description) =>

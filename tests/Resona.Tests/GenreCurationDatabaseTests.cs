@@ -41,6 +41,39 @@ public sealed class GenreCurationDatabaseTests : IDisposable
     }
 
     [Fact]
+    public void Hidden_status_is_migrated_and_hidden_genres_are_only_returned_on_request()
+    {
+        var genre = _database.GetModelSubgenres().Single(item => item.Name == "Ambient");
+        Assert.False(genre.IsHidden);
+
+        _database.SetModelSubgenreHidden(genre.Id, true);
+
+        Assert.DoesNotContain(_database.GetModelSubgenres(), item => item.Id == genre.Id);
+        Assert.True(_database.GetModelSubgenres(includeHidden: true).Single(item => item.Id == genre.Id).IsHidden);
+        Assert.DoesNotContain(_database.GetGenres(), item => item.Id == genre.Id);
+    }
+
+    [Fact]
+    public void Hiding_a_genre_preserves_its_assignment_but_removes_it_from_library_results()
+    {
+        var genreId = GenreId("Ambient");
+        var trackId = InsertTrack("Hidden assignment", "hidden-assignment.mp3", RatingId("Good"));
+        _database.SetTrackModelGenreEnabled(trackId, genreId, true);
+
+        _database.SetModelSubgenreHidden(genreId, true);
+
+        Assert.DoesNotContain(genreId, _database.GetTrackGenreIds(trackId));
+        Assert.DoesNotContain(genreId, _database.GetAllTrackGenreIds().GetValueOrDefault(trackId, []));
+        Assert.Empty(_database.GetTrackModelGenres(trackId));
+        Assert.Equal(1, Scalar<int>(
+            "SELECT COUNT(*) FROM track_genres WHERE track_id = $trackId AND genre_id = $genreId",
+            ("$trackId", trackId), ("$genreId", genreId)));
+
+        _database.SetModelSubgenreHidden(genreId, false);
+        Assert.Contains(genreId, _database.GetTrackGenreIds(trackId));
+    }
+
+    [Fact]
     public void Reference_limit_is_enforced_and_disabling_assignment_clears_reference()
     {
         var genreId = GenreId("Ambient");
