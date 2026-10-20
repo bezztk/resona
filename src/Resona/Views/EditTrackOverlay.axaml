@@ -406,7 +406,7 @@
                         </Border>
 
                         <Border Classes="edit-section" BorderThickness="0">
-                            <StackPanel Spacing="4">
+                            <StackPanel Spacing="12">
                             <TextBlock Text="Classification" FontSize="13" FontWeight="SemiBold" />
                             <StackPanel x:Name="ModelSelectedGenresSection" Spacing="2" Margin="0">
                                 <Grid ColumnDefinitions="Auto,*"
@@ -427,9 +427,9 @@
                                                Text="Genres" FontSize="11" Opacity="0.72"
                                                VerticalAlignment="Center" />
                                 </Grid>
-                                <StackPanel x:Name="ModelSelectedGenresPanel" Spacing="4" Margin="22,0,0,1" />
+                                <StackPanel x:Name="ModelSelectedGenresPanel" Margin="22,0,0,1" />
                             </StackPanel>
-                            <StackPanel x:Name="DetectedGenresSection" Spacing="2" Margin="0">
+                            <StackPanel x:Name="DetectedGenresSection" Margin="0">
                                 <Grid x:Name="DetectedGenresHeader"
                                       ColumnDefinitions="Auto,*,Auto"
                                       ColumnSpacing="7"
@@ -466,8 +466,8 @@
                                 </Grid>
                                 <StackPanel x:Name="DetectedGenresPanel"
                                             IsVisible="False"
-                                            Spacing="4"
-                                            Margin="22,0,0,1" />
+                                            Spacing="2"
+                                            Margin="12,0,0,1" />
                             </StackPanel>
                             <StackPanel x:Name="AddModelGenreSection" Spacing="2" Margin="0">
                                 <Grid ColumnDefinitions="Auto,*,Auto"

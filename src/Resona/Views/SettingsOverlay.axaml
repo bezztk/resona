@@ -43,6 +43,28 @@
             <Setter Property="Foreground" Value="{DynamicResource Theme.Brush.TextStrong}"/>
             <Setter Property="FontWeight" Value="SemiBold"/>
         </Style>
+        <Style Selector="ToggleButton.settings-top-nav, Button.settings-top-nav">
+            <Setter Property="Cursor" Value="Hand"/>
+            <Setter Property="MinWidth" Value="96"/>
+            <Setter Property="Height" Value="34"/>
+            <Setter Property="Padding" Value="14,5"/>
+            <Setter Property="Background" Value="Transparent"/>
+            <Setter Property="BorderBrush" Value="Transparent"/>
+            <Setter Property="BorderThickness" Value="0,0,0,2"/>
+            <Setter Property="CornerRadius" Value="0"/>
+            <Setter Property="Foreground" Value="{DynamicResource Theme.Brush.TextMuted}"/>
+            <Setter Property="FontSize" Value="11.5"/>
+            <Setter Property="HorizontalContentAlignment" Value="Center"/>
+        </Style>
+        <Style Selector="ToggleButton.settings-top-nav:pointerover, Button.settings-top-nav:pointerover">
+            <Setter Property="Background" Value="{DynamicResource Theme.Brush.SurfaceHover}"/>
+            <Setter Property="Foreground" Value="{DynamicResource Theme.Brush.TextPrimary}"/>
+        </Style>
+        <Style Selector="ToggleButton.settings-top-nav:checked">
+            <Setter Property="BorderBrush" Value="{DynamicResource Theme.Brush.Accent}"/>
+            <Setter Property="Foreground" Value="{DynamicResource Theme.Brush.TextStrong}"/>
+            <Setter Property="FontWeight" Value="SemiBold"/>
+        </Style>
         <Style Selector="TextBox.settings-input">
             <Setter Property="Height" Value="34"/>
             <Setter Property="Background" Value="{DynamicResource Theme.Brush.Input}"/>
@@ -183,52 +205,41 @@
     </UserControl.Styles>
 
     <Border BorderBrush="#52656A72" BorderThickness="0,0,0,1">
-    <Grid ColumnDefinitions="244,1,*" Background="#FF1B1D20">
-        <!-- Settings navigation -->
-        <Border Grid.Column="0" Background="#FF141619" Padding="16,20,16,16">
-            <Grid RowDefinitions="Auto,*">
-                <StackPanel Grid.Row="0">
-                    <TextBlock Text="Settings" FontSize="18" FontWeight="SemiBold"/>
+    <Grid RowDefinitions="52,*" Background="#FF1B1D20">
+        <Border Grid.Row="0" Background="#FF141619"
+                BorderBrush="{DynamicResource Theme.Brush.Divider}" BorderThickness="0,0,0,1">
+            <Grid ColumnDefinitions="Auto,*,Auto" Margin="22,8">
+                <TextBlock Text="Settings" FontSize="18" FontWeight="SemiBold"
+                           VerticalAlignment="Center"/>
+                <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="6"
+                            HorizontalAlignment="Center">
+                    <ToggleButton x:Name="GeneralNavButton" Classes="settings-top-nav"
+                                  Content="General" Tag="general"
+                                  Click="OnSettingsNavigationClicked"/>
+                    <ToggleButton x:Name="ClassificationNavButton" Classes="settings-top-nav"
+                                  Content="Classification ▾"
+                                  Click="OnClassificationNavigationClicked">
+                        <ToggleButton.Flyout>
+                            <MenuFlyout Placement="Bottom">
+                                <MenuItem Header="Manage Genres" Tag="genres" Click="OnSettingsNavigationClicked"/>
+                                <MenuItem Header="Tags" Tag="tags" Click="OnSettingsNavigationClicked"/>
+                                <MenuItem Header="Styles" Tag="styles" Click="OnSettingsNavigationClicked"/>
+                            </MenuFlyout>
+                        </ToggleButton.Flyout>
+                    </ToggleButton>
                 </StackPanel>
-
-                <ScrollViewer Grid.Row="1" Margin="0,26,0,0" Padding="0"
-                              HorizontalScrollBarVisibility="Disabled">
-                    <StackPanel>
-                        <StackPanel Spacing="6">
-                            <ToggleButton x:Name="GeneralNavButton" Classes="settings-nav"
-                                          Content="General" Tag="general"
-                                          FontSize="13" FontWeight="SemiBold"
-                                          Click="OnSettingsNavigationClicked"/>
-                        </StackPanel>
-
-                        <Rectangle Height="1" Fill="{DynamicResource Theme.Brush.Divider}" Margin="4,14"/>
-
-                        <StackPanel Spacing="6">
-                            <TextBlock Text="CLASSIFICATION" FontSize="10" FontWeight="SemiBold"
-                                       Opacity="0.4" LetterSpacing="0.8" Margin="10,0,0,4"/>
-                            <ToggleButton x:Name="GenreVocabularyNavButton" Classes="settings-nav"
-                                          Content="Manage Genres" Tag="genres"
-                                          Click="OnSettingsNavigationClicked"/>
-                            <ToggleButton x:Name="TagsNavButton" Classes="settings-nav"
-                                          Content="Tags" Tag="tags"
-                                          Click="OnSettingsNavigationClicked"/>
-                            <ToggleButton x:Name="StylesNavButton" Classes="settings-nav"
-                                          Content="Styles" Tag="styles"
-                                          Click="OnSettingsNavigationClicked"/>
-                            <ToggleButton x:Name="TagRulesNavButton" Classes="settings-nav"
-                                          IsVisible="False"
-                                          Content="Tag rules" Tag="tag_rules"
-                                          Click="OnSettingsNavigationClicked"/>
-                        </StackPanel>
-                    </StackPanel>
-                </ScrollViewer>
+                <Button Grid.Column="2"
+                        Click="OnCloseClicked"
+                        Width="34" Height="34" Padding="0"
+                        Background="Transparent" BorderThickness="0"
+                        Opacity="0.65" ToolTip.Tip="Close">
+                    <Image Source="{SvgImage /Assets/close.svg}" Width="16" Height="16"/>
+                </Button>
             </Grid>
         </Border>
 
-        <Rectangle Grid.Column="1" Fill="{DynamicResource Theme.Brush.Divider}"/>
-
         <!-- Settings content -->
-        <Grid Grid.Column="2" RowDefinitions="Auto,1,*,Auto">
+        <Grid Grid.Row="1" RowDefinitions="Auto,1,*,Auto">
             <Grid Grid.Row="0" ColumnDefinitions="*,320,Auto" ColumnSpacing="12" Margin="30,16,22,16">
                 <StackPanel Spacing="2" VerticalAlignment="Center">
                     <TextBlock x:Name="PageTitleText" FontSize="18" FontWeight="SemiBold"/>
@@ -254,18 +265,6 @@
                               StrokeThickness="1.5"/>
                     </Button>
                 </Grid>
-                <Button Grid.Column="2"
-                        Click="OnCloseClicked"
-                        Width="34"
-                        Height="34"
-                        Padding="0"
-                        Background="Transparent"
-                        BorderThickness="0"
-                        Opacity="0.65"
-                        VerticalAlignment="Top"
-                        ToolTip.Tip="Close">
-                    <Image Source="{SvgImage /Assets/close.svg}" Width="16" Height="16"/>
-                </Button>
             </Grid>
 
             <Rectangle Grid.Row="1" Fill="#18808080"/>

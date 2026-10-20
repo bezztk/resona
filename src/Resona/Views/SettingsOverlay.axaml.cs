@@ -534,9 +534,17 @@ public partial class SettingsOverlay : UserControl
             RebuildEditSubgenreReferences(genreId);
         };
         if (!editing)
+        {
+            button.Margin = new Avalonia.Thickness(12, 0, 0, 0);
             return button;
+        }
 
-        var row = new Grid { ColumnDefinitions = new ColumnDefinitions("*,26"), ColumnSpacing = 5 };
+        var row = new Grid
+        {
+            ColumnDefinitions = new ColumnDefinitions("*,26"),
+            ColumnSpacing = 5,
+            Margin = new Avalonia.Thickness(12, 0, 0, 0)
+        };
         row.Children.Add(button);
         var remove = new Button
         {
@@ -725,7 +733,7 @@ public partial class SettingsOverlay : UserControl
 
     private void OnSettingsNavigationClicked(object? sender, RoutedEventArgs e)
     {
-        if (sender is not ToggleButton { Tag: string value }) return;
+        if (sender is not Control { Tag: string value }) return;
         var page = value switch
         {
             "general" => SettingsPage.General,
@@ -736,6 +744,9 @@ public partial class SettingsOverlay : UserControl
         };
         SelectPage(page);
     }
+
+    private void OnClassificationNavigationClicked(object? sender, RoutedEventArgs e) =>
+        ClassificationNavButton.IsChecked = _selectedPage != SettingsPage.General;
 
     private void SelectPage(SettingsPage page)
     {
@@ -753,11 +764,8 @@ public partial class SettingsOverlay : UserControl
         TagsPage.IsVisible = page == SettingsPage.Tags;
         StylesPage.IsVisible = page == SettingsPage.Styles;
         TagRulesPage.IsVisible = page == SettingsPage.TagRules;
-        GenreVocabularyNavButton.IsChecked = isGenreVocabularyPage;
         GeneralNavButton.IsChecked = isGeneralPage;
-        TagsNavButton.IsChecked = page == SettingsPage.Tags;
-        StylesNavButton.IsChecked = page == SettingsPage.Styles;
-        TagRulesNavButton.IsChecked = page == SettingsPage.TagRules;
+        ClassificationNavButton.IsChecked = !isGeneralPage;
 
         PageTitleText.Text = page switch
         {
