@@ -162,6 +162,7 @@ public partial class SettingsOverlay : UserControl
 
         GenreVocabularyRows.Children.Clear();
         var choices = CurrentGenreChoices();
+        GenreVocabularyRows.Children.Add(CreateGenreOverviewMetadata(choices));
         foreach (var subgenre in choices)
             GenreVocabularyRows.Children.Add(CreateGenreVocabularyChoice(subgenre));
 
@@ -174,6 +175,63 @@ public partial class SettingsOverlay : UserControl
                 Margin = new Avalonia.Thickness(0, 8, 0, 4)
             });
         UpdateSummary();
+    }
+
+    private Control CreateGenreOverviewMetadata(IReadOnlyCollection<ModelSubgenre> choices)
+    {
+        var scopeName = _selectedModelGenreId is int selectedId
+            ? _modelGenres.FirstOrDefault(item => item.Id == selectedId)?.Name ?? "Selected genre"
+            : "All genres";
+        var trackCount = MusicLibraryService.Current.GetGenreManagementTrackCount(_selectedModelGenreId);
+        var stats = new StackPanel
+        {
+            Orientation = Orientation.Horizontal,
+            Spacing = 14,
+            HorizontalAlignment = HorizontalAlignment.Right
+        };
+        foreach (var (label, value) in new[]
+                 {
+                     ("TRACKS", trackCount),
+                     ("GENRES", choices.Count),
+                     ("PREFERRED", choices.Count(item => item.IsPreferred)),
+                     ("HIDDEN", choices.Count(item => item.IsHidden))
+                 })
+        {
+            var stat = new StackPanel { Spacing = 1, HorizontalAlignment = HorizontalAlignment.Right };
+            stat.Children.Add(new TextBlock
+            {
+                Text = value.ToString(CultureInfo.InvariantCulture),
+                FontSize = 13,
+                FontWeight = FontWeight.SemiBold,
+                HorizontalAlignment = HorizontalAlignment.Right
+            });
+            stat.Children.Add(new TextBlock
+            {
+                Text = label,
+                FontSize = 8.5,
+                Opacity = 0.42,
+                FontWeight = FontWeight.SemiBold
+            });
+            stats.Children.Add(stat);
+        }
+
+        var row = new Grid { ColumnDefinitions = new ColumnDefinitions("*,Auto"), ColumnSpacing = 14 };
+        row.Children.Add(new TextBlock
+        {
+            Text = scopeName,
+            FontSize = 11,
+            FontWeight = FontWeight.SemiBold,
+            Opacity = 0.68,
+            VerticalAlignment = VerticalAlignment.Center
+        });
+        Grid.SetColumn(stats, 1);
+        row.Children.Add(stats);
+        return new Border
+        {
+            Padding = new Avalonia.Thickness(2, 3, 2, 9),
+            Margin = new Avalonia.Thickness(0, 0, 0, 3),
+            Child = row
+        };
     }
 
     private List<ModelSubgenre> CurrentGenreChoices()
@@ -245,6 +303,20 @@ public partial class SettingsOverlay : UserControl
         var mainGenreName = _modelGenres.FirstOrDefault(item => item.Id == subgenre.ModelGenreId)?.Name;
         if (subgenre.IsHidden)
         {
+            var hiddenContent = new Grid { ColumnDefinitions = new ColumnDefinitions("*,Auto"), ColumnSpacing = 8 };
+            hiddenContent.Children.Add(new TextBlock
+            {
+                Text = subgenre.Name,
+                FontSize = 11,
+                TextTrimming = TextTrimming.CharacterEllipsis,
+                VerticalAlignment = VerticalAlignment.Center
+            });
+            if (subgenre.IsManual)
+            {
+                var origin = CreateUserGenreBadge();
+                Grid.SetColumn(origin, 1);
+                hiddenContent.Children.Add(origin);
+            }
             var hiddenCard = new Border
             {
                 Tag = subgenre.Id,
@@ -256,13 +328,7 @@ public partial class SettingsOverlay : UserControl
                 CornerRadius = new Avalonia.CornerRadius(1),
                 Cursor = new Cursor(StandardCursorType.Hand),
                 Opacity = 0.58,
-                Child = new TextBlock
-                {
-                    Text = subgenre.Name,
-                    FontSize = 11,
-                    TextTrimming = TextTrimming.CharacterEllipsis,
-                    VerticalAlignment = VerticalAlignment.Center
-                }
+                Child = hiddenContent
             };
             hiddenCard.PointerPressed += (_, e) =>
             {
@@ -289,15 +355,7 @@ public partial class SettingsOverlay : UserControl
         });
         if (subgenre.IsManual)
         {
-            var manualLabel = new TextBlock
-            {
-                Text = "· manual",
-                FontSize = 8.5,
-                FontWeight = FontWeight.Normal,
-                Foreground = ThemeResources.Brush("Theme.Brush.TextMuted"),
-                Opacity = 0.52,
-                VerticalAlignment = VerticalAlignment.Center
-            };
+            var manualLabel = CreateUserGenreBadge();
             Grid.SetColumn(manualLabel, 1);
             title.Children.Add(manualLabel);
         }
@@ -354,6 +412,23 @@ public partial class SettingsOverlay : UserControl
         return card;
     }
 
+    private static Border CreateUserGenreBadge() => new()
+    {
+        Background = new SolidColorBrush(Color.Parse("#2638BDF8")),
+        BorderBrush = new SolidColorBrush(Color.Parse("#6638BDF8")),
+        BorderThickness = new Avalonia.Thickness(1),
+        CornerRadius = new Avalonia.CornerRadius(2),
+        Padding = new Avalonia.Thickness(5, 2),
+        VerticalAlignment = VerticalAlignment.Center,
+        Child = new TextBlock
+        {
+            Text = "YOUR GENRE",
+            FontSize = 8,
+            FontWeight = FontWeight.SemiBold,
+            Foreground = new SolidColorBrush(Color.Parse("#FF7DD3FC"))
+        }
+    };
+
     private void OpenSubgenreEditor(int subgenreId)
     {
         var subgenre = _modelSubgenres.FirstOrDefault(item => item.Id == subgenreId);
@@ -362,7 +437,17 @@ public partial class SettingsOverlay : UserControl
         _editingSubgenreId = subgenre.Id;
         EditSubgenreMainGenreText.Text = _modelGenres.FirstOrDefault(item => item.Id == subgenre.ModelGenreId)?.Name ?? string.Empty;
         EditSubgenreNameBox.Text = subgenre.Name;
-        EditSubgenreNameBox.IsReadOnly = !subgenre.IsManual;
+        EditSubgenreNameBox.IsVisible = subgenre.IsManual;
+        EditSubgenreNameBox.IsReadOnly = false;
+        EditSubgenreNameText.Text = subgenre.Name;
+        EditSubgenreNameText.IsVisible = !subgenre.IsManual;
+        EditSubgenreOriginText.Text = subgenre.IsManual
+            ? "YOUR GENRE · not used by model predictions"
+            : "MODEL GENRE · name is locked";
+        EditSubgenreOriginBadge.Background = new SolidColorBrush(Color.Parse(
+            subgenre.IsManual ? "#2638BDF8" : "#252B3138"));
+        EditSubgenreOriginBadge.BorderBrush = new SolidColorBrush(Color.Parse(
+            subgenre.IsManual ? "#6638BDF8" : "#59656F7B"));
         EditSubgenreDescriptionBox.Text = subgenre.Description ?? string.Empty;
         EditSubgenrePreferredToggle.IsChecked = subgenre.IsPreferred;
         EditSubgenreHiddenToggle.IsChecked = subgenre.IsHidden;

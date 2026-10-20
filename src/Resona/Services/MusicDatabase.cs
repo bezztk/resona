@@ -2762,6 +2762,28 @@ public class MusicDatabase
         return counts;
     }
 
+    public int GetGenreManagementTrackCount(int? modelGenreId = null)
+    {
+        using var conn = Open();
+        using var cmd = conn.CreateCommand();
+        if (modelGenreId is null)
+        {
+            cmd.CommandText = "SELECT COUNT(*) FROM tracks WHERE library_state <> 'Rejected'";
+            return Convert.ToInt32(cmd.ExecuteScalar());
+        }
+
+        cmd.CommandText = @"
+            SELECT COUNT(DISTINCT track_genres.track_id)
+            FROM track_genres
+            JOIN model_subgenres ON model_subgenres.id = track_genres.genre_id
+            JOIN tracks ON tracks.id = track_genres.track_id
+            WHERE track_genres.is_enabled = 1
+              AND tracks.library_state <> 'Rejected'
+              AND model_subgenres.model_genre_id = $modelGenreId";
+        cmd.Parameters.AddWithValue("$modelGenreId", modelGenreId.Value);
+        return Convert.ToInt32(cmd.ExecuteScalar());
+    }
+
     public void SetModelSubgenrePreferred(int id, bool isPreferred)
     {
         using var conn = Open();

@@ -267,6 +267,8 @@ public class MusicLibraryService
     public List<ModelSubgenre> GetModelSubgenres(int? modelGenreId = null, bool includeHidden = false) =>
         _db.GetModelSubgenres(modelGenreId, includeHidden);
     public Dictionary<int, int> GetModelSubgenreTrackCounts() => _db.GetModelSubgenreTrackCounts();
+    public int GetGenreManagementTrackCount(int? modelGenreId = null) =>
+        _db.GetGenreManagementTrackCount(modelGenreId);
     public Dictionary<int, int> GetGenreReferenceCounts() => _db.GetGenreReferenceCounts();
     public List<GenreReferenceTrack> GetGenreReferenceTracks(int genreId) => _db.GetGenreReferenceTracks(genreId);
     public Dictionary<int, List<GenreReferenceTrack>> GetAllGenreReferenceTracks() =>

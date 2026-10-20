@@ -302,7 +302,7 @@
                                     HorizontalAlignment="Stretch"
                                     Spacing="6"
                                     VerticalAlignment="Top"
-                                    Margin="0,0,0,18"/>
+                                    Margin="0,0,0,260"/>
                     </ScrollViewer>
                 </Grid>
 
@@ -360,7 +360,17 @@
                                     <StackPanel Spacing="4">
                                         <TextBlock Text="NAME" FontSize="9.5" FontWeight="SemiBold" Opacity="0.45"/>
                                         <TextBox x:Name="EditSubgenreNameBox" Classes="settings-input"/>
+                                        <TextBlock x:Name="EditSubgenreNameText"
+                                                   IsVisible="False" FontSize="12" FontWeight="SemiBold"
+                                                   Margin="1,7,0,6"/>
                                     </StackPanel>
+                                    <Border x:Name="EditSubgenreOriginBadge"
+                                            HorizontalAlignment="Left"
+                                            Background="#2638BDF8" BorderBrush="#6638BDF8"
+                                            BorderThickness="1" CornerRadius="2" Padding="8,4">
+                                        <TextBlock x:Name="EditSubgenreOriginText"
+                                                   FontSize="9.5" FontWeight="SemiBold"/>
+                                    </Border>
                                     <StackPanel Spacing="4">
                                         <TextBlock Text="DESCRIPTION" FontSize="9.5" FontWeight="SemiBold" Opacity="0.45"/>
                                         <TextBox x:Name="EditSubgenreDescriptionBox" Classes="settings-input"
