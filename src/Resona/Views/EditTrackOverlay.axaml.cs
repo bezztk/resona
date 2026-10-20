@@ -39,6 +39,7 @@ public partial class EditTrackOverlay : UserControl
     private Dictionary<int, List<ModelSubgenreDistinction>> _distinctionsBySubgenreId = [];
     private List<StoredModelGenrePrediction> _trackGenrePredictions = [];
     private bool _areDetectedGenresExpanded;
+    private bool _showAllDetectedGenres;
     private bool _areAllGenresExpanded;
     private bool _areLanguagesExpanded;
     private bool _areAnalysisDetailsExpanded;
@@ -157,6 +158,7 @@ public partial class EditTrackOverlay : UserControl
         _isDeletingTrack = false;
         DeleteButton.IsEnabled = true;
         _areDetectedGenresExpanded = false;
+        _showAllDetectedGenres = false;
         _areAllGenresExpanded = false;
         _areLanguagesExpanded = false;
         SetAnalysisDetailsExpanded(false);
@@ -1459,21 +1461,20 @@ public partial class EditTrackOverlay : UserControl
     {
         LoadModelMetadata();
         var detected = _trackGenrePredictions
-            .Where(prediction => !_modelGenreIds.Contains(prediction.ModelSubgenreId))
+            .Where(prediction => !_pendingEnabledModelGenreIds.Contains(prediction.ModelSubgenreId))
             .GroupBy(prediction => prediction.ModelSubgenreId)
             .Select(group => group.OrderByDescending(prediction => prediction.Score).First())
             .OrderByDescending(prediction => prediction.Score)
             .ThenBy(prediction => prediction.ModelSubgenreName, StringComparer.OrdinalIgnoreCase)
             .ToList();
-        DetectedGenresSection.IsVisible = detected.Count > 0;
-        DetectedGenresCountText.Text = $"({detected.Count})";
-        ((RotateTransform)DetectedGenresChevron.RenderTransform!).Angle = _areDetectedGenresExpanded ? 90 : 0;
-        DetectedGenresPanel.IsVisible = _areDetectedGenresExpanded;
+        ModelSuggestionsButton.IsVisible = detected.Count > 0;
+        DetectedGenresSection.IsVisible = detected.Count > 0 && _areDetectedGenresExpanded;
         DetectedGenresPanel.Children.Clear();
         if (!_areDetectedGenresExpanded)
             return;
 
-        foreach (var prediction in detected)
+        var visiblePredictions = _showAllDetectedGenres ? detected : detected.Take(5).ToList();
+        foreach (var prediction in visiblePredictions)
         {
             var container = new Border
             {
@@ -1535,16 +1536,34 @@ public partial class EditTrackOverlay : UserControl
             ToolTip.SetTip(container, CreateModelMetadataTooltip([prediction.ModelSubgenreId]));
             DetectedGenresPanel.Children.Add(container);
         }
+
+        var remainingCount = detected.Count - visiblePredictions.Count;
+        ShowMoreModelSuggestionsButton.IsVisible = remainingCount > 0;
+        ShowMoreModelSuggestionsButton.Content = $"Show {remainingCount} more";
     }
 
-    private void OnDetectedGenresHeaderPressed(object? sender, PointerPressedEventArgs e)
+    private void OnModelSuggestionsClicked(object? sender, RoutedEventArgs e)
     {
         if (_track is null)
             return;
 
         _areDetectedGenresExpanded = !_areDetectedGenresExpanded;
+        _showAllDetectedGenres = false;
+        if (_areDetectedGenresExpanded)
+        {
+            _areAllGenresExpanded = false;
+            RebuildModelGenreChoices();
+        }
         ShowDetectedGenres(_track);
-        e.Handled = true;
+    }
+
+    private void OnShowMoreModelSuggestionsClicked(object? sender, RoutedEventArgs e)
+    {
+        if (_track is null)
+            return;
+
+        _showAllDetectedGenres = true;
+        ShowDetectedGenres(_track);
     }
 
     private void RebuildModelGenreChoices()
@@ -1556,7 +1575,7 @@ public partial class EditTrackOverlay : UserControl
             return;
         }
 
-        AddModelGenreSection.IsVisible = true;
+        AddModelGenreSection.IsVisible = _areAllGenresExpanded;
         ManageGenresButton.IsVisible = true;
         var availableGenres = _modelSubgenresById.Values.ToList();
         AllGenresPanel.IsVisible = _areAllGenresExpanded;
@@ -1718,6 +1737,12 @@ public partial class EditTrackOverlay : UserControl
             return;
 
         _areAllGenresExpanded = !_areAllGenresExpanded;
+        if (_areAllGenresExpanded)
+        {
+            _areDetectedGenresExpanded = false;
+            _showAllDetectedGenres = false;
+            ShowDetectedGenres(_track);
+        }
         RebuildModelGenreChoices();
     }
 
