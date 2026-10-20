@@ -405,69 +405,13 @@
                             </StackPanel>
                         </Border>
 
-                        <Rectangle Height="1"
-                                   Fill="{DynamicResource Theme.Brush.BorderSubtle}"
-                                   Margin="12,-2" />
-
                         <Border Classes="edit-section" BorderThickness="0">
-                            <StackPanel Spacing="9">
+                            <StackPanel Spacing="4">
                             <TextBlock Text="Classification" FontSize="13" FontWeight="SemiBold" />
-                            <StackPanel x:Name="EditStylesSection" Spacing="6" Margin="0,3,0,5">
+                            <StackPanel x:Name="ModelSelectedGenresSection" Spacing="2" Margin="0">
                                 <Grid ColumnDefinitions="Auto,*"
                                       ColumnSpacing="7"
-                                      Margin="0,4" Cursor="Hand"
-                                      PointerPressed="OnStylesHeaderPressed">
-                                    <Border Width="14" Height="14" VerticalAlignment="Center">
-                                        <Path x:Name="StylesChevron" Width="5" Height="9"
-                                              HorizontalAlignment="Center" VerticalAlignment="Center"
-                                              Data="M 0 0 L 4 4.5 L 0 9"
-                                              Stroke="{DynamicResource Theme.Brush.TextSecondary}"
-                                              StrokeThickness="1" RenderTransformOrigin="50%,50%">
-                                            <Path.RenderTransform>
-                                                <RotateTransform Angle="90" />
-                                            </Path.RenderTransform>
-                                        </Path>
-                                    </Border>
-                                    <TextBlock Grid.Column="1"
-                                               Text="Style" FontSize="11" Opacity="0.72"
-                                               VerticalAlignment="Center" />
-                                </Grid>
-                                <StackPanel x:Name="EditStylesPanel"
-                                            Spacing="7"
-                                            Margin="22,0,0,2" />
-                            </StackPanel>
-                            <StackPanel Spacing="6" Margin="0,3,0,5">
-                                <Grid ColumnDefinitions="Auto,*"
-                                      ColumnSpacing="7"
-                                      Margin="0,4" Cursor="Hand"
-                                      PointerPressed="OnTagsHeaderPressed">
-                                    <Border Width="14" Height="14" VerticalAlignment="Center">
-                                        <Path x:Name="TagsChevron" Width="5" Height="9"
-                                              HorizontalAlignment="Center" VerticalAlignment="Center"
-                                              Data="M 0 0 L 4 4.5 L 0 9"
-                                              Stroke="{DynamicResource Theme.Brush.TextSecondary}"
-                                              StrokeThickness="1" RenderTransformOrigin="50%,50%">
-                                            <Path.RenderTransform>
-                                                <RotateTransform Angle="90" />
-                                            </Path.RenderTransform>
-                                        </Path>
-                                    </Border>
-                                    <TextBlock Grid.Column="1"
-                                               Text="Tags" FontSize="11" Opacity="0.72"
-                                               VerticalAlignment="Center" />
-                                </Grid>
-                                <StackPanel x:Name="TagsContentPanel" Spacing="5">
-                                    <StackPanel x:Name="TagsPanel" Spacing="9" Margin="22,0,0,2" />
-                                    <StackPanel x:Name="SuggestedTagsSection" Spacing="5" Margin="22,0,0,4" IsVisible="False">
-                                        <TextBlock Text="Suggested tags" FontSize="11" Opacity="0.68" />
-                                        <StackPanel x:Name="SuggestedTagsPanel" Spacing="4" />
-                                    </StackPanel>
-                                </StackPanel>
-                            </StackPanel>
-                            <StackPanel x:Name="ModelSelectedGenresSection" Spacing="6" Margin="0,0,0,5">
-                                <Grid ColumnDefinitions="Auto,*"
-                                      ColumnSpacing="7"
-                                      Margin="0,4">
+                                      Margin="0,1">
                                     <Border Width="14" Height="14" VerticalAlignment="Center">
                                         <Path Width="5" Height="9"
                                               HorizontalAlignment="Center" VerticalAlignment="Center"
@@ -483,13 +427,13 @@
                                                Text="Genres" FontSize="11" Opacity="0.72"
                                                VerticalAlignment="Center" />
                                 </Grid>
-                                <StackPanel x:Name="ModelSelectedGenresPanel" Spacing="6" Margin="22,0,0,2" />
+                                <StackPanel x:Name="ModelSelectedGenresPanel" Spacing="4" Margin="22,0,0,1" />
                             </StackPanel>
-                            <StackPanel x:Name="DetectedGenresSection" Spacing="6" Margin="0,3,0,5">
+                            <StackPanel x:Name="DetectedGenresSection" Spacing="2" Margin="0">
                                 <Grid x:Name="DetectedGenresHeader"
                                       ColumnDefinitions="Auto,*,Auto"
                                       ColumnSpacing="7"
-                                      Margin="0,4"
+                                      Margin="0,1"
                                       Cursor="Hand"
                                       PointerPressed="OnDetectedGenresHeaderPressed">
                                     <Border Width="14" Height="14" VerticalAlignment="Center">
@@ -523,51 +467,12 @@
                                 <StackPanel x:Name="DetectedGenresPanel"
                                             IsVisible="False"
                                             Spacing="4"
-                                            Margin="22,0,0,2" />
+                                            Margin="22,0,0,1" />
                             </StackPanel>
-                            <StackPanel x:Name="FrequentManualGenresSection" Spacing="6" Margin="0,0,0,5">
+                            <StackPanel x:Name="AddModelGenreSection" Spacing="2" Margin="0">
                                 <Grid ColumnDefinitions="Auto,*,Auto"
                                       ColumnSpacing="7"
-                                      Margin="0,4"
-                                      Cursor="Hand"
-                                      PointerPressed="OnFrequentManualGenresHeaderPressed">
-                                    <Border Width="14" Height="14" VerticalAlignment="Center">
-                                        <Path x:Name="FrequentManualGenresChevron"
-                                              Width="5"
-                                              Height="9"
-                                              HorizontalAlignment="Center"
-                                              VerticalAlignment="Center"
-                                              Data="M 0 0 L 4 4.5 L 0 9"
-                                              Stroke="{DynamicResource Theme.Brush.TextSecondary}"
-                                              StrokeThickness="1"
-                                              RenderTransformOrigin="50%,50%">
-                                            <Path.RenderTransform>
-                                                <RotateTransform />
-                                            </Path.RenderTransform>
-                                        </Path>
-                                    </Border>
-                                    <TextBlock Grid.Column="1"
-                                               Text="Often added manually"
-                                               FontSize="11"
-                                               Opacity="0.72"
-                                               VerticalAlignment="Center" />
-                                    <TextBlock x:Name="FrequentManualGenresCountText"
-                                               Grid.Column="2"
-                                               FontSize="10.5"
-                                               FontWeight="SemiBold"
-                                               Foreground="{DynamicResource Theme.Brush.TextSecondary}"
-                                               Opacity="0.82"
-                                               VerticalAlignment="Center" />
-                                </Grid>
-                                <StackPanel x:Name="FrequentManualGenresPanel"
-                                            IsVisible="False"
-                                            Spacing="4"
-                                            Margin="22,0,0,2" />
-                            </StackPanel>
-                            <StackPanel x:Name="AddModelGenreSection" Spacing="6" Margin="0,0,0,5">
-                                <Grid ColumnDefinitions="Auto,*,Auto"
-                                      ColumnSpacing="7"
-                                      Margin="0,4"
+                                      Margin="0,1"
                                       Cursor="Hand"
                                       PointerPressed="OnAllGenresHeaderPressed">
                                     <Border Width="14" Height="14" VerticalAlignment="Center">
@@ -632,6 +537,49 @@
                                         </ScrollViewer>
                                     </Grid>
                                 </StackPanel>
+                            </StackPanel>
+
+                            <StackPanel Spacing="4" Margin="0,3,0,0">
+                                <Grid ColumnDefinitions="Auto,*" ColumnSpacing="7" Margin="0,2"
+                                      Cursor="Hand" PointerPressed="OnTagsHeaderPressed">
+                                    <Border Width="14" Height="14" VerticalAlignment="Center">
+                                        <Path x:Name="TagsChevron" Width="5" Height="9"
+                                              HorizontalAlignment="Center" VerticalAlignment="Center"
+                                              Data="M 0 0 L 4 4.5 L 0 9"
+                                              Stroke="{DynamicResource Theme.Brush.TextSecondary}"
+                                              StrokeThickness="1" RenderTransformOrigin="50%,50%">
+                                            <Path.RenderTransform><RotateTransform /></Path.RenderTransform>
+                                        </Path>
+                                    </Border>
+                                    <TextBlock Grid.Column="1" Text="Tags" FontSize="11" Opacity="0.72"
+                                               VerticalAlignment="Center" />
+                                </Grid>
+                                <StackPanel x:Name="TagsContentPanel" IsVisible="False" Spacing="5">
+                                    <StackPanel x:Name="TagsPanel" Spacing="9" Margin="22,0,0,2" />
+                                    <StackPanel x:Name="SuggestedTagsSection" Spacing="5" Margin="22,0,0,4" IsVisible="False">
+                                        <TextBlock Text="Suggested tags" FontSize="11" Opacity="0.68" />
+                                        <StackPanel x:Name="SuggestedTagsPanel" Spacing="4" />
+                                    </StackPanel>
+                                </StackPanel>
+                            </StackPanel>
+
+                            <StackPanel x:Name="EditStylesSection" Spacing="4" Margin="0">
+                                <Grid ColumnDefinitions="Auto,*" ColumnSpacing="7" Margin="0,2"
+                                      Cursor="Hand" PointerPressed="OnStylesHeaderPressed">
+                                    <Border Width="14" Height="14" VerticalAlignment="Center">
+                                        <Path x:Name="StylesChevron" Width="5" Height="9"
+                                              HorizontalAlignment="Center" VerticalAlignment="Center"
+                                              Data="M 0 0 L 4 4.5 L 0 9"
+                                              Stroke="{DynamicResource Theme.Brush.TextSecondary}"
+                                              StrokeThickness="1" RenderTransformOrigin="50%,50%">
+                                            <Path.RenderTransform><RotateTransform /></Path.RenderTransform>
+                                        </Path>
+                                    </Border>
+                                    <TextBlock Grid.Column="1" Text="Style" FontSize="11" Opacity="0.72"
+                                               VerticalAlignment="Center" />
+                                </Grid>
+                                <StackPanel x:Name="EditStylesPanel" IsVisible="False"
+                                            Spacing="7" Margin="22,0,0,2" />
                             </StackPanel>
 
                             <StackPanel Spacing="7" Margin="0,0,0,6">

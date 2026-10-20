@@ -39,12 +39,11 @@ public partial class EditTrackOverlay : UserControl
     private Dictionary<int, List<ModelSubgenreDistinction>> _distinctionsBySubgenreId = [];
     private List<StoredModelGenrePrediction> _trackGenrePredictions = [];
     private bool _areDetectedGenresExpanded;
-    private bool _areFrequentManualGenresExpanded;
     private bool _areAllGenresExpanded;
     private bool _areLanguagesExpanded;
     private bool _areAnalysisDetailsExpanded;
-    private bool _areStylesExpanded = true;
-    private bool _areTagsExpanded = true;
+    private bool _areStylesExpanded;
+    private bool _areTagsExpanded;
     private bool _updatingLanguageSelection;
     private int? _modelGenreFilterId;
     private string _modelGenreSearchText = string.Empty;
@@ -158,12 +157,11 @@ public partial class EditTrackOverlay : UserControl
         _isDeletingTrack = false;
         DeleteButton.IsEnabled = true;
         _areDetectedGenresExpanded = false;
-        _areFrequentManualGenresExpanded = false;
         _areAllGenresExpanded = false;
         _areLanguagesExpanded = false;
         SetAnalysisDetailsExpanded(false);
-        SetStylesExpanded(true);
-        SetTagsExpanded(true);
+        SetStylesExpanded(false);
+        SetTagsExpanded(false);
         LoadLookups();
         Prefill(track);
         _preparedTrackId = track.Id;
@@ -223,7 +221,6 @@ public partial class EditTrackOverlay : UserControl
         ShowModelSelectedGenres(track);
         ShowDetectedGenres(track);
         RebuildModelGenreChoices();
-        BuildFrequentManualGenreChoices();
         RebuildStyleChips(selectedStyleIds);
         RebuildTagChips(selectedTagIds);
         RebuildLanguageChips(track.LanguageCode);
@@ -1289,7 +1286,7 @@ public partial class EditTrackOverlay : UserControl
             {
                 Background = Brushes.Transparent,
                 BorderThickness = new Avalonia.Thickness(0),
-                Padding = new Avalonia.Thickness(0, 4),
+                Padding = new Avalonia.Thickness(0, 2),
                 Opacity = enabled ? 1 : 0.48
             };
             var content = new Grid
@@ -1515,7 +1512,7 @@ public partial class EditTrackOverlay : UserControl
             {
                 Background = Brushes.Transparent,
                 BorderThickness = new Avalonia.Thickness(0),
-                Padding = new Avalonia.Thickness(0, 4),
+                Padding = new Avalonia.Thickness(0, 2),
                 Cursor = new Cursor(StandardCursorType.Hand)
             };
             var content = new Grid
@@ -1591,16 +1588,6 @@ public partial class EditTrackOverlay : UserControl
 
         _areDetectedGenresExpanded = !_areDetectedGenresExpanded;
         ShowDetectedGenres(_track);
-        e.Handled = true;
-    }
-
-    private void OnFrequentManualGenresHeaderPressed(object? sender, PointerPressedEventArgs e)
-    {
-        if (_track is null)
-            return;
-
-        _areFrequentManualGenresExpanded = !_areFrequentManualGenresExpanded;
-        BuildFrequentManualGenreChoices();
         e.Handled = true;
     }
 
@@ -1689,106 +1676,6 @@ public partial class EditTrackOverlay : UserControl
                 Margin = new Avalonia.Thickness(0, 8, 0, 4)
             });
         }
-    }
-
-    private void BuildFrequentManualGenreChoices()
-    {
-        FrequentManualGenresPanel.Children.Clear();
-        if (_track is null)
-        {
-            FrequentManualGenresSection.IsVisible = false;
-            return;
-        }
-
-        ((RotateTransform)FrequentManualGenresChevron.RenderTransform!).Angle =
-            _areFrequentManualGenresExpanded ? 90 : 0;
-        FrequentManualGenresPanel.IsVisible = _areFrequentManualGenresExpanded;
-        if (!_areFrequentManualGenresExpanded)
-        {
-            FrequentManualGenresSection.IsVisible = _modelSubgenresById.Count > 0;
-            FrequentManualGenresCountText.Text = "(8)";
-            return;
-        }
-
-        var manualGenreUsages = MusicLibraryService.Current
-            .GetTopManualModelGenres(Math.Max(8, _modelSubgenresById.Count))
-            .Where(usage => !_modelGenreIds.Contains(usage.ModelSubgenreId))
-            .Where(usage => _modelSubgenresById.ContainsKey(usage.ModelSubgenreId))
-            .ToList();
-        var frequentGenres = manualGenreUsages
-            .Take(8)
-            .ToList();
-
-        FrequentManualGenresSection.IsVisible = frequentGenres.Count > 0;
-        FrequentManualGenresCountText.Text = $"({frequentGenres.Count})";
-        if (frequentGenres.Count == 0)
-            return;
-
-        foreach (var usage in frequentGenres)
-            FrequentManualGenresPanel.Children.Add(CreateFrequentManualGenreChoice(usage));
-    }
-
-    private Control CreateFrequentManualGenreChoice(ManualModelGenreUsage usage)
-    {
-        var container = new Border
-        {
-            Background = Brushes.Transparent,
-            BorderThickness = new Avalonia.Thickness(0),
-            Padding = new Avalonia.Thickness(0, 4),
-            Cursor = new Cursor(StandardCursorType.Hand)
-        };
-        var content = new Grid
-        {
-            ColumnDefinitions = new ColumnDefinitions("*,48,20"),
-            ColumnSpacing = 12,
-            VerticalAlignment = VerticalAlignment.Center
-        };
-        content.Children.Add(new TextBlock
-        {
-            Text = _modelSubgenresById.GetValueOrDefault(usage.ModelSubgenreId)?.IsPreferred == true
-                ? $"★  {usage.ModelSubgenreName}"
-                : usage.ModelSubgenreName,
-            FontSize = 11,
-            FontWeight = FontWeight.SemiBold,
-            Foreground = ThemeResources.Brush("Theme.Brush.TextStrong"),
-            TextTrimming = TextTrimming.CharacterEllipsis
-        });
-        var metric = new TextBlock
-        {
-            Text = $"{usage.UsageCount}×",
-            FontSize = 10.5,
-            FontWeight = FontWeight.SemiBold,
-            Foreground = ThemeResources.Brush("Theme.Brush.TextSecondary"),
-            TextAlignment = TextAlignment.Right,
-            VerticalAlignment = VerticalAlignment.Center
-        };
-        Grid.SetColumn(metric, 1);
-        content.Children.Add(metric);
-
-        var add = new TextBlock
-        {
-            Text = "+",
-            Width = 20,
-            FontSize = 16,
-            Foreground = ThemeResources.Brush("Theme.Brush.TextStrong"),
-            Opacity = 0.58,
-            TextAlignment = TextAlignment.Center,
-            VerticalAlignment = VerticalAlignment.Center
-        };
-        Grid.SetColumn(add, 2);
-        content.Children.Add(add);
-        container.Child = content;
-        container.PointerPressed += (_, _) =>
-        {
-            if (_track is null) return;
-            _pendingEnabledModelGenreIds.Add(usage.ModelSubgenreId);
-            ShowModelSelectedGenres(_track);
-            ShowDetectedGenres(_track);
-            RebuildModelGenreChoices();
-            AutoSaveChanges();
-        };
-        ToolTip.SetTip(container, CreateModelMetadataTooltip([usage.ModelSubgenreId]));
-        return container;
     }
 
     private Button CreateModelGenreChoiceButton(ModelSubgenre subgenre)
