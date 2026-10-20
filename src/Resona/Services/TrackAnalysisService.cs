@@ -201,6 +201,7 @@ public sealed class TrackAnalysisService : IDisposable
         var startInfo = new ProcessStartInfo
         {
             FileName = ffmpegPath,
+            WorkingDirectory = Path.GetTempPath(),
             RedirectStandardOutput = true,
             RedirectStandardError = true,
             UseShellExecute = false,

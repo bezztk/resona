@@ -368,6 +368,7 @@ public class TrackDownloadService
         var psi = new ProcessStartInfo
         {
             FileName = fileName,
+            WorkingDirectory = Path.GetTempPath(),
             RedirectStandardOutput = true,
             RedirectStandardError = true,
             UseShellExecute = false,

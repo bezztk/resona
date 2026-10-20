@@ -2,6 +2,8 @@ using System;
 using System.Reflection;
 using System.Threading;
 using System.Threading.Tasks;
+using Avalonia;
+using Avalonia.Controls.ApplicationLifetimes;
 using Velopack;
 using Velopack.Sources;
 
@@ -151,8 +153,16 @@ public sealed class AppUpdateService
         if (State.Phase != AppUpdatePhase.ReadyToInstall)
             return;
 
-        _updateManager.ApplyUpdatesAndRestart(
-            _availableUpdate?.TargetFullRelease ?? _updateManager.UpdatePendingRestart);
+        var update = _availableUpdate?.TargetFullRelease ?? _updateManager.UpdatePendingRestart;
+        if (update is null)
+            return;
+
+        _updateManager.WaitExitThenApplyUpdates(update, restart: true);
+
+        if (Application.Current?.ApplicationLifetime is IClassicDesktopStyleApplicationLifetime desktop)
+            desktop.Shutdown();
+        else
+            Environment.Exit(0);
     }
 
     private void SetState(AppUpdateState state)

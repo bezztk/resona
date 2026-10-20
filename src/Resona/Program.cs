@@ -24,9 +24,7 @@ sealed class Program
             return;
         }
 
-        VelopackApp.Build()
-            .SetAutoApplyOnStartup(false)
-            .Run();
+        VelopackApp.Build().Run();
 
         using var singleInstance = SingleInstanceCoordinator.Start();
         if (!singleInstance.IsPrimary)
