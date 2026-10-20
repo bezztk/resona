@@ -1285,12 +1285,14 @@ public partial class EditTrackOverlay : UserControl
             var container = new Border
             {
                 Background = assignment.IsReference
-                    ? new SolidColorBrush(Color.Parse("#2638BDF8"))
+                    ? new SolidColorBrush(Color.Parse("#40392D1D"))
                     : Brushes.Transparent,
                 BorderBrush = assignment.IsReference
-                    ? new SolidColorBrush(Color.Parse("#8038BDF8"))
+                    ? new SolidColorBrush(Color.Parse("#D0C28A55"))
                     : Brushes.Transparent,
-                BorderThickness = new Avalonia.Thickness(1),
+                BorderThickness = assignment.IsReference
+                    ? new Avalonia.Thickness(3, 0, 0, 0)
+                    : new Avalonia.Thickness(0),
                 CornerRadius = new Avalonia.CornerRadius(2),
                 Padding = new Avalonia.Thickness(8, 3),
                 Opacity = enabled ? 1 : 0.48,
@@ -1307,9 +1309,8 @@ public partial class EditTrackOverlay : UserControl
                 Text = assignment.GenreName,
                 FontSize = 12,
                 FontWeight = Avalonia.Media.FontWeight.SemiBold,
-                Foreground = ThemeResources.Brush(assignment.IsPreferred
-                    ? "Theme.Brush.Accent"
-                    : "Theme.Brush.TextStrong"),
+                Foreground = new SolidColorBrush(Color.Parse(
+                    assignment.IsPreferred ? "#FFA8C7A0" : "#FF8E969F")),
                 VerticalAlignment = Avalonia.Layout.VerticalAlignment.Center,
                 TextTrimming = TextTrimming.CharacterEllipsis
             };
@@ -1493,10 +1494,10 @@ public partial class EditTrackOverlay : UserControl
                 Text = prediction.ModelSubgenreName,
                 FontSize = 11,
                 FontWeight = FontWeight.SemiBold,
-                Foreground = ThemeResources.Brush(
+                Foreground = new SolidColorBrush(Color.Parse(
                     _modelSubgenresById.GetValueOrDefault(prediction.ModelSubgenreId)?.IsPreferred == true
-                        ? "Theme.Brush.Accent"
-                        : "Theme.Brush.TextStrong"),
+                        ? "#FFA8C7A0"
+                        : "#FF8E969F")),
                 TextTrimming = TextTrimming.CharacterEllipsis
             });
             var confidenceBar = new ProgressBar
@@ -1556,7 +1557,6 @@ public partial class EditTrackOverlay : UserControl
 
         AddModelGenreSection.IsVisible = true;
         var availableGenres = _modelSubgenresById.Values.ToList();
-        AllGenresCountText.Text = $"({availableGenres.Count})";
         ((RotateTransform)AllGenresChevron.RenderTransform!).Angle = _areAllGenresExpanded ? 90 : 0;
         AllGenresPanel.IsVisible = _areAllGenresExpanded;
 
@@ -1581,23 +1581,25 @@ public partial class EditTrackOverlay : UserControl
             var selected = group.Id == _modelGenreFilterId;
             var item = new Border
             {
-                Height = 25,
+                Height = 19,
                 Background = Brushes.Transparent,
-                Padding = new Avalonia.Thickness(2, 0),
+                Padding = new Avalonia.Thickness(1, 0),
                 Cursor = new Cursor(StandardCursorType.Hand),
                 Child = new TextBlock
                 {
                     Text = group.Name,
-                    FontSize = 10.5,
+                    FontSize = 10,
                     FontWeight = selected ? FontWeight.SemiBold : FontWeight.Normal,
                     Foreground = group.Id is null
                         ? ThemeResources.Brush(selected ? "Theme.Brush.Accent" : "Theme.Brush.TextSecondary")
                         : MainGenrePalette.For(group.Name),
                     Opacity = selected ? 1 : 0.72,
-                    TextWrapping = TextWrapping.Wrap,
+                    TextWrapping = TextWrapping.NoWrap,
+                    TextTrimming = TextTrimming.CharacterEllipsis,
                     VerticalAlignment = VerticalAlignment.Center
                 }
             };
+            ToolTip.SetTip(item, group.Name);
             item.PointerPressed += (_, e) =>
             {
                 _modelGenreFilterId = group.Id;
@@ -1606,15 +1608,13 @@ public partial class EditTrackOverlay : UserControl
             };
             ModelGenreGroupsPanel.Children.Add(item);
         }
-        ModelGenreChoicesScroll.MaxHeight = Math.Max(25, ModelGenreGroupsPanel.Children.Count * 25);
+        ModelGenreChoicesScroll.MaxHeight = Math.Max(19, ModelGenreGroupsPanel.Children.Count * 19);
 
         var search = _modelGenreSearchText.Trim();
         var choices = availableGenres
             .Where(subgenre => _modelGenreFilterId is null || subgenre.ModelGenreId == _modelGenreFilterId)
             .Where(subgenre => string.IsNullOrWhiteSpace(search)
-                || subgenre.Name.Contains(search, StringComparison.OrdinalIgnoreCase)
-                || _modelGenreNamesById.GetValueOrDefault(subgenre.ModelGenreId, "")
-                    .Contains(search, StringComparison.OrdinalIgnoreCase))
+                || subgenre.Name.Contains(search, StringComparison.OrdinalIgnoreCase))
             .OrderBy(subgenre => _modelGenreNamesById.GetValueOrDefault(subgenre.ModelGenreId, ""), StringComparer.OrdinalIgnoreCase)
             .ThenBy(subgenre => subgenre.Name, StringComparer.OrdinalIgnoreCase)
             .ToList();
@@ -1641,26 +1641,37 @@ public partial class EditTrackOverlay : UserControl
             Text = subgenre.Name,
             FontSize = 10.5,
             FontWeight = FontWeight.SemiBold,
-            Foreground = ThemeResources.Brush(subgenre.IsPreferred
-                ? "Theme.Brush.Accent"
-                : selected ? "Theme.Brush.TextStrong" : "Theme.Brush.TextPrimary"),
+            Foreground = new SolidColorBrush(Color.Parse(
+                subgenre.IsPreferred ? "#FFA8C7A0" : "#FF8E969F")),
             TextTrimming = TextTrimming.CharacterEllipsis,
             HorizontalAlignment = HorizontalAlignment.Center,
             VerticalAlignment = VerticalAlignment.Center,
             TextAlignment = TextAlignment.Center
         };
+        var check = new TextBlock
+        {
+            Text = "✓",
+            FontSize = 10.5,
+            Foreground = ThemeResources.Brush("Theme.Brush.Accent"),
+            HorizontalAlignment = HorizontalAlignment.Right,
+            VerticalAlignment = VerticalAlignment.Center,
+            IsVisible = selected
+        };
+        var content = new Grid();
+        content.Children.Add(text);
+        content.Children.Add(check);
 
         var button = new Button
         {
-            Content = text,
-            Height = 32,
-            Padding = new Avalonia.Thickness(9, 4),
-            CornerRadius = new Avalonia.CornerRadius(5),
+            Content = content,
+            Height = 24,
+            Padding = new Avalonia.Thickness(7, 2),
+            CornerRadius = new Avalonia.CornerRadius(2),
             HorizontalAlignment = HorizontalAlignment.Stretch,
-            HorizontalContentAlignment = HorizontalAlignment.Center,
+            HorizontalContentAlignment = HorizontalAlignment.Stretch,
             VerticalContentAlignment = VerticalAlignment.Center
         };
-        ApplyModelGenreChoiceVisual(button, text, selected, subgenre.IsPreferred);
+        ApplyModelGenreChoiceVisual(button, text, check, selected, subgenre.IsPreferred);
         button.Classes.Add("edit-choice");
         ToolTip.SetTip(button, CreateModelMetadataTooltip([subgenre.Id]));
         button.Click += (_, _) =>
@@ -1672,6 +1683,7 @@ public partial class EditTrackOverlay : UserControl
             ApplyModelGenreChoiceVisual(
                 button,
                 text,
+                check,
                 _pendingEnabledModelGenreIds.Contains(subgenre.Id),
                 subgenre.IsPreferred);
             ShowModelSelectedGenres(_track);
@@ -1680,17 +1692,23 @@ public partial class EditTrackOverlay : UserControl
         return button;
     }
 
-    private static void ApplyModelGenreChoiceVisual(Button button, TextBlock text, bool selected, bool isPreferred)
+    private static void ApplyModelGenreChoiceVisual(
+        Button button,
+        TextBlock text,
+        TextBlock check,
+        bool selected,
+        bool isPreferred)
     {
         button.Background = selected
-            ? new SolidColorBrush(Color.FromArgb(46, 255, 255, 255))
+            ? new SolidColorBrush(Color.Parse("#263E6591"))
             : Brushes.Transparent;
-        button.BorderBrush = selected
-            ? new SolidColorBrush(Color.FromArgb(160, 255, 255, 255))
-            : ThemeResources.Brush("Theme.Brush.BorderSubtle");
-        text.Foreground = ThemeResources.Brush(isPreferred
-            ? "Theme.Brush.Accent"
-            : selected ? "Theme.Brush.TextStrong" : "Theme.Brush.TextPrimary");
+        button.BorderBrush = new SolidColorBrush(Color.Parse(selected
+            ? "#7A78A9E6"
+            : "#36FFFFFF"));
+        button.BorderThickness = new Avalonia.Thickness(1);
+        text.Foreground = new SolidColorBrush(Color.Parse(
+            isPreferred ? "#FFA8C7A0" : selected ? "#FFD7E9FA" : "#FF8E969F"));
+        check.IsVisible = selected;
     }
 
     private void OnAllGenresHeaderPressed(object? sender, PointerPressedEventArgs e)

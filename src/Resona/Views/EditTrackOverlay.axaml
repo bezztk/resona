@@ -408,26 +408,8 @@
                         <Border Classes="edit-section" BorderThickness="0">
                             <StackPanel Spacing="12">
                             <TextBlock Text="Classification" FontSize="13" FontWeight="SemiBold" />
-                            <StackPanel x:Name="ModelSelectedGenresSection" Spacing="2" Margin="0">
-                                <Grid ColumnDefinitions="Auto,*"
-                                      ColumnSpacing="7"
-                                      Margin="0,1">
-                                    <Border Width="14" Height="14" VerticalAlignment="Center">
-                                        <Path Width="5" Height="9"
-                                              HorizontalAlignment="Center" VerticalAlignment="Center"
-                                              Data="M 0 0 L 4 4.5 L 0 9"
-                                              Stroke="{DynamicResource Theme.Brush.TextSecondary}"
-                                              StrokeThickness="1" RenderTransformOrigin="50%,50%">
-                                            <Path.RenderTransform>
-                                                <RotateTransform Angle="90" />
-                                            </Path.RenderTransform>
-                                        </Path>
-                                    </Border>
-                                    <TextBlock Grid.Column="1"
-                                               Text="Genres" FontSize="11" Opacity="0.72"
-                                               VerticalAlignment="Center" />
-                                </Grid>
-                                <StackPanel x:Name="ModelSelectedGenresPanel" Margin="22,0,0,1" />
+                            <StackPanel x:Name="ModelSelectedGenresSection" Margin="0">
+                                <StackPanel x:Name="ModelSelectedGenresPanel" Spacing="6" Margin="0,0,0,1" />
                             </StackPanel>
                             <StackPanel x:Name="DetectedGenresSection" Margin="0">
                                 <Grid x:Name="DetectedGenresHeader"
@@ -467,10 +449,10 @@
                                 <StackPanel x:Name="DetectedGenresPanel"
                                             IsVisible="False"
                                             Spacing="2"
-                                            Margin="12,0,0,1" />
+                                            Margin="20,0,0,1" />
                             </StackPanel>
                             <StackPanel x:Name="AddModelGenreSection" Spacing="2" Margin="0">
-                                <Grid ColumnDefinitions="Auto,*,Auto"
+                                <Grid ColumnDefinitions="Auto,*"
                                       ColumnSpacing="7"
                                       Margin="0,1"
                                       Cursor="Hand"
@@ -495,17 +477,10 @@
                                                FontSize="11"
                                                Opacity="0.72"
                                                VerticalAlignment="Center" />
-                                    <TextBlock x:Name="AllGenresCountText"
-                                               Grid.Column="2"
-                                               FontSize="10.5"
-                                               FontWeight="SemiBold"
-                                               Foreground="{DynamicResource Theme.Brush.TextSecondary}"
-                                               Opacity="0.82"
-                                               VerticalAlignment="Center" />
                                 </Grid>
                                 <StackPanel x:Name="AllGenresPanel"
                                             IsVisible="False"
-                                            Spacing="10"
+                                            Spacing="6"
                                             Margin="17,0,0,3">
                                     <TextBox x:Name="ModelGenreSearchBox"
                                              Classes="compact-search"
@@ -516,24 +491,24 @@
                                              MaxHeight="24"
                                              HorizontalAlignment="Right"
                                              VerticalContentAlignment="Center"
-                                             Watermark="Search genres…"
+                                             Watermark="Search subgenres…"
                                              TextChanged="OnModelGenreSearchChanged" />
-                                    <Grid ColumnDefinitions="118,13,*">
+                                    <Grid ColumnDefinitions="72,9,*">
                                         <StackPanel x:Name="ModelGenreGroupsPanel" />
                                         <Border Grid.Column="1"
                                                 Width="1"
                                                 Background="{DynamicResource Theme.Brush.Divider}"
-                                                Margin="6,1" />
+                                                Margin="4,1" />
                                         <ScrollViewer x:Name="ModelGenreChoicesScroll"
                                                       Grid.Column="2"
-                                                      Padding="10,0,0,0"
+                                                      Padding="6,0,0,0"
                                                       HorizontalScrollBarVisibility="Disabled"
                                                       VerticalScrollBarVisibility="Auto">
                                             <UniformGrid x:Name="ModelGenreChoicesPanel"
                                                          Columns="2"
-                                                         ColumnSpacing="7"
-                                                         RowSpacing="7"
-                                                         Margin="0,0,0,8" />
+                                                         ColumnSpacing="4"
+                                                         RowSpacing="3"
+                                                         Margin="0,0,0,4" />
                                         </ScrollViewer>
                                     </Grid>
                                 </StackPanel>

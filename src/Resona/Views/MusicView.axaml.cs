@@ -3574,8 +3574,7 @@ public partial class MusicView : UserControl
             var choices = Values.Genres
                 .Where(genre => selectedGroupName is null || string.Equals(GroupName(genre), selectedGroupName, StringComparison.OrdinalIgnoreCase))
                 .Where(genre => string.IsNullOrWhiteSpace(normalizedSearch)
-                                || SubgenreName(genre).Contains(normalizedSearch, StringComparison.OrdinalIgnoreCase)
-                                || GroupName(genre).Contains(normalizedSearch, StringComparison.OrdinalIgnoreCase))
+                                || SubgenreName(genre).Contains(normalizedSearch, StringComparison.OrdinalIgnoreCase))
                 .OrderByDescending(genre => selected.Contains(genre.Name))
                 .ThenBy(genre => GroupName(genre), StringComparer.OrdinalIgnoreCase)
                 .ThenBy(genre => SubgenreName(genre), StringComparer.OrdinalIgnoreCase)

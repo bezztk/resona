@@ -758,7 +758,8 @@ public partial class SettingsOverlay : UserControl
         var isGeneralPage = page == SettingsPage.General;
         GenreVocabularyPage.IsVisible = isGenreVocabularyPage;
         GenreToolbar.IsVisible = isGenreVocabularyPage;
-        PageDescriptionText.IsVisible = !isGenreVocabularyPage;
+        PageHeader.IsVisible = !isGeneralPage;
+        PageDescriptionText.IsVisible = page == SettingsPage.TagRules;
         SummaryBar.IsVisible = !isGenreVocabularyPage;
         GeneralPage.IsVisible = isGeneralPage;
         TagsPage.IsVisible = page == SettingsPage.Tags;
