@@ -743,10 +743,8 @@ public partial class SettingsOverlay : UserControl
             _ => SettingsPage.GenreVocabulary
         };
         SelectPage(page);
+        ClassificationNavButton.Flyout?.Hide();
     }
-
-    private void OnClassificationNavigationClicked(object? sender, RoutedEventArgs e) =>
-        ClassificationNavButton.IsChecked = _selectedPage != SettingsPage.General;
 
     private void SelectPage(SettingsPage page)
     {
@@ -765,8 +763,17 @@ public partial class SettingsOverlay : UserControl
         TagsPage.IsVisible = page == SettingsPage.Tags;
         StylesPage.IsVisible = page == SettingsPage.Styles;
         TagRulesPage.IsVisible = page == SettingsPage.TagRules;
-        GeneralNavButton.IsChecked = isGeneralPage;
-        ClassificationNavButton.IsChecked = !isGeneralPage;
+        GeneralNavIndicator.IsVisible = isGeneralPage;
+        ClassificationNavIndicator.IsVisible = !isGeneralPage;
+        GeneralNavText.Foreground = ThemeResources.Brush(isGeneralPage
+            ? "Theme.Brush.TextStrong"
+            : "Theme.Brush.TextMuted");
+        ClassificationNavText.Foreground = ThemeResources.Brush(isGeneralPage
+            ? "Theme.Brush.TextMuted"
+            : "Theme.Brush.TextStrong");
+        SetSelectedNavigationOption(ManageGenresMenuButton, page == SettingsPage.GenreVocabulary);
+        SetSelectedNavigationOption(TagsMenuButton, page == SettingsPage.Tags);
+        SetSelectedNavigationOption(StylesMenuButton, page == SettingsPage.Styles);
 
         PageTitleText.Text = page switch
         {
@@ -791,6 +798,18 @@ public partial class SettingsOverlay : UserControl
         if (page == SettingsPage.Styles) ReloadStyleManagement();
         if (page == SettingsPage.TagRules) ReloadTagRules();
         if (isGeneralPage) RefreshUpdatePage(AppUpdateService.Current.State);
+    }
+
+    private static void SetSelectedNavigationOption(Control control, bool selected)
+    {
+        if (selected)
+        {
+            if (!control.Classes.Contains("selected"))
+                control.Classes.Add("selected");
+            return;
+        }
+
+        control.Classes.Remove("selected");
     }
 
     private void OnShowCreateSubgenreClicked(object? sender, RoutedEventArgs e)

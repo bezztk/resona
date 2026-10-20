@@ -43,42 +43,59 @@
             <Setter Property="Foreground" Value="{DynamicResource Theme.Brush.TextStrong}"/>
             <Setter Property="FontWeight" Value="SemiBold"/>
         </Style>
-        <Style Selector="ToggleButton.settings-top-nav, Button.settings-top-nav">
+        <Style Selector="Button.settings-top-nav">
             <Setter Property="Cursor" Value="Hand"/>
             <Setter Property="MinWidth" Value="0"/>
-            <Setter Property="Height" Value="28"/>
-            <Setter Property="Padding" Value="8,3"/>
+            <Setter Property="Height" Value="36"/>
+            <Setter Property="Padding" Value="10,0"/>
             <Setter Property="Background" Value="Transparent"/>
             <Setter Property="BorderBrush" Value="Transparent"/>
             <Setter Property="BorderThickness" Value="0"/>
             <Setter Property="CornerRadius" Value="0"/>
             <Setter Property="Foreground" Value="{DynamicResource Theme.Brush.TextMuted}"/>
-            <Setter Property="FontSize" Value="11"/>
+            <Setter Property="FontSize" Value="13"/>
             <Setter Property="HorizontalContentAlignment" Value="Center"/>
+            <Setter Property="VerticalContentAlignment" Value="Stretch"/>
         </Style>
-        <Style Selector="ToggleButton.settings-top-nav:pointerover, Button.settings-top-nav:pointerover">
+        <Style Selector="Button.settings-top-nav /template/ ContentPresenter#PART_ContentPresenter">
+            <Setter Property="Background" Value="Transparent"/>
+            <Setter Property="BorderBrush" Value="Transparent"/>
+            <Setter Property="BorderThickness" Value="0"/>
+            <Setter Property="Padding" Value="10,0"/>
+        </Style>
+        <Style Selector="Button.settings-top-nav:pointerover">
             <Setter Property="Background" Value="Transparent"/>
             <Setter Property="BorderBrush" Value="Transparent"/>
             <Setter Property="Foreground" Value="{DynamicResource Theme.Brush.TextPrimary}"/>
         </Style>
-        <Style Selector="ToggleButton.settings-top-nav:checked">
+        <Style Selector="Button.settings-top-nav:pointerover /template/ ContentPresenter#PART_ContentPresenter">
             <Setter Property="Background" Value="Transparent"/>
             <Setter Property="BorderBrush" Value="Transparent"/>
-            <Setter Property="Foreground" Value="#FF9EC5EC"/>
-            <Setter Property="FontWeight" Value="SemiBold"/>
+            <Setter Property="BorderThickness" Value="0"/>
         </Style>
-        <Style Selector="MenuItem.classification-menu-item">
-            <Setter Property="MinWidth" Value="176"/>
-            <Setter Property="MinHeight" Value="32"/>
-            <Setter Property="Padding" Value="12,6"/>
+        <Style Selector="Button.settings-classification-option">
+            <Setter Property="Height" Value="34"/>
+            <Setter Property="Padding" Value="10,0"/>
             <Setter Property="FontFamily" Value="Consolas"/>
-            <Setter Property="FontSize" Value="11"/>
-            <Setter Property="Foreground" Value="{DynamicResource Theme.Brush.TextPrimary}"/>
+            <Setter Property="FontSize" Value="11.5"/>
+            <Setter Property="Foreground" Value="{DynamicResource Theme.Brush.TextSecondary}"/>
             <Setter Property="Background" Value="Transparent"/>
+            <Setter Property="BorderBrush" Value="Transparent"/>
+            <Setter Property="BorderThickness" Value="2,0,0,0"/>
+            <Setter Property="CornerRadius" Value="0"/>
+            <Setter Property="HorizontalAlignment" Value="Stretch"/>
+            <Setter Property="HorizontalContentAlignment" Value="Left"/>
+            <Setter Property="Cursor" Value="Hand"/>
         </Style>
-        <Style Selector="MenuItem.classification-menu-item:pointerover">
-            <Setter Property="Background" Value="{DynamicResource Theme.Brush.SurfaceHover}"/>
-            <Setter Property="Foreground" Value="{DynamicResource Theme.Brush.TextStrong}"/>
+        <Style Selector="Button.settings-classification-option:pointerover">
+            <Setter Property="Background" Value="#FF292C31"/>
+            <Setter Property="BorderBrush" Value="#8A89919A"/>
+            <Setter Property="Foreground" Value="{DynamicResource Theme.Brush.TextPrimary}"/>
+        </Style>
+        <Style Selector="Button.settings-classification-option.selected">
+            <Setter Property="Background" Value="#FF222831"/>
+            <Setter Property="BorderBrush" Value="#FF78A9E6"/>
+            <Setter Property="Foreground" Value="#E7F1FB"/>
         </Style>
         <Style Selector="TextBox.settings-input">
             <Setter Property="Height" Value="34"/>
@@ -231,29 +248,85 @@
                             Spacing="10"
                             HorizontalAlignment="Center"
                             VerticalAlignment="Center">
-                        <ToggleButton x:Name="GeneralNavButton" Classes="settings-top-nav"
-                                      Content="General" Tag="general"
-                                      Click="OnSettingsNavigationClicked"/>
-                        <ToggleButton x:Name="ClassificationNavButton" Classes="settings-top-nav"
-                                      Click="OnClassificationNavigationClicked">
-                            <ToggleButton.Content>
-                                <StackPanel Orientation="Horizontal" Spacing="8">
-                                    <TextBlock Text="Classification" VerticalAlignment="Center"/>
-                                    <Path Width="7" Height="4"
-                                          VerticalAlignment="Center"
-                                          Data="M 0 0 L 3.5 4 L 7 0"
-                                          Stroke="{Binding Foreground, RelativeSource={RelativeSource AncestorType=ToggleButton}}"
-                                          StrokeThickness="1"/>
-                                </StackPanel>
-                            </ToggleButton.Content>
-                            <ToggleButton.Flyout>
-                                <MenuFlyout Placement="BottomEdgeAlignedLeft">
-                                    <MenuItem Classes="classification-menu-item" Header="Manage Genres" Tag="genres" Click="OnSettingsNavigationClicked"/>
-                                    <MenuItem Classes="classification-menu-item" Header="Tags" Tag="tags" Click="OnSettingsNavigationClicked"/>
-                                    <MenuItem Classes="classification-menu-item" Header="Styles" Tag="styles" Click="OnSettingsNavigationClicked"/>
-                                </MenuFlyout>
-                            </ToggleButton.Flyout>
-                        </ToggleButton>
+                        <Button x:Name="GeneralNavButton" Classes="settings-top-nav"
+                                Tag="general" Click="OnSettingsNavigationClicked">
+                            <Grid RowDefinitions="*,2">
+                                <TextBlock x:Name="GeneralNavText"
+                                           Text="General"
+                                           FontSize="13"
+                                           VerticalAlignment="Center"/>
+                                <Border x:Name="GeneralNavIndicator"
+                                        Grid.Row="1"
+                                        Height="2"
+                                        Background="#FF78A9E6"/>
+                            </Grid>
+                        </Button>
+                        <Button x:Name="ClassificationNavButton" Classes="settings-top-nav">
+                            <Button.Content>
+                                <Grid RowDefinitions="*,2">
+                                    <StackPanel Orientation="Horizontal" Spacing="8"
+                                                HorizontalAlignment="Center"
+                                                VerticalAlignment="Center">
+                                        <TextBlock x:Name="ClassificationNavText"
+                                                   Text="Classification"
+                                                   FontSize="13"
+                                                   VerticalAlignment="Center"/>
+                                        <Path Width="8" Height="5"
+                                              VerticalAlignment="Center"
+                                              Data="M 1 1 L 4 4 L 7 1"
+                                              Stroke="{DynamicResource Theme.Brush.TextSecondary}"
+                                              StrokeThickness="1.3"
+                                              StrokeLineCap="Round"/>
+                                    </StackPanel>
+                                    <Border x:Name="ClassificationNavIndicator"
+                                            Grid.Row="1"
+                                            Height="2"
+                                            Background="#FF78A9E6"/>
+                                </Grid>
+                            </Button.Content>
+                            <Button.Flyout>
+                                <Flyout Placement="BottomEdgeAlignedLeft">
+                                    <Flyout.FlyoutPresenterTheme>
+                                        <ControlTheme TargetType="FlyoutPresenter">
+                                            <Setter Property="Padding" Value="0"/>
+                                            <Setter Property="Background" Value="Transparent"/>
+                                            <Setter Property="BorderThickness" Value="0"/>
+                                            <Setter Property="CornerRadius" Value="0"/>
+                                        </ControlTheme>
+                                    </Flyout.FlyoutPresenterTheme>
+                                    <Border Width="220"
+                                            Padding="3"
+                                            Background="#FF151619"
+                                            BorderBrush="#8A656A72"
+                                            BorderThickness="1"
+                                            CornerRadius="2">
+                                        <StackPanel Spacing="0">
+                                            <TextBlock Text="CLASSIFICATION"
+                                                       Margin="10,7,10,6"
+                                                       FontSize="9"
+                                                       FontWeight="SemiBold"
+                                                       LetterSpacing="1"
+                                                       Opacity="0.55"/>
+                                            <Button x:Name="ManageGenresMenuButton"
+                                                    Classes="settings-classification-option"
+                                                    Content="Manage Genres"
+                                                    Tag="genres"
+                                                    Click="OnSettingsNavigationClicked"/>
+                                            <Button x:Name="TagsMenuButton"
+                                                    Classes="settings-classification-option"
+                                                    Content="Tags"
+                                                    Tag="tags"
+                                                    Click="OnSettingsNavigationClicked"/>
+                                            <Button x:Name="StylesMenuButton"
+                                                    Classes="settings-classification-option"
+                                                    Content="Styles"
+                                                    Tag="styles"
+                                                    Click="OnSettingsNavigationClicked"/>
+                                        </StackPanel>
+                                    </Border>
+                                </Flyout>
+                            </Button.Flyout>
+                        </Button>
                 </StackPanel>
                 <Button Grid.Column="2"
                         Click="OnCloseClicked"

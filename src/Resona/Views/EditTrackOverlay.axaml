@@ -484,7 +484,7 @@
                                     IsVisible="False"
                                     BorderBrush="{DynamicResource Theme.Brush.Divider}"
                                     BorderThickness="0,1,0,0"
-                                    Padding="0,8,0,0"
+                                    Padding="0,12,0,0"
                                     Margin="0,2,0,0">
                                 <StackPanel Spacing="5">
                                     <TextBlock Text="MODEL SUGGESTIONS"
