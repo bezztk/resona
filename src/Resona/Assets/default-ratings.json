@@ -1,10 +1,9 @@
 {
   "ratings": [
-    { "name": "Avoid", "sortOrder": 1 },
-    { "name": "Okay", "sortOrder": 2 },
-    { "name": "Good", "sortOrder": 3 },
-    { "name": "Great", "sortOrder": 4 },
-    { "name": "Amazing", "sortOrder": 5 },
-    { "name": "Timeless", "sortOrder": 6 }
+    { "name": "Okay", "displayName": "Brauchbar", "sortOrder": 1 },
+    { "name": "Good", "displayName": "Gelungen", "sortOrder": 2 },
+    { "name": "Great", "displayName": "Ausgezeichnet", "sortOrder": 3 },
+    { "name": "Amazing", "displayName": "Herausragend", "sortOrder": 4 },
+    { "name": "Timeless", "displayName": "Unvergleichlich", "sortOrder": 5 }
   ]
 }

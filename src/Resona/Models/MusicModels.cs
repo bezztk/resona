@@ -127,10 +127,12 @@ public record TrackTagSuggestion(
     double Score,
     string State);
 public record Style(int Id, string Name);
-public record Rating(int Id, string Name, int SortOrder);
+public record Rating(int Id, string Name, string DisplayName, int SortOrder);
 public static class RatingNames
 {
-    public const string Avoid = "Avoid";
+    public const string Okay = "Okay";
+    public const string Good = "Good";
+    public const string Great = "Great";
     public const string Amazing = "Amazing";
     public const string Timeless = "Timeless";
 }

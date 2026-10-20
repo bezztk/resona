@@ -61,10 +61,7 @@ public partial class EditTrackOverlay : UserControl
     private int? _preparedTrackId;
     private int? _selectedRatingId;
     private int? _initialRatingId;
-    private RatingBand? _selectedRatingBand;
-    private RatingBand? _initialRatingBand;
     private int? _ratingDialogInitialId;
-    private RatingBand? _ratingDialogInitialBand;
     private string? _initialLanguageCode;
     private HashSet<int> _initialTagIds = [];
     private HashSet<int> _initialStyleIds = [];
@@ -210,9 +207,7 @@ public partial class EditTrackOverlay : UserControl
         UpdateAnalysisPolicyVisual(track.AnalysisDisabled);
 
         _selectedRatingId = track.RatingId;
-        _selectedRatingBand = track.RatingBand;
         UpdateRatingVisual();
-        UpdateRatingBandVisual();
 
         var selectedTagIds = MusicLibraryService.Current.GetTrackTagIds(track.Id).ToHashSet();
         var selectedStyleIds = MusicLibraryService.Current.GetTrackStyleIds(track.Id).ToHashSet();
@@ -755,7 +750,6 @@ public partial class EditTrackOverlay : UserControl
         _initialTitle = track.Title;
         _initialArtist = NormalizeOptionalText(track.Artist);
         _initialRatingId = track.RatingId;
-        _initialRatingBand = track.RatingBand;
         _initialLanguageCode = track.LanguageCode;
         _initialIsPublic = track.IsPublic;
         _initialTagIds = selectedTagIds.ToHashSet();
@@ -799,7 +793,7 @@ public partial class EditTrackOverlay : UserControl
                 accent.R,
                 accent.G,
                 accent.B));
-            visual.NameText.Text = visual.Rating.Name.ToUpperInvariant();
+            visual.NameText.Text = visual.Rating.DisplayName.ToUpperInvariant();
             visual.Button.Opacity = isSelected ? 1 : 0.72;
         }
 
@@ -809,61 +803,17 @@ public partial class EditTrackOverlay : UserControl
             RatingInformationText.Foreground = new SolidColorBrush(Color.FromArgb(155, 255, 255, 255));
             ClearRatingButton.IsEnabled = false;
             ClearRatingButton.Opacity = 0.35;
-            RatingBandSection.IsVisible = false;
             return;
         }
 
         var selectedColor = RatingAccentColor(selected.Name);
-        RatingInformationText.Text = selected.Name;
+        RatingInformationText.Text = selected.DisplayName;
         RatingInformationText.Foreground = new SolidColorBrush(selectedColor);
         ClearRatingButton.IsEnabled = true;
         ClearRatingButton.Opacity = 0.68;
-        RatingBandSection.IsVisible = true;
     }
 
-    private static Color RatingAccentColor(string ratingName) => ratingName switch
-    {
-        RatingNames.Avoid => Color.FromRgb(255, 75, 75),
-        "Okay" => Color.FromRgb(210, 205, 95),
-        "Good" => Color.FromRgb(45, 190, 240),
-        "Great" => Color.FromRgb(55, 224, 105),
-        RatingNames.Amazing => Color.FromRgb(255, 132, 48),
-        RatingNames.Timeless => Color.FromRgb(255, 215, 64),
-        _ => Color.FromRgb(190, 145, 75)
-    };
-
-    private void UpdateRatingBandVisual()
-    {
-        var enabled = _selectedRatingId is not null;
-        RatingBandPanel.IsEnabled = enabled;
-
-        UpdateRatingBandButton(RatingBandLowButton, RatingBand.Low);
-        UpdateRatingBandButton(RatingBandMidButton, RatingBand.Mid);
-        UpdateRatingBandButton(RatingBandHighButton, RatingBand.High);
-    }
-
-    private void UpdateRatingBandButton(Button button, RatingBand band)
-    {
-        var selected = _selectedRatingBand == band;
-        if (selected && !button.Classes.Contains("selected"))
-            button.Classes.Add("selected");
-        else if (!selected)
-            button.Classes.Remove("selected");
-        button.Cursor = new Cursor(StandardCursorType.Hand);
-    }
-
-    private void ToggleRatingBand(RatingBand ratingBand)
-    {
-        if (_selectedRatingId is null)
-            return;
-
-        _selectedRatingBand = _selectedRatingBand == ratingBand ? null : ratingBand;
-        UpdateRatingBandVisual();
-    }
-
-    private void OnRatingBandLowClicked(object? sender, RoutedEventArgs e) => ToggleRatingBand(RatingBand.Low);
-    private void OnRatingBandMidClicked(object? sender, RoutedEventArgs e) => ToggleRatingBand(RatingBand.Mid);
-    private void OnRatingBandHighClicked(object? sender, RoutedEventArgs e) => ToggleRatingBand(RatingBand.High);
+    private static Color RatingAccentColor(string ratingName) => RatingPresentation.Accent(ratingName);
 
     private void BuildRatingButtons()
     {
@@ -876,7 +826,7 @@ public partial class EditTrackOverlay : UserControl
             var rating = orderedRatings[index];
             var nameText = new TextBlock
             {
-                Text = rating.Name.ToUpperInvariant(),
+                Text = rating.DisplayName.ToUpperInvariant(),
                 FontSize = 9,
                 FontWeight = FontWeight.SemiBold,
                 FontFamily = new FontFamily("Inter"),
@@ -897,20 +847,19 @@ public partial class EditTrackOverlay : UserControl
                 VerticalContentAlignment = VerticalAlignment.Center,
                 Cursor = new Cursor(StandardCursorType.Hand)
             };
+            Grid.SetRow(button, index < 3 ? 0 : 1);
+            Grid.SetColumn(button, index < 3 ? index * 2 : (index - 3) * 3);
+            Grid.SetColumnSpan(button, index < 3 ? 2 : 3);
             button.Click += (_, _) =>
             {
-                if (_selectedRatingId != rating.Id)
-                    _selectedRatingBand = null;
                 _selectedRatingId = rating.Id;
                 UpdateRatingVisual();
-                UpdateRatingBandVisual();
             };
             _ratingButtons.Add(new RatingButtonVisual(rating, button, nameText));
             RatingOptionsPanel.Children.Add(button);
         }
 
         UpdateRatingVisual();
-        UpdateRatingBandVisual();
     }
 
     private void OnClearRatingClicked(object? sender, RoutedEventArgs e)
@@ -919,26 +868,20 @@ public partial class EditTrackOverlay : UserControl
             return;
 
         _selectedRatingId = null;
-        _selectedRatingBand = null;
         UpdateRatingVisual();
-        UpdateRatingBandVisual();
     }
 
     private void OnRateTrackClicked(object? sender, RoutedEventArgs e)
     {
         _ratingDialogInitialId = _selectedRatingId;
-        _ratingDialogInitialBand = _selectedRatingBand;
         UpdateRatingVisual();
-        UpdateRatingBandVisual();
         RatingDialogLayer.IsVisible = true;
     }
 
     private void OnRatingDialogCancelClicked(object? sender, RoutedEventArgs e)
     {
         _selectedRatingId = _ratingDialogInitialId;
-        _selectedRatingBand = _ratingDialogInitialBand;
         UpdateRatingVisual();
-        UpdateRatingBandVisual();
         RatingDialogLayer.IsVisible = false;
     }
 
@@ -1054,12 +997,11 @@ public partial class EditTrackOverlay : UserControl
             || SelectedRatingId() != _initialRatingId
             || _isPublic != _initialIsPublic
             || !styleIds.ToHashSet().SetEquals(_initialStyleIds);
-        var ratingBandChanged = _selectedRatingBand != _initialRatingBand;
         var tagsChanged = !tagIds.SetEquals(_initialTagIds);
         var languageChanged = !string.Equals(languageCode, _initialLanguageCode, StringComparison.OrdinalIgnoreCase);
         var disabledGenreIds = _initialEnabledModelGenreIds.Except(_pendingEnabledModelGenreIds).ToList();
         var enabledGenreIds = _pendingEnabledModelGenreIds.Except(_initialEnabledModelGenreIds).ToList();
-        if (!coreChanged && !ratingBandChanged && !tagsChanged && !languageChanged && disabledGenreIds.Count == 0 && enabledGenreIds.Count == 0)
+        if (!coreChanged && !tagsChanged && !languageChanged && disabledGenreIds.Count == 0 && enabledGenreIds.Count == 0)
             return;
 
         if (coreChanged)
@@ -1073,9 +1015,6 @@ public partial class EditTrackOverlay : UserControl
                 styleIds,
                 _isPublic);
         }
-
-        if (ratingBandChanged)
-            MusicLibraryService.Current.SetTrackRatingBand(_track.Id, _selectedRatingBand);
 
         if (tagsChanged)
             MusicLibraryService.Current.SetTrackManualTags(_track.Id, tagIds);
@@ -1093,7 +1032,6 @@ public partial class EditTrackOverlay : UserControl
             Title = title,
             Artist = artist,
             RatingId = SelectedRatingId(),
-            RatingBand = _selectedRatingBand,
             LibraryState = SelectedRatingId() is null
                 ? _track.LibraryState
                 : TrackLibraryState.Active,

@@ -19,24 +19,32 @@ public sealed class RatingAndLanguageTests : IDisposable
     }
 
     [Fact]
-    public void Existing_favorite_rating_is_migrated_and_track_assignment_is_preserved()
+    public void Current_ratings_have_desktop_names_and_legacy_assignments_are_migrated()
     {
         var database = new MusicDatabase(_databasePath);
         var favoriteId = Scalar<int>("SELECT id FROM ratings WHERE name = 'Favorite'");
+        var avoidId = Scalar<int>("SELECT id FROM ratings WHERE name = 'Avoid'");
         var trackId = InsertTrack(favoriteId, "migration.mp3");
+        var avoidedTrackId = InsertTrack(avoidId, "avoid.mp3");
 
         using (var connection = Open())
             MusicDatabase.EnsureCurrentRatings(connection);
 
         var ratings = database.GetRatings().OrderBy(rating => rating.SortOrder).ToList();
         Assert.Equal(
-            ["Avoid", "Okay", "Good", "Great", "Amazing", "Timeless"],
+            ["Okay", "Good", "Great", "Amazing", "Timeless"],
             ratings.Select(rating => rating.Name));
-        Assert.Equal([1, 2, 3, 4, 5, 6], ratings.Select(rating => rating.SortOrder));
+        Assert.Equal(
+            ["Brauchbar", "Gelungen", "Ausgezeichnet", "Herausragend", "Unvergleichlich"],
+            ratings.Select(rating => rating.DisplayName));
+        Assert.Equal([1, 2, 3, 4, 5], ratings.Select(rating => rating.SortOrder));
         Assert.Equal("Timeless", Scalar<string>(@"
             SELECT ratings.name
             FROM tracks JOIN ratings ON ratings.id = tracks.rating_id
             WHERE tracks.id = $trackId", ("$trackId", trackId)));
+        Assert.Equal(0L, Scalar<long>(
+            "SELECT COUNT(rating_id) FROM tracks WHERE id = $trackId",
+            ("$trackId", avoidedTrackId)));
     }
 
     [Fact]

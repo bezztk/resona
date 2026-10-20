@@ -128,46 +128,6 @@
                 <Setter Property="BorderBrush" Value="Transparent"/>
                 <Setter Property="Padding" Value="0"/>
             </Style>
-            <Style Selector="Button.rating-position">
-                <Setter Property="Padding" Value="0"/>
-                <Setter Property="Background" Value="Transparent"/>
-                <Setter Property="BorderBrush" Value="Transparent"/>
-                <Setter Property="BorderThickness" Value="0"/>
-                <Setter Property="CornerRadius" Value="0"/>
-                <Setter Property="Foreground" Value="#9CA5AE"/>
-                <Setter Property="Opacity" Value="0.78"/>
-                <Setter Property="HorizontalContentAlignment" Value="Center"/>
-                <Setter Property="VerticalContentAlignment" Value="Center"/>
-            </Style>
-            <Style Selector="Button.rating-position:pointerover">
-                <Setter Property="Background" Value="#0FFFFFFF"/>
-                <Setter Property="BorderBrush" Value="Transparent"/>
-            </Style>
-            <Style Selector="Button.rating-position.selected">
-                <Setter Property="Background" Value="#66426F99"/>
-                <Setter Property="BorderBrush" Value="Transparent"/>
-                <Setter Property="Foreground" Value="#D9E8F5"/>
-                <Setter Property="Opacity" Value="1"/>
-            </Style>
-            <Style Selector="Button.rating-position /template/ ContentPresenter#PART_ContentPresenter">
-                <Setter Property="Background" Value="Transparent"/>
-                <Setter Property="BorderBrush" Value="Transparent"/>
-                <Setter Property="BorderThickness" Value="0"/>
-                <Setter Property="CornerRadius" Value="0"/>
-                <Setter Property="Padding" Value="0"/>
-                <Setter Property="HorizontalAlignment" Value="Stretch"/>
-                <Setter Property="VerticalAlignment" Value="Stretch"/>
-                <Setter Property="HorizontalContentAlignment" Value="Center"/>
-                <Setter Property="VerticalContentAlignment" Value="Center"/>
-            </Style>
-            <Style Selector="Button.rating-position:pointerover /template/ ContentPresenter#PART_ContentPresenter">
-                <Setter Property="Background" Value="#0FFFFFFF"/>
-                <Setter Property="BorderBrush" Value="Transparent"/>
-            </Style>
-            <Style Selector="Button.rating-position.selected /template/ ContentPresenter#PART_ContentPresenter">
-                <Setter Property="Background" Value="#66426F99"/>
-                <Setter Property="BorderBrush" Value="Transparent"/>
-            </Style>
             <Style Selector="Button.rating-dialog-action">
                 <Setter Property="CornerRadius" Value="1"/>
                 <Setter Property="HorizontalContentAlignment" Value="Center"/>
@@ -740,73 +700,11 @@
                                FontWeight="SemiBold"
                                LetterSpacing="1"/>
 
-                    <UniformGrid x:Name="RatingOptionsPanel"
-                                 Columns="3"
-                                 ColumnSpacing="8"
-                                 RowSpacing="8"/>
-
-                    <StackPanel x:Name="RatingBandSection"
-                                IsVisible="False"
-                                Spacing="8">
-                        <TextBlock Text="RATING POSITION · OPTIONAL"
-                                   FontFamily="Consolas"
-                                   FontSize="9.5"
-                                   LetterSpacing="0.8"
-                                   Opacity="0.58"/>
-                        <Border BorderBrush="#52717A84"
-                                BorderThickness="1"
-                                CornerRadius="1"
-                                ClipToBounds="True">
-                            <Grid x:Name="RatingBandPanel"
-                                  ColumnDefinitions="*,1,*,1,*"
-                                  Height="38">
-                                <Button x:Name="RatingBandLowButton"
-                                        Grid.Column="0"
-                                        Classes="rating-position"
-                                        Height="38"
-                                        HorizontalAlignment="Stretch"
-                                        VerticalAlignment="Stretch"
-                                        Click="OnRatingBandLowClicked">
-                                    <TextBlock Text="LOW"
-                                               FontFamily="Consolas"
-                                               FontSize="9"
-                                               FontWeight="Normal"
-                                               LetterSpacing="0.55"
-                                               RenderTransform="translateY(1px)"/>
-                                </Button>
-                                <Rectangle Grid.Column="1" Fill="#3DFFFFFF" Margin="0,6"/>
-                                <Button x:Name="RatingBandMidButton"
-                                        Grid.Column="2"
-                                        Classes="rating-position"
-                                        Height="38"
-                                        HorizontalAlignment="Stretch"
-                                        VerticalAlignment="Stretch"
-                                        Click="OnRatingBandMidClicked">
-                                    <TextBlock Text="MID"
-                                               FontFamily="Consolas"
-                                               FontSize="9"
-                                               FontWeight="Normal"
-                                               LetterSpacing="0.55"
-                                               RenderTransform="translateY(1px)"/>
-                                </Button>
-                                <Rectangle Grid.Column="3" Fill="#3DFFFFFF" Margin="0,6"/>
-                                <Button x:Name="RatingBandHighButton"
-                                        Grid.Column="4"
-                                        Classes="rating-position"
-                                        Height="38"
-                                        HorizontalAlignment="Stretch"
-                                        VerticalAlignment="Stretch"
-                                        Click="OnRatingBandHighClicked">
-                                    <TextBlock Text="HIGH"
-                                               FontFamily="Consolas"
-                                               FontSize="9"
-                                               FontWeight="Normal"
-                                               LetterSpacing="0.55"
-                                               RenderTransform="translateY(1px)"/>
-                                </Button>
-                            </Grid>
-                        </Border>
-                    </StackPanel>
+                    <Grid x:Name="RatingOptionsPanel"
+                          ColumnDefinitions="*,*,*,*,*,*"
+                          RowDefinitions="Auto,Auto"
+                          ColumnSpacing="8"
+                          RowSpacing="8"/>
 
                     <Grid ColumnDefinitions="*,Auto,Auto" ColumnSpacing="8" Margin="0,3,0,0">
                         <Button x:Name="ClearRatingButton"

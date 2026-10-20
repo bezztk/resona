@@ -659,7 +659,7 @@ public partial class MusicView : UserControl
         var tagMap = Values.Tags.ToDictionary(t => t.Id);
         var tagOrder = Values.Tags.Select((tag, index) => (tag.Id, index))
             .ToDictionary(item => item.Id, item => item.index);
-        var ratingMap = Values.Ratings.ToDictionary(r => r.Id, r => r.Name);
+        var ratingMap = Values.Ratings.ToDictionary(r => r.Id);
         var styleMap = Values.Styles.ToDictionary(s => s.Id, s => s.Name);
 
         var newItems = new List<TrackDisplayItem>();
@@ -729,7 +729,7 @@ public partial class MusicView : UserControl
         var tagMap = Values.Tags.ToDictionary(t => t.Id);
         var tagOrder = Values.Tags.Select((tag, index) => (tag.Id, index))
             .ToDictionary(item => item.Id, item => item.index);
-        var ratingMap = Values.Ratings.ToDictionary(r => r.Id, r => r.Name);
+        var ratingMap = Values.Ratings.ToDictionary(r => r.Id);
         var styleMap = Values.Styles.ToDictionary(s => s.Id, s => s.Name);
 
         var modelGenreAssignments = MusicLibraryService.Current.GetTrackModelGenres(track.Id)
@@ -795,10 +795,12 @@ public partial class MusicView : UserControl
         var languageName = TrackLanguageCatalog.Name(track.LanguageCode);
         if (!string.IsNullOrWhiteSpace(languageName))
             tagDisplays.Add(new TrackTagDisplay(languageName, Brush("#A8CFF4")));
-        var ratingName = track.RatingId is int ratingId ? ratingMap.GetValueOrDefault(ratingId, "") : "None";
+        var rating = track.RatingId is int ratingId ? ratingMap.GetValueOrDefault(ratingId) : null;
+        var ratingName = rating?.Name ?? string.Empty;
+        var ratingText = rating?.DisplayName ?? "None";
         var durationText = track.DurationSeconds.HasValue ? FormatDuration(track.DurationSeconds.Value) : "";
 
-        var item = new TrackDisplayItem(track, genreStr, modelGenreStr, manualGenreStr, styleStr, durationText, ratingName, genreDisplays, tagDisplays, track.DisplayChannelName ?? "")
+        var item = new TrackDisplayItem(track, genreStr, modelGenreStr, manualGenreStr, styleStr, durationText, ratingName, ratingText, genreDisplays, tagDisplays, track.DisplayChannelName ?? "")
         {
             NeedsReview = track.NeedsReview,
             NeedsAnalysis = needsAnalysis,
@@ -1626,7 +1628,7 @@ public partial class MusicView : UserControl
             var accent = RatingAccentColor(rating.Name);
             var button = new Button
             {
-                Content = rating.Name,
+                Content = rating.DisplayName,
                 Height = 28,
                 HorizontalAlignment = HorizontalAlignment.Stretch,
                 HorizontalContentAlignment = HorizontalAlignment.Center,
@@ -1660,27 +1662,9 @@ public partial class MusicView : UserControl
         }
     }
 
-    private static Color RatingAccentColor(string ratingName) => ratingName switch
-    {
-        RatingNames.Timeless => Color.FromRgb(235, 194, 83),
-        RatingNames.Amazing => Color.FromRgb(220, 145, 82),
-        "Great" => Color.FromRgb(83, 190, 108),
-        "Good" => Color.FromRgb(71, 177, 150),
-        "Okay" => Color.FromRgb(151, 156, 116),
-        RatingNames.Avoid => Color.FromRgb(211, 78, 65),
-        _ => Color.FromRgb(205, 148, 67)
-    };
+    private static Color RatingAccentColor(string ratingName) => RatingPresentation.Accent(ratingName);
 
-    private static Color RatingForegroundColor(string ratingName) => ratingName switch
-    {
-        RatingNames.Timeless => Color.FromRgb(255, 230, 150),
-        RatingNames.Amazing => Color.FromRgb(247, 195, 132),
-        "Great" => Color.FromRgb(188, 242, 185),
-        "Good" => Color.FromRgb(176, 232, 212),
-        "Okay" => Color.FromRgb(226, 224, 194),
-        RatingNames.Avoid => Color.FromRgb(246, 175, 160),
-        _ => Color.FromRgb(243, 203, 128)
-    };
+    private static Color RatingForegroundColor(string ratingName) => RatingPresentation.Accent(ratingName);
 
     private void OnCompletionFilterChanged(object? sender, RoutedEventArgs e)
     {

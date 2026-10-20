@@ -88,9 +88,10 @@ public class MusicDatabase
             );
 
             CREATE TABLE ratings (
-                id          INTEGER PRIMARY KEY AUTOINCREMENT,
-                name        TEXT NOT NULL UNIQUE,
-                sort_order  INTEGER NOT NULL UNIQUE
+                id            INTEGER PRIMARY KEY AUTOINCREMENT,
+                name          TEXT NOT NULL UNIQUE,
+                display_name  TEXT NOT NULL,
+                sort_order    INTEGER NOT NULL UNIQUE
             );
 
             CREATE TABLE tags (
@@ -293,6 +294,7 @@ public class MusicDatabase
         EnsureColumn(conn, "tracks", "language_code", "TEXT NULL");
         EnsureColumn(conn, "tracks", "artist", "TEXT NULL");
         EnsureColumn(conn, "tracks", "rating_band", "TEXT NULL");
+        EnsureColumn(conn, "ratings", "display_name", "TEXT NOT NULL DEFAULT ''");
         EnsureCurrentRatings(conn);
         EnsureColumn(conn, "tracks", "is_public", "INTEGER NOT NULL DEFAULT 1");
         EnsureColumn(conn, "tracks", "needs_reevaluation", "INTEGER NOT NULL DEFAULT 0");
@@ -305,7 +307,6 @@ public class MusicDatabase
         EnsureTrackGenreSourceSchema(conn);
         EnsureGenreCurationSchema(conn);
         SynchronizeManualSubgenres(conn);
-        RenameLegacySkipRating(conn);
         DropTrackWorkflowGuards(conn);
         NormalizeTrackWorkflowState(conn);
         EnsureTrackWorkflowGuards(conn);
@@ -576,19 +577,15 @@ public class MusicDatabase
         tx.Commit();
     }
 
-    private static void RenameLegacySkipRating(SqliteConnection conn)
-    {
-        ExecuteNonQuery(conn, @"
-            UPDATE ratings
-            SET name = $avoid
-            WHERE name = 'Skip'
-              AND NOT EXISTS (SELECT 1 FROM ratings WHERE name = $avoid)",
-            ("$avoid", RatingNames.Avoid));
-    }
-
     internal static void EnsureCurrentRatings(SqliteConnection conn)
     {
+        EnsureColumn(conn, "ratings", "display_name", "TEXT NOT NULL DEFAULT ''");
         using var tx = conn.BeginTransaction();
+        ExecuteInsert(conn, tx, @"
+            UPDATE tracks
+            SET rating_id = NULL, rating_band = NULL
+            WHERE rating_id IN (SELECT id FROM ratings WHERE name IN ('Avoid', 'Skip'))");
+        ExecuteInsert(conn, tx, "DELETE FROM ratings WHERE name IN ('Avoid', 'Skip')");
         ExecuteInsert(conn, tx, @"
             UPDATE tracks
             SET rating_id = (SELECT id FROM ratings WHERE name = $timeless)
@@ -605,16 +602,27 @@ public class MusicDatabase
             WHERE name = 'Favorite'
               AND NOT EXISTS (SELECT 1 FROM ratings WHERE name = $timeless)",
             ("$timeless", RatingNames.Timeless));
-        ExecuteInsert(conn, tx, "UPDATE ratings SET sort_order = 1000 WHERE name = $timeless",
-            ("$timeless", RatingNames.Timeless));
-        ExecuteInsert(conn, tx, @"
-            INSERT INTO ratings (name, sort_order) VALUES ($amazing, 5)
-            ON CONFLICT(name) DO UPDATE SET sort_order = 5",
-            ("$amazing", RatingNames.Amazing));
-        ExecuteInsert(conn, tx, "UPDATE ratings SET sort_order = 6 WHERE name = $timeless",
-            ("$timeless", RatingNames.Timeless));
+        ExecuteInsert(conn, tx, "UPDATE ratings SET sort_order = sort_order + 1000");
+        UpsertRating(conn, tx, RatingNames.Okay, "Brauchbar", 1);
+        UpsertRating(conn, tx, RatingNames.Good, "Gelungen", 2);
+        UpsertRating(conn, tx, RatingNames.Great, "Ausgezeichnet", 3);
+        UpsertRating(conn, tx, RatingNames.Amazing, "Herausragend", 4);
+        UpsertRating(conn, tx, RatingNames.Timeless, "Unvergleichlich", 5);
         tx.Commit();
     }
+
+    private static void UpsertRating(
+        SqliteConnection conn,
+        SqliteTransaction tx,
+        string name,
+        string displayName,
+        int sortOrder) => ExecuteInsert(conn, tx, @"
+            INSERT INTO ratings (name, display_name, sort_order)
+            VALUES ($name, $displayName, $sortOrder)
+            ON CONFLICT(name) DO UPDATE SET
+                display_name = excluded.display_name,
+                sort_order = excluded.sort_order",
+        ("$name", name), ("$displayName", displayName), ("$sortOrder", sortOrder));
 
     private static void CreateTagSchema(SqliteConnection conn)
     {
@@ -1306,8 +1314,8 @@ public class MusicDatabase
         foreach (var rating in ReadAsset<RatingSeedDocument>("default-ratings.json").Ratings)
         {
             ExecuteInsert(conn, tx,
-                "INSERT INTO ratings (name, sort_order) VALUES ($name, $sortOrder)",
-                ("$name", rating.Name), ("$sortOrder", rating.SortOrder));
+                "INSERT INTO ratings (name, display_name, sort_order) VALUES ($name, $displayName, $sortOrder)",
+                ("$name", rating.Name), ("$displayName", rating.DisplayName), ("$sortOrder", rating.SortOrder));
         }
 
         SeedDefaultStyles(conn, tx);
@@ -2684,10 +2692,11 @@ public class MusicDatabase
     {
         using var conn = Open();
         using var cmd = conn.CreateCommand();
-        cmd.CommandText = "SELECT id, name, sort_order FROM ratings ORDER BY sort_order";
+        cmd.CommandText = "SELECT id, name, display_name, sort_order FROM ratings ORDER BY sort_order";
         using var reader = cmd.ExecuteReader();
         var ratings = new List<Rating>();
-        while (reader.Read()) ratings.Add(new Rating(reader.GetInt32(0), reader.GetString(1), reader.GetInt32(2)));
+        while (reader.Read())
+            ratings.Add(new Rating(reader.GetInt32(0), reader.GetString(1), reader.GetString(2), reader.GetInt32(3)));
         return ratings;
     }
 
@@ -3195,7 +3204,7 @@ public class MusicDatabase
     }
 
     private sealed record RatingSeedDocument(List<RatingSeed> Ratings);
-    private sealed record RatingSeed(string Name, int SortOrder);
+    private sealed record RatingSeed(string Name, string DisplayName, int SortOrder);
     private sealed record ModelSubgenreMetadataSeed(
         string Label,
         string Genre,

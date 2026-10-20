@@ -553,49 +553,13 @@
                                         BorderBrush="#8A89919A"
                                         IsHitTestVisible="False">
                                 </Border>
-                                <Grid ColumnDefinitions="2,18,48,*"
+                                <Grid ColumnDefinitions="2,48,*"
                                       Height="54"
                                       VerticalAlignment="Top">
 
-                                    <Grid Grid.Column="1"
-                                          Width="18" Height="18"
-                                          HorizontalAlignment="Center"
-                                          VerticalAlignment="Center"
-                                          Margin="0,0,3,0"
-                                          RenderTransform="translateX(3px)"
-                                          IsHitTestVisible="False">
-                                        <Grid.Effect>
-                                            <DropShadowEffect OffsetX="0"
-                                                              OffsetY="0"
-                                                              BlurRadius="2"
-                                                              Color="Black"
-                                                              Opacity="0.9"/>
-                                        </Grid.Effect>
-                                        <Border Width="15" Height="24"
-                                                Background="{Binding RatingBandForeground}"
-                                                IsVisible="{Binding ShowRatingBandArrow}"
-                                                HorizontalAlignment="Center"
-                                                VerticalAlignment="Center"
-                                                RenderTransformOrigin="50%,50%">
-                                            <Border.OpacityMask>
-                                                <ImageBrush Source="avares://Resona/Assets/rating-band-arrow.png"
-                                                            Stretch="Uniform"/>
-                                            </Border.OpacityMask>
-                                            <Border.RenderTransform>
-                                                <RotateTransform Angle="{Binding RatingBandArrowRotation}"/>
-                                            </Border.RenderTransform>
-                                        </Border>
-                                        <Ellipse Width="5.5" Height="5.5"
-                                                 Fill="{Binding RatingBandForeground}"
-                                                 IsVisible="{Binding ShowRatingBandDot}"
-                                                 HorizontalAlignment="Center"
-                                                 VerticalAlignment="Center"/>
-                                    </Grid>
-
                                     <!-- The local halo lets the cover bleed softly into its immediate surroundings. -->
-                                    <Panel Grid.Column="2"
+                                    <Panel Grid.Column="1"
                                            Width="48" Height="54"
-                                           Margin="-2,0,0,0"
                                            VerticalAlignment="Center">
                                         <Border Width="42" Height="42"
                                                 CornerRadius="7"
@@ -616,11 +580,11 @@
                                     </Panel>
 
                                     <!-- Two-line hierarchy: track identity, then source and classification. -->
-                                    <Grid Grid.Column="3"
+                                    <Grid Grid.Column="2"
                                           Height="38"
                                           VerticalAlignment="Center"
                                           RowDefinitions="19,19"
-                                          Margin="8,0,94,0"
+                                          Margin="8,0,134,0"
                                           RowSpacing="0">
                                         <views:TrackTitleTagPanel Grid.Row="0"
                                                                   Gap="6"
@@ -688,7 +652,7 @@
                                     </Grid>
 
                                 </Grid>
-                                <StackPanel Width="72"
+                                <StackPanel Width="112"
                                             Margin="0,0,7,0"
                                             Spacing="0"
                                             HorizontalAlignment="Right"

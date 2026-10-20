@@ -77,7 +77,7 @@ public partial class AddTrackOverlay : UserControl
         GenresPanel.Children.Clear();
         _genreChips.Clear();
 
-        RatingBox.ItemsSource = _ratings.Select(r => r.Name).ToList();
+        RatingBox.ItemsSource = _ratings.Select(r => r.DisplayName).ToList();
         RatingBox.SelectedIndex = -1;
     }
 

@@ -50,23 +50,12 @@ public record TrackDisplayItem(
     string ManualGenreText,
     string StyleText,
     string DurationText,
+    string RatingName,
     string RatingText,
     IReadOnlyList<TrackGenreDisplay> GenreDisplays,
     IReadOnlyList<TrackTagDisplay> TagDisplays,
     string ChannelText)
 {
-    public bool ShowRatingBandArrow => Track.RatingBand is Models.RatingBand.Low or Models.RatingBand.High;
-    public bool ShowRatingBandDot => Track.RatingBand == Models.RatingBand.Mid;
-    public double RatingBandArrowRotation => Track.RatingBand == Models.RatingBand.Low ? 180 : 0;
-
-    public IBrush RatingBandForeground => Track.RatingBand switch
-    {
-        Models.RatingBand.Low => new SolidColorBrush(Color.FromRgb(232, 92, 92)),
-        Models.RatingBand.Mid => new SolidColorBrush(Color.FromRgb(245, 245, 238)),
-        Models.RatingBand.High => new SolidColorBrush(Color.FromRgb(83, 210, 124)),
-        _ => Brushes.Transparent
-    };
-
     public bool NeedsReview { get; set; }
     public bool NeedsAnalysis { get; set; }
     public bool IsPlaying { get; set; }
@@ -104,36 +93,10 @@ public record TrackDisplayItem(
         ? new SolidColorBrush(Color.FromRgb(255, 210, 122))
         : new SolidColorBrush(Color.FromRgb(240, 239, 229));
 
-    public IBrush RatingBackground => RatingText switch
-    {
-        RatingNames.Timeless => new SolidColorBrush(Color.FromArgb(255, 156, 116, 28)),
-        RatingNames.Amazing  => new SolidColorBrush(Color.FromArgb(255, 154, 78, 30)),
-        "Great"              => new SolidColorBrush(Color.FromArgb(255, 28, 126, 60)),
-        "Good"               => new SolidColorBrush(Color.FromArgb(255, 20, 100, 140)),
-        "Okay"               => new SolidColorBrush(Color.FromArgb(255, 108, 111, 70)),
-        RatingNames.Avoid    => new SolidColorBrush(Color.FromArgb(255, 150, 43, 36)),
-        _                    => new SolidColorBrush(Color.FromArgb(255, 137, 91, 25))
-    };
-
-    public IBrush RatingBorder => RatingText switch
-    {
-        RatingNames.Timeless => new SolidColorBrush(Color.FromArgb(185, 219, 184, 85)),
-        RatingNames.Amazing => new SolidColorBrush(Color.FromArgb(180, 221, 144, 78)),
-        "Great" => new SolidColorBrush(Color.FromArgb(175, 83, 176, 105)),
-        "Good" => new SolidColorBrush(Color.FromArgb(170, 76, 164, 139)),
-        "Okay" => new SolidColorBrush(Color.FromArgb(150, 139, 144, 108)),
-        RatingNames.Avoid => new SolidColorBrush(Color.FromArgb(170, 201, 82, 68)),
-        _ => new SolidColorBrush(Color.FromArgb(160, 190, 139, 69))
-    };
-
-    public IBrush RatingForeground => RatingText switch
-    {
-        RatingNames.Timeless => new SolidColorBrush(Color.FromArgb(255, 255, 215, 64)),
-        RatingNames.Amazing  => new SolidColorBrush(Color.FromArgb(255, 255, 132, 48)),
-        "Great"              => new SolidColorBrush(Color.FromArgb(255, 55, 224, 105)),
-        "Good"               => new SolidColorBrush(Color.FromArgb(255, 45, 190, 240)),
-        "Okay"               => new SolidColorBrush(Color.FromArgb(255, 210, 205, 95)),
-        RatingNames.Avoid    => new SolidColorBrush(Color.FromArgb(255, 255, 75, 75)),
-        _                    => new SolidColorBrush(Color.FromArgb(255, 190, 145, 75))
-    };
+    private Color RatingAccent => RatingPresentation.Accent(RatingName);
+    public IBrush RatingBackground => new SolidColorBrush(Color.FromArgb(
+        64, RatingAccent.R, RatingAccent.G, RatingAccent.B));
+    public IBrush RatingBorder => new SolidColorBrush(Color.FromArgb(
+        180, RatingAccent.R, RatingAccent.G, RatingAccent.B));
+    public IBrush RatingForeground => new SolidColorBrush(RatingAccent);
 }
