@@ -290,7 +290,7 @@
                                                TextTrimming="CharacterEllipsis" />
                                 </Grid>
 
-                                <Grid ColumnDefinitions="104,*,30,30" RowDefinitions="30,30,30,30,30,30" ColumnSpacing="6">
+                                <Grid ColumnDefinitions="104,*,30,30" RowDefinitions="30,30,30,30,30" ColumnSpacing="6">
                                     <TextBlock Grid.Row="0" Text="Artist" FontSize="10.5" Opacity="0.58" VerticalAlignment="Center" />
                                     <TextBlock x:Name="ArtistDisplayText" Grid.Row="0" Grid.Column="1" FontSize="11.5" FontWeight="SemiBold"
                                                VerticalAlignment="Center" TextTrimming="CharacterEllipsis" />
@@ -343,18 +343,31 @@
                                                    TextTrimming="CharacterEllipsis" />
                                     </Button>
 
-                                    <TextBlock Grid.Row="4" Text="Uploaded" FontSize="10.5" Opacity="0.58" VerticalAlignment="Center" />
-                                    <TextBlock x:Name="UploadedDisplayText" Grid.Row="4" Grid.Column="1" Grid.ColumnSpan="3"
-                                               FontSize="10.5" VerticalAlignment="Center" />
-
-                                    <TextBlock Grid.Row="5" Text="YouTube activity" FontSize="10.5" Opacity="0.58" VerticalAlignment="Center" />
-                                    <TextBlock x:Name="YouTubeActivityDisplayText" Grid.Row="5" Grid.Column="1" Grid.ColumnSpan="3"
+                                    <TextBlock Grid.Row="4" Text="YouTube activity" FontSize="10.5" Opacity="0.58" VerticalAlignment="Center" />
+                                    <TextBlock x:Name="YouTubeActivityDisplayText" Grid.Row="4" Grid.Column="1" Grid.ColumnSpan="3"
                                                FontSize="10.5" VerticalAlignment="Center" />
                                 </Grid>
 
-                                <Rectangle Height="1" Fill="{DynamicResource Theme.Brush.BorderSubtle}" Margin="0,3" />
+                                <Grid ColumnDefinitions="Auto,Auto,*" ColumnSpacing="7" Margin="0,5,0,1"
+                                      Cursor="Hand" PointerPressed="OnAnalysisDetailsHeaderPressed">
+                                    <Border Width="14" Height="14" VerticalAlignment="Center">
+                                        <Path x:Name="AnalysisDetailsChevron" Width="5" Height="9"
+                                              HorizontalAlignment="Center" VerticalAlignment="Center"
+                                              Data="M 0 0 L 4 4.5 L 0 9"
+                                              Stroke="{DynamicResource Theme.Brush.TextSecondary}"
+                                              StrokeThickness="1" RenderTransformOrigin="50%,50%">
+                                            <Path.RenderTransform><RotateTransform /></Path.RenderTransform>
+                                        </Path>
+                                    </Border>
+                                    <TextBlock Grid.Column="1" Text="Audio analysis details" FontSize="10.5"
+                                               FontWeight="SemiBold" Opacity="0.7" VerticalAlignment="Center" />
+                                    <Rectangle Grid.Column="2" Height="1" Margin="7,0,0,0"
+                                               Fill="{DynamicResource Theme.Brush.BorderSubtle}"
+                                               VerticalAlignment="Center" />
+                                </Grid>
 
-                                <Grid x:Name="AudioAnalysisSection" RowDefinitions="Auto,Auto,Auto" RowSpacing="3" Margin="0,5,0,0">
+                                <StackPanel x:Name="AnalysisDetailsPanel" IsVisible="False" Spacing="5" Margin="21,0,0,0">
+                                <Grid x:Name="AudioAnalysisSection" RowDefinitions="Auto,Auto,Auto" RowSpacing="3">
                                     <Border x:Name="BpmMetricCard" Background="Transparent" Padding="0,4">
                                         <Grid ColumnDefinitions="*,Auto" ColumnSpacing="16">
                                             <Grid ColumnDefinitions="Auto,*" ColumnSpacing="5">
@@ -388,6 +401,7 @@
                                     <TextBlock Text="Emotional character" FontSize="10.5" FontWeight="SemiBold" />
                                     <StackPanel x:Name="EmotionalCharacterResultsPanel" Spacing="5" />
                                 </StackPanel>
+                                </StackPanel>
                             </StackPanel>
                         </Border>
 
@@ -401,9 +415,10 @@
                             <StackPanel x:Name="EditStylesSection" Spacing="6" Margin="0,3,0,5">
                                 <Grid ColumnDefinitions="Auto,*"
                                       ColumnSpacing="7"
-                                      Margin="0,4">
+                                      Margin="0,4" Cursor="Hand"
+                                      PointerPressed="OnStylesHeaderPressed">
                                     <Border Width="14" Height="14" VerticalAlignment="Center">
-                                        <Path Width="5" Height="9"
+                                        <Path x:Name="StylesChevron" Width="5" Height="9"
                                               HorizontalAlignment="Center" VerticalAlignment="Center"
                                               Data="M 0 0 L 4 4.5 L 0 9"
                                               Stroke="{DynamicResource Theme.Brush.TextSecondary}"
@@ -424,9 +439,10 @@
                             <StackPanel Spacing="6" Margin="0,3,0,5">
                                 <Grid ColumnDefinitions="Auto,*"
                                       ColumnSpacing="7"
-                                      Margin="0,4">
+                                      Margin="0,4" Cursor="Hand"
+                                      PointerPressed="OnTagsHeaderPressed">
                                     <Border Width="14" Height="14" VerticalAlignment="Center">
-                                        <Path Width="5" Height="9"
+                                        <Path x:Name="TagsChevron" Width="5" Height="9"
                                               HorizontalAlignment="Center" VerticalAlignment="Center"
                                               Data="M 0 0 L 4 4.5 L 0 9"
                                               Stroke="{DynamicResource Theme.Brush.TextSecondary}"
@@ -440,10 +456,12 @@
                                                Text="Tags" FontSize="11" Opacity="0.72"
                                                VerticalAlignment="Center" />
                                 </Grid>
-                                <StackPanel x:Name="TagsPanel" Spacing="9" Margin="22,0,0,2" />
-                                <StackPanel x:Name="SuggestedTagsSection" Spacing="5" Margin="22,0,0,4" IsVisible="False">
-                                    <TextBlock Text="Suggested tags" FontSize="11" Opacity="0.68" />
-                                    <StackPanel x:Name="SuggestedTagsPanel" Spacing="4" />
+                                <StackPanel x:Name="TagsContentPanel" Spacing="5">
+                                    <StackPanel x:Name="TagsPanel" Spacing="9" Margin="22,0,0,2" />
+                                    <StackPanel x:Name="SuggestedTagsSection" Spacing="5" Margin="22,0,0,4" IsVisible="False">
+                                        <TextBlock Text="Suggested tags" FontSize="11" Opacity="0.68" />
+                                        <StackPanel x:Name="SuggestedTagsPanel" Spacing="4" />
+                                    </StackPanel>
                                 </StackPanel>
                             </StackPanel>
                             <StackPanel x:Name="ModelSelectedGenresSection" Spacing="6" Margin="0,0,0,5">

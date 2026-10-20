@@ -42,6 +42,9 @@ public partial class EditTrackOverlay : UserControl
     private bool _areFrequentManualGenresExpanded;
     private bool _areAllGenresExpanded;
     private bool _areLanguagesExpanded;
+    private bool _areAnalysisDetailsExpanded;
+    private bool _areStylesExpanded = true;
+    private bool _areTagsExpanded = true;
     private bool _updatingLanguageSelection;
     private int? _modelGenreFilterId;
     private string _modelGenreSearchText = string.Empty;
@@ -158,6 +161,9 @@ public partial class EditTrackOverlay : UserControl
         _areFrequentManualGenresExpanded = false;
         _areAllGenresExpanded = false;
         _areLanguagesExpanded = false;
+        SetAnalysisDetailsExpanded(false);
+        SetStylesExpanded(true);
+        SetTagsExpanded(true);
         LoadLookups();
         Prefill(track);
         _preparedTrackId = track.Id;
@@ -351,10 +357,9 @@ public partial class EditTrackOverlay : UserControl
         TitleDisplayText.Text = DisplayValue(TitleBox.Text);
         OriginalTitleDisplayText.Text = DisplayValue(originalTitle);
         ChannelDisplayText.Text = DisplayValue(track.DisplayChannelName);
-        UploadedDisplayText.Text = FormatMetadataDate(track.UploadedAt);
-        var youtubeActivity = track.ViewCount is null && track.LikeCount is null
-            ? "—"
-            : $"{FormatMetric(track.ViewCount)} views  ·  {FormatMetric(track.LikeCount)} likes";
+        var youtubeActivity = $"{FormatMetric(track.ViewCount)} views"
+                              + $"  ·  {FormatMetric(track.LikeCount)} likes"
+                              + $"  ·  Uploaded {FormatMetadataDate(track.UploadedAt)}";
         var metadataDate = FormatMetadataDate(track.SourceMetadataUpdatedAt);
         YouTubeActivityDisplayText.Text = metadataDate == "—"
             ? youtubeActivity
@@ -659,6 +664,48 @@ public partial class EditTrackOverlay : UserControl
     {
         SetLanguagesExpanded(!_areLanguagesExpanded);
         e.Handled = true;
+    }
+
+    private void OnAnalysisDetailsHeaderPressed(object? sender, PointerPressedEventArgs e)
+    {
+        SetAnalysisDetailsExpanded(!_areAnalysisDetailsExpanded);
+        e.Handled = true;
+    }
+
+    private void SetAnalysisDetailsExpanded(bool expanded)
+    {
+        _areAnalysisDetailsExpanded = expanded;
+        AnalysisDetailsPanel.IsVisible = expanded;
+        if (AnalysisDetailsChevron.RenderTransform is RotateTransform rotation)
+            rotation.Angle = expanded ? 90 : 0;
+    }
+
+    private void OnStylesHeaderPressed(object? sender, PointerPressedEventArgs e)
+    {
+        SetStylesExpanded(!_areStylesExpanded);
+        e.Handled = true;
+    }
+
+    private void SetStylesExpanded(bool expanded)
+    {
+        _areStylesExpanded = expanded;
+        EditStylesPanel.IsVisible = expanded;
+        if (StylesChevron.RenderTransform is RotateTransform rotation)
+            rotation.Angle = expanded ? 90 : 0;
+    }
+
+    private void OnTagsHeaderPressed(object? sender, PointerPressedEventArgs e)
+    {
+        SetTagsExpanded(!_areTagsExpanded);
+        e.Handled = true;
+    }
+
+    private void SetTagsExpanded(bool expanded)
+    {
+        _areTagsExpanded = expanded;
+        TagsContentPanel.IsVisible = expanded;
+        if (TagsChevron.RenderTransform is RotateTransform rotation)
+            rotation.Angle = expanded ? 90 : 0;
     }
 
     private void SetLanguagesExpanded(bool expanded)

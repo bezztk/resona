@@ -46,7 +46,6 @@ public partial class SettingsOverlay : UserControl
     private bool _loadingBrowserCookieSettings;
     private bool _hasStartedReferencePreview;
     private int? _activeReferencePreviewTrackId;
-    private bool _preferredGenresFirst;
 
     public event Action<string>? ToastRequested;
     public event Action? LibraryMetadataChanged;
@@ -227,31 +226,11 @@ public partial class SettingsOverlay : UserControl
         });
         Grid.SetColumn(stats, 1);
         row.Children.Add(stats);
-        var preferredFirst = new ToggleButton
-        {
-            Content = "Preferred first",
-            Height = 26,
-            Padding = new Avalonia.Thickness(8, 2),
-            FontSize = 9.5,
-            IsChecked = _preferredGenresFirst,
-            Background = Brushes.Transparent,
-            BorderBrush = ThemeResources.Brush("Theme.Brush.BorderSubtle"),
-            BorderThickness = new Avalonia.Thickness(1),
-            CornerRadius = new Avalonia.CornerRadius(1),
-            HorizontalAlignment = HorizontalAlignment.Right,
-            HorizontalContentAlignment = HorizontalAlignment.Center,
-            VerticalContentAlignment = VerticalAlignment.Center
-        };
-        ToolTip.SetTip(preferredFirst, "Show preferred genres before other genres");
-        preferredFirst.Click += OnPreferredFirstClicked;
-        var content = new StackPanel { Spacing = 8 };
-        content.Children.Add(row);
-        content.Children.Add(preferredFirst);
         return new Border
         {
             Padding = new Avalonia.Thickness(2, 3, 2, 9),
             Margin = new Avalonia.Thickness(0, 0, 0, 3),
-            Child = content
+            Child = row
         };
     }
 
@@ -263,7 +242,6 @@ public partial class SettingsOverlay : UserControl
             .Where(subgenre => search.Length == 0
                                || subgenre.Name.Contains(search, StringComparison.OrdinalIgnoreCase))
             .OrderBy(subgenre => subgenre.IsHidden)
-            .ThenByDescending(subgenre => _preferredGenresFirst && subgenre.IsPreferred)
             .ThenByDescending(subgenre => _genreUsageCounts.GetValueOrDefault(subgenre.Id))
             .ThenBy(subgenre => subgenre.Name, StringComparer.OrdinalIgnoreCase)
             .ToList();
@@ -512,7 +490,9 @@ public partial class SettingsOverlay : UserControl
             FontSize = 10,
             TextTrimming = TextTrimming.CharacterEllipsis,
             Opacity = isActivePreview ? 1 : 0.78,
-            Foreground = isActivePreview ? ThemeResources.Brush("Theme.Brush.Accent") : null
+            Foreground = isActivePreview
+                ? ThemeResources.Brush("Theme.Brush.Accent")
+                : ThemeResources.Brush("Theme.Brush.TextPrimary")
         };
         var button = new Button
         {
@@ -672,12 +652,6 @@ public partial class SettingsOverlay : UserControl
         };
         box.Classes.Add("settings-input");
         return box;
-    }
-
-    private void OnPreferredFirstClicked(object? sender, RoutedEventArgs e)
-    {
-        _preferredGenresFirst = sender is ToggleButton { IsChecked: true };
-        RebuildGenreVocabularyRows();
     }
 
     private static Avalonia.Svg.Skia.Svg CreateSvgIcon(string path, double size) => new(new Uri("avares://Resona/"))
