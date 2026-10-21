@@ -35,7 +35,7 @@ public sealed class RatingAndLanguageTests : IDisposable
             ["Okay", "Good", "Great", "Amazing", "Timeless"],
             ratings.Select(rating => rating.Name));
         Assert.Equal(
-            ["Brauchbar", "Gelungen", "Ausgezeichnet", "Herausragend", "Unvergleichlich"],
+            ["Brauchbar", "Ansprechend", "Ausgezeichnet", "Herausragend", "Unvergleichlich"],
             ratings.Select(rating => rating.DisplayName));
         Assert.Equal([1, 2, 3, 4, 5], ratings.Select(rating => rating.SortOrder));
         Assert.Equal("Timeless", Scalar<string>(@"
