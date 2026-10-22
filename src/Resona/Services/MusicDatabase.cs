@@ -135,9 +135,11 @@ public class MusicDatabase
                 is_public           INTEGER NOT NULL DEFAULT 1,
                 needs_reevaluation  INTEGER NOT NULL DEFAULT 0,
                 notes               TEXT NULL,
-                language_code       TEXT NULL
+                language_code       TEXT NULL,
+                is_archived         INTEGER NOT NULL DEFAULT 0
             );
             CREATE INDEX ix_tracks_library_state ON tracks(library_state, downloaded_at DESC);
+            CREATE INDEX ix_tracks_archived ON tracks(is_archived, downloaded_at DESC);
 
             CREATE TABLE collections (
                 id              INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -295,6 +297,9 @@ public class MusicDatabase
         EnsureColumn(conn, "tracks", "language_code", "TEXT NULL");
         EnsureColumn(conn, "tracks", "artist", "TEXT NULL");
         EnsureColumn(conn, "tracks", "rating_band", "TEXT NULL");
+        EnsureColumn(conn, "tracks", "is_archived", "INTEGER NOT NULL DEFAULT 0");
+        ExecuteNonQuery(conn,
+            "CREATE INDEX IF NOT EXISTS ix_tracks_archived ON tracks(is_archived, downloaded_at DESC)");
         EnsureColumn(conn, "ratings", "display_name", "TEXT NOT NULL DEFAULT ''");
         EnsureColumn(conn, "tracks", "is_public", "INTEGER NOT NULL DEFAULT 1");
         EnsureColumn(conn, "tracks", "needs_reevaluation", "INTEGER NOT NULL DEFAULT 0");
@@ -1502,7 +1507,7 @@ public class MusicDatabase
                                    tracks.updated_at, tracks.analysis_disabled, tracks.is_public, tracks.library_state,
                                    tracks.source_video_id, tracks.view_count, tracks.like_count,
                                    tracks.source_thumbnail_url, tracks.source_metadata_updated_at, channels.id, tracks.language_code,
-                                    tracks.original_title, tracks.artist, tracks.rating_band
+                                    tracks.original_title, tracks.artist, tracks.rating_band, tracks.is_archived
                             FROM tracks LEFT JOIN channels ON channels.id = tracks.channel_id
                             WHERE ($includeRejected = 1 OR tracks.library_state <> 'Rejected')
                             ORDER BY tracks.downloaded_at DESC";
@@ -1525,7 +1530,7 @@ public class MusicDatabase
                                    tracks.updated_at, tracks.analysis_disabled, tracks.is_public, tracks.library_state,
                                    tracks.source_video_id, tracks.view_count, tracks.like_count,
                                    tracks.source_thumbnail_url, tracks.source_metadata_updated_at, channels.id, tracks.language_code,
-                                    tracks.original_title, tracks.artist, tracks.rating_band
+                                    tracks.original_title, tracks.artist, tracks.rating_band, tracks.is_archived
                             FROM tracks LEFT JOIN channels ON channels.id = tracks.channel_id
                             WHERE tracks.id = $trackId";
         cmd.Parameters.AddWithValue("$trackId", trackId);
@@ -1542,7 +1547,7 @@ public class MusicDatabase
                                    tracks.updated_at, tracks.analysis_disabled, tracks.is_public, tracks.library_state,
                                    tracks.source_video_id, tracks.view_count, tracks.like_count,
                                    tracks.source_thumbnail_url, tracks.source_metadata_updated_at, channels.id, tracks.language_code,
-                                    tracks.original_title, tracks.artist, tracks.rating_band
+                                    tracks.original_title, tracks.artist, tracks.rating_band, tracks.is_archived
                             FROM tracks LEFT JOIN channels ON channels.id = tracks.channel_id
                             WHERE tracks.canonical_url = $canonicalUrl";
         cmd.Parameters.AddWithValue("$canonicalUrl", canonicalUrl);
@@ -1581,13 +1586,14 @@ public class MusicDatabase
                                    tracks.updated_at, tracks.analysis_disabled, tracks.is_public, tracks.library_state,
                                    tracks.source_video_id, tracks.view_count, tracks.like_count,
                                    tracks.source_thumbnail_url, tracks.source_metadata_updated_at, channels.id, tracks.language_code,
-                                    tracks.original_title, tracks.artist, tracks.rating_band
+                                    tracks.original_title, tracks.artist, tracks.rating_band, tracks.is_archived
                             FROM tracks
                             LEFT JOIN channels ON channels.id = tracks.channel_id
                             LEFT JOIN track_analysis analysis ON analysis.track_id = tracks.id
                             WHERE analysis.id IS NULL
                               AND tracks.analysis_disabled = 0
                               AND tracks.library_state <> 'Rejected'
+                              AND tracks.is_archived = 0
                             ORDER BY tracks.downloaded_at, tracks.id";
         using var reader = cmd.ExecuteReader();
         var tracks = new List<MusicTrack>();
@@ -1603,7 +1609,7 @@ public class MusicDatabase
         using var conn = Open();
         using var cmd = conn.CreateCommand();
         cmd.CommandText = @"SELECT COUNT(*) FROM tracks
-                            WHERE rating_id IS NULL AND library_state <> 'Rejected'";
+                            WHERE rating_id IS NULL AND library_state <> 'Rejected' AND is_archived = 0";
         return Convert.ToInt32(cmd.ExecuteScalar());
     }
 
@@ -1616,9 +1622,9 @@ public class MusicDatabase
                                    tracks.updated_at, tracks.analysis_disabled, tracks.is_public, tracks.library_state,
                                    tracks.source_video_id, tracks.view_count, tracks.like_count,
                                    tracks.source_thumbnail_url, tracks.source_metadata_updated_at, channels.id, tracks.language_code,
-                                    tracks.original_title, tracks.artist, tracks.rating_band
+                                    tracks.original_title, tracks.artist, tracks.rating_band, tracks.is_archived
                             FROM tracks LEFT JOIN channels ON channels.id = tracks.channel_id
-                            WHERE tracks.rating_id IS NULL AND tracks.library_state <> 'Rejected'
+                            WHERE tracks.rating_id IS NULL AND tracks.library_state <> 'Rejected' AND tracks.is_archived = 0
                             ORDER BY tracks.downloaded_at DESC";
         using var reader = cmd.ExecuteReader();
         var tracks = new List<MusicTrack>();
@@ -1665,7 +1671,8 @@ public class MusicDatabase
             reader.IsDBNull(21) ? null : reader.GetString(21),
             reader.GetString(22),
             reader.IsDBNull(23) ? null : reader.GetString(23),
-            ratingBand);
+            ratingBand,
+            reader.GetInt32(25) != 0);
     }
 
     public void SetTrackLanguage(int trackId, string? languageCode)
@@ -1782,8 +1789,8 @@ public class MusicDatabase
                    CASE WHEN collections.cover_kind = 'Track' AND collections.cover_track_id IS NULL
                         THEN 'Automatic' ELSE collections.cover_kind END,
                    collections.cover_track_id,
-                   COUNT(collection_tracks.track_id),
-                   COALESCE(SUM(tracks.duration_seconds), 0),
+                   COUNT(CASE WHEN tracks.is_archived = 0 THEN collection_tracks.track_id END),
+                   COALESCE(SUM(CASE WHEN tracks.is_archived = 0 THEN tracks.duration_seconds ELSE 0 END), 0),
                    collections.created_at, collections.updated_at
             FROM collections
             LEFT JOIN collection_tracks ON collection_tracks.collection_id = collections.id
@@ -1806,8 +1813,8 @@ public class MusicDatabase
                    CASE WHEN collections.cover_kind = 'Track' AND collections.cover_track_id IS NULL
                         THEN 'Automatic' ELSE collections.cover_kind END,
                    collections.cover_track_id,
-                   COUNT(collection_tracks.track_id),
-                   COALESCE(SUM(tracks.duration_seconds), 0),
+                   COUNT(CASE WHEN tracks.is_archived = 0 THEN collection_tracks.track_id END),
+                   COALESCE(SUM(CASE WHEN tracks.is_archived = 0 THEN tracks.duration_seconds ELSE 0 END), 0),
                    collections.created_at, collections.updated_at
             FROM collections
             LEFT JOIN collection_tracks ON collection_tracks.collection_id = collections.id
@@ -1937,9 +1944,10 @@ public class MusicDatabase
         using var conn = Open();
         using var cmd = conn.CreateCommand();
         cmd.CommandText = @"
-            SELECT track_id FROM collection_tracks
-            WHERE collection_id = $collectionId
-            ORDER BY position, added_at, track_id";
+            SELECT collection_tracks.track_id FROM collection_tracks
+            JOIN tracks ON tracks.id = collection_tracks.track_id
+            WHERE collection_tracks.collection_id = $collectionId AND tracks.is_archived = 0
+            ORDER BY collection_tracks.position, collection_tracks.added_at, collection_tracks.track_id";
         cmd.Parameters.AddWithValue("$collectionId", collectionId);
         using var reader = cmd.ExecuteReader();
         var ids = new List<int>();
@@ -1955,7 +1963,7 @@ public class MusicDatabase
             SELECT tracks.id, tracks.title, collection_tracks.position
             FROM collection_tracks
             JOIN tracks ON tracks.id = collection_tracks.track_id
-            WHERE collection_tracks.collection_id = $collectionId
+            WHERE collection_tracks.collection_id = $collectionId AND tracks.is_archived = 0
             ORDER BY collection_tracks.position, collection_tracks.added_at, tracks.id";
         cmd.Parameters.AddWithValue("$collectionId", collectionId);
         using var reader = cmd.ExecuteReader();
@@ -2006,7 +2014,7 @@ public class MusicDatabase
         if (coverTrackId is int preferredTrackId)
         {
             using var preferred = conn.CreateCommand();
-            preferred.CommandText = "SELECT thumbnail FROM tracks WHERE id = $trackId AND thumbnail IS NOT NULL";
+            preferred.CommandText = "SELECT thumbnail FROM tracks WHERE id = $trackId AND is_archived = 0 AND thumbnail IS NOT NULL";
             preferred.Parameters.AddWithValue("$trackId", preferredTrackId);
             if (preferred.ExecuteScalar() is byte[] preferredCover)
                 return preferredCover;
@@ -2016,7 +2024,7 @@ public class MusicDatabase
         cover.CommandText = @"SELECT tracks.thumbnail
             FROM collection_tracks
             JOIN tracks ON tracks.id = collection_tracks.track_id
-            WHERE collection_tracks.collection_id = $collectionId AND tracks.thumbnail IS NOT NULL
+            WHERE collection_tracks.collection_id = $collectionId AND tracks.is_archived = 0 AND tracks.thumbnail IS NOT NULL
             ORDER BY collection_tracks.position, collection_tracks.added_at, tracks.id LIMIT 1";
         cover.Parameters.AddWithValue("$collectionId", collectionId);
         return cover.ExecuteScalar() as byte[];
@@ -2068,11 +2076,13 @@ public class MusicDatabase
                    CASE WHEN collections.cover_kind = 'Track' AND collections.cover_track_id IS NULL
                         THEN 'Automatic' ELSE collections.cover_kind END,
                    collections.cover_track_id,
-                   (SELECT COUNT(*) FROM collection_tracks count_rows WHERE count_rows.collection_id = collections.id),
+                   (SELECT COUNT(*) FROM collection_tracks count_rows
+                    JOIN tracks count_tracks ON count_tracks.id = count_rows.track_id
+                    WHERE count_rows.collection_id = collections.id AND count_tracks.is_archived = 0),
                    COALESCE((SELECT SUM(tracks.duration_seconds)
                              FROM collection_tracks duration_rows
                              JOIN tracks ON tracks.id = duration_rows.track_id
-                             WHERE duration_rows.collection_id = collections.id), 0),
+                             WHERE duration_rows.collection_id = collections.id AND tracks.is_archived = 0), 0),
                    collections.created_at, collections.updated_at
             FROM collection_tracks
             JOIN collections ON collections.id = collection_tracks.collection_id
@@ -2318,6 +2328,20 @@ public class MusicDatabase
                             WHERE id = $id";
         cmd.Parameters.AddWithValue("$id", id);
         cmd.Parameters.AddWithValue("$analysisDisabled", analysisDisabled ? 1 : 0);
+        cmd.Parameters.AddWithValue("$updatedAt", DateTime.UtcNow.ToString("O"));
+        cmd.ExecuteNonQuery();
+    }
+
+    public void SetTrackArchived(int id, bool isArchived)
+    {
+        using var conn = Open();
+        using var cmd = conn.CreateCommand();
+        cmd.CommandText = @"UPDATE tracks
+                            SET is_archived = $isArchived,
+                                updated_at = $updatedAt
+                            WHERE id = $id";
+        cmd.Parameters.AddWithValue("$id", id);
+        cmd.Parameters.AddWithValue("$isArchived", isArchived ? 1 : 0);
         cmd.Parameters.AddWithValue("$updatedAt", DateTime.UtcNow.ToString("O"));
         cmd.ExecuteNonQuery();
     }

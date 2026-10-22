@@ -241,6 +241,17 @@
                                 Opacity="0.45">
                             <Image Source="{SvgImage /Assets/pause.svg}" Width="16" Height="16"/>
                         </Button>
+                        <Button x:Name="ArchiveButton"
+                                Click="OnArchiveClicked"
+                                ToolTip.Tip="Archive track"
+                                Width="34" Height="34" Padding="0"
+                                Background="Transparent" BorderThickness="0"
+                                Opacity="0.68">
+                            <Grid Width="17" Height="17">
+                                <Image x:Name="ArchiveIcon" Source="{SvgImage /Assets/archive.svg}" Width="17" Height="17"/>
+                                <Image x:Name="UnarchiveIcon" Source="{SvgImage /Assets/unarchive.svg}" Width="17" Height="17" IsVisible="False"/>
+                            </Grid>
+                        </Button>
                         <Button x:Name="DeleteButton"
                                 Click="OnDeleteClicked"
                                 ToolTip.Tip="Delete track"

@@ -35,7 +35,9 @@ public static class ObsidianMusicExportService
         Directory.CreateDirectory(imagesDirectory);
 
         var library = MusicLibraryService.Current;
-        var sourceTracks = library.GetTracks();
+        var sourceTracks = library.GetTracks()
+            .Where(track => !track.IsArchived)
+            .ToList();
         var ratings = library.GetRatings();
         var ratingNames = ratings.ToDictionary(item => item.Id, item => item.Name);
         var genres = library.GetGenres().ToDictionary(item => item.Id, item => item.Name);

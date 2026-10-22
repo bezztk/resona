@@ -42,6 +42,7 @@ public class MusicLibraryService
     public MusicTrack? GetTrackById(int id) => _db.GetTrackById(id);
     public bool ShouldAnalyzeTrack(int id) =>
         GetTrackById(id) is { } track
+        && !track.IsArchived
         && TrackWorkflowPolicy.ShouldAnalyze(
             track.LibraryState,
             track.AnalysisDisabled,
@@ -80,6 +81,12 @@ public class MusicLibraryService
     {
         _db.SetTrackAnalysisDisabled(id, analysisDisabled);
         if (!analysisDisabled)
+            BackgroundAnalysisService.Current.EnqueueTrack(id);
+    }
+    public void SetTrackArchived(int id, bool isArchived)
+    {
+        _db.SetTrackArchived(id, isArchived);
+        if (!isArchived)
             BackgroundAnalysisService.Current.EnqueueTrack(id);
     }
     public void RecordTrackPlaybackStarted(int trackId) => _db.RecordTrackPlaybackStarted(trackId);

@@ -140,7 +140,8 @@ public partial class MusicView : UserControl
         Review,
         Unassigned,
         GenreCleanup,
-        Unanalyzed
+        Unanalyzed,
+        Archived
     }
     private readonly List<FilterGroupControls> _filterGroups = [];
 
@@ -308,6 +309,7 @@ public partial class MusicView : UserControl
         EditTrackOverlay.PreviewRequested += StartTrackPreview;
         EditTrackOverlay.PreviewClosed += StopTrackPreview;
         EditTrackOverlay.ToastRequested += ShowToast;
+        EditTrackOverlay.ArchiveRequested += SetTrackArchived;
         EditTrackOverlay.DeleteRequested += DeleteTrackFromEditorAsync;
         EditTrackOverlay.Closed += PrepareActiveTrackEditor;
         SettingsOverlay.ToastRequested += ShowToast;
@@ -949,7 +951,7 @@ public partial class MusicView : UserControl
 
         _startupPresetMembershipCalculated = true;
         var eligibleItems = _allItems
-            .Where(item => item.Track.LibraryState != TrackLibraryState.Rejected)
+            .Where(item => item.Track.LibraryState != TrackLibraryState.Rejected && !item.Track.IsArchived)
             .ToList();
         var presetTrackIds = new HashSet<int>();
 
@@ -972,12 +974,21 @@ public partial class MusicView : UserControl
         return true;
     }
 
+    private void RecalculatePresetMembership()
+    {
+        _startupPresetMembershipCalculated = false;
+        _startupPresetTrackCounts.Clear();
+        _startupUnassignedTrackIds.Clear();
+        CalculateStartupPresetMembership();
+    }
+
     private HashSet<int> TrackIdsForPreset(
         PortableFilterPreset preset,
         IEnumerable<TrackDisplayItem>? sourceItems = null) =>
         TrackFilter.Apply(
                 (sourceItems ?? _allItems)
                     .Where(item => item.Track.LibraryState != TrackLibraryState.Rejected
+                                   && !item.Track.IsArchived
                                    && (!preset.ShowNeedsReview || item.NeedsReview))
                     .Select(item => item.Track),
                 _allTrackGenreIds,
@@ -1111,6 +1122,8 @@ public partial class MusicView : UserControl
 
     private IEnumerable<TrackDisplayItem> CollectionScopedItems()
     {
+        if (_activeBuiltInView == LibraryMode.Archived)
+            return _allItems.Where(item => item.Track.IsArchived);
         if (_activeBuiltInView == LibraryMode.Unassigned)
             return _allItems.Where(item => _startupUnassignedTrackIds.Contains(item.Track.Id));
         if (_activeBuiltInView == LibraryMode.GenreCleanup)
@@ -1160,7 +1173,9 @@ public partial class MusicView : UserControl
 
         filtered = TrackFilter.Apply(
             sourceItems
-                .Where(item => item.Track.LibraryState != TrackLibraryState.Rejected
+                .Where(item => (_activeBuiltInView == LibraryMode.Archived
+                                    ? item.Track.IsArchived
+                                    : !item.Track.IsArchived && item.Track.LibraryState != TrackLibraryState.Rejected)
                                && (!reviewOnly || item.NeedsReview))
                 .Select(item => item.Track),
             _allTrackGenreIds,
@@ -2348,27 +2363,35 @@ public partial class MusicView : UserControl
         BuiltInPresetRows.Children.Add(CreateBuiltInPresetCard(
             LibraryMode.Library,
             "Default",
-            $"{_allItems.Count(item => item.Track.LibraryState != TrackLibraryState.Rejected)} tracks in your library, including tracks marked for review."));
+            $"{_allItems.Count(item => item.Track.LibraryState != TrackLibraryState.Rejected && !item.Track.IsArchived)} tracks in your library, including tracks marked for review."));
         BuiltInPresetRows.Children.Add(CreateBuiltInPresetCard(
             LibraryMode.Review,
             "Needs review",
-            $"{_allItems.Count(item => item.Track.LibraryState != TrackLibraryState.Rejected && item.NeedsReview)} tracks marked for review."));
+            $"{_allItems.Count(item => item.Track.LibraryState != TrackLibraryState.Rejected && !item.Track.IsArchived && item.NeedsReview)} tracks marked for review."));
         BuiltInPresetRows.Children.Add(CreateBuiltInPresetCard(
             LibraryMode.Unassigned,
             "Unassigned",
             $"{_startupUnassignedTrackIds.Count} tracks in no preset or collection."));
-        var genreCleanupCount = MusicLibraryService.Current.GetGenreCleanupTrackIds().Count;
+        var genreCleanupTrackIds = MusicLibraryService.Current.GetGenreCleanupTrackIds();
+        var genreCleanupCount = _allItems.Count(item =>
+            !item.Track.IsArchived && genreCleanupTrackIds.Contains(item.Track.Id));
         BuiltInPresetRows.Children.Add(CreateBuiltInPresetCard(
             LibraryMode.GenreCleanup,
             "Genre Cleanup",
             $"{genreCleanupCount} tracks use a non-preferred genre and are not favorites."));
         var unanalyzedCount = _allItems.Count(item =>
             item.Track.LibraryState != TrackLibraryState.Rejected
+            && !item.Track.IsArchived
             && !_allTrackAudioAnalyses.ContainsKey(item.Track.Id));
         BuiltInPresetRows.Children.Add(CreateBuiltInPresetCard(
             LibraryMode.Unanalyzed,
             "Not analyzed",
             $"{unanalyzedCount} tracks have no completed analysis."));
+        var archivedCount = _allItems.Count(item => item.Track.IsArchived);
+        BuiltInPresetRows.Children.Add(CreateBuiltInPresetCard(
+            LibraryMode.Archived,
+            "Archived",
+            $"{archivedCount} archived tracks, hidden from all other views and presets."));
         PresetRows.Children.Clear();
 
         if (_isCreatingPreset)
@@ -2433,6 +2456,7 @@ public partial class MusicView : UserControl
             LibraryMode.Unassigned => "#A8D89B5A",
             LibraryMode.GenreCleanup => "#A86A91B8",
             LibraryMode.Unanalyzed => "#A86FA9D2",
+            LibraryMode.Archived => "#A88B819B",
             _ => "#A85F7894"
         };
         var button = new Button
@@ -2459,7 +2483,7 @@ public partial class MusicView : UserControl
             _activeFilterPresetName = null;
             _activeBuiltInView = mode;
             _isCreatingPreset = false;
-            if ((mode is LibraryMode.Unassigned or LibraryMode.GenreCleanup or LibraryMode.Unanalyzed)
+            if ((mode is LibraryMode.Unassigned or LibraryMode.GenreCleanup or LibraryMode.Unanalyzed or LibraryMode.Archived)
                 && _activeCollection is not null)
             {
                 _activeCollection = null;
@@ -4163,6 +4187,27 @@ public partial class MusicView : UserControl
         EditTrackOverlay.Prepare(currentTrack);
     }
 
+    private bool SetTrackArchived(MusicTrack track, bool isArchived)
+    {
+        try
+        {
+            MusicLibraryService.Current.SetTrackArchived(track.Id, isArchived);
+            UpdateTrackInList(track.Id);
+            ReloadCollections();
+            RecalculatePresetMembership();
+            RebuildPresetRows();
+            ApplyFilter();
+            PersistPlayerSession();
+            ShowToast(isArchived ? "Track archived" : "Track restored from archive");
+            return true;
+        }
+        catch (Exception exception)
+        {
+            ShowToast($"Could not {(isArchived ? "archive" : "restore")} track: {exception.Message}");
+            return false;
+        }
+    }
+
     private async Task<bool> DeleteTrackFromEditorAsync(MusicTrack track)
     {
         if (_isDeletingTrack || !await ConfirmTrackDeletionAsync(track))
@@ -4888,6 +4933,7 @@ public partial class MusicView : UserControl
                     LibraryMode.Unassigned => "UNASSIGNED",
                     LibraryMode.GenreCleanup => "GENRE CLEANUP",
                     LibraryMode.Unanalyzed => "NOT ANALYZED",
+                    LibraryMode.Archived => "ARCHIVED",
                     _ => "LIBRARY"
                 }
                 : $"PRESET · {_activeFilterPresetName.ToUpperInvariant()}";
@@ -5103,6 +5149,16 @@ public partial class MusicView : UserControl
                 canReorder && collectionIndex >= 0 && collectionIndex < _activeCollectionOrder.Count - 1,
                 () => MoveActiveCollectionTrack(trackId, 1)));
         }
+
+        menuItems.Add(new Separator { Classes = { "track-context-separator" } });
+        menuItems.Add(CreateTrackMenuItem(
+            item.Track.IsArchived ? "Restore from archive" : "Archive",
+            true,
+            () => SetTrackArchived(item.Track, !item.Track.IsArchived)));
+        menuItems.Add(CreateTrackMenuItem(
+            "Delete",
+            true,
+            async () => await DeleteTrackFromEditorAsync(item.Track)));
 
         var menu = new ContextMenu
         {

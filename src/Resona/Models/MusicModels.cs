@@ -35,7 +35,8 @@ public record MusicTrack(
     string? LanguageCode = null,
     string OriginalTitle = "",
     string? Artist = null,
-    RatingBand? RatingBand = null)
+    RatingBand? RatingBand = null,
+    bool IsArchived = false)
 {
     public string DisplayTitle => TrackTitleFormatter.Format(Artist, Title);
     public string? DisplayChannelName => ChannelNameFormatter.Format(ChannelName);

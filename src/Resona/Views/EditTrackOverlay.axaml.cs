@@ -76,6 +76,7 @@ public partial class EditTrackOverlay : UserControl
     public event Action<MusicTrack>? PreviewRequested;
     public event Action? PreviewClosed;
     public event Action<string>? ToastRequested;
+    public event Func<MusicTrack, bool, bool>? ArchiveRequested;
     public event Func<MusicTrack, Task<bool>>? DeleteRequested;
     public event Action? Closed;
 
@@ -157,6 +158,7 @@ public partial class EditTrackOverlay : UserControl
         _isPlayingPreview = false;
         _isDeletingTrack = false;
         DeleteButton.IsEnabled = true;
+        UpdateArchiveVisual(track.IsArchived);
         _areDetectedGenresExpanded = false;
         _showAllDetectedGenres = false;
         _areAllGenresExpanded = false;
@@ -1026,6 +1028,33 @@ public partial class EditTrackOverlay : UserControl
             DeleteButton.IsEnabled = true;
             ToastRequested?.Invoke($"Could not delete track: {exception.Message}");
         }
+    }
+
+    private void OnArchiveClicked(object? sender, RoutedEventArgs e)
+    {
+        if (_track is null || ArchiveRequested is null)
+            return;
+
+        var archive = !_track.IsArchived;
+        try
+        {
+            if (!ArchiveRequested.Invoke(_track, archive))
+                return;
+            _track = _track with { IsArchived = archive };
+            _preparedTrackId = null;
+            CloseOverlay();
+        }
+        catch (Exception exception)
+        {
+            ToastRequested?.Invoke($"Could not {(archive ? "archive" : "restore")} track: {exception.Message}");
+        }
+    }
+
+    private void UpdateArchiveVisual(bool isArchived)
+    {
+        ArchiveIcon.IsVisible = !isArchived;
+        UnarchiveIcon.IsVisible = isArchived;
+        ToolTip.SetTip(ArchiveButton, isArchived ? "Restore track from archive" : "Archive track");
     }
 
     private void AutoSaveChanges()
