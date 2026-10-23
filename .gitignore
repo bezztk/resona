@@ -5,7 +5,7 @@ riderModule.iml
 /_ReSharper.Caches/
 /.idea/
 *.sln.DotSettings.user
-/assets/
+/assets/videos/
 
 # Local Codex verification builds. Never use the app's normal bin/ output for them.
 /.codex-build/
@@ -18,9 +18,6 @@ riderModule.iml
 
 # Local runtime dependencies kept beside the solution.
 /tools/
-/models/**/*.pb
 /src/AnalysisServer/.env
 /src/AnalysisServer/*.tar
 /src/AnalysisServer/__pycache__/
-/deploy/cloud/.env
-/deploy/cloud/tls/

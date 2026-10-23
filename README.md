@@ -34,22 +34,22 @@ The analyzer address and other runtime options are configured under **Settings â
 
 The main view contains the local tracks, playback controls, ratings, and library actions.
 
-![Library](docs/images/track-library.png)
+![Library](assets/images/track-library.png)
 
 ### Track editor
 
 Metadata, ratings, classifications, languages, and analysis results can be edited per track.
 
-![Track editor](docs/images/edit.png)
+![Track editor](assets/images/edit.png)
 
 ### Filters
 
 Tracks can be filtered by ratings, genres, styles, tags, languages, visibility, and analysis values.
 
-![Filters](docs/images/filter.png)
+![Filters](assets/images/filter.png)
 
 ### Import
 
 YouTube video, playlist, mix, and radio URLs are expanded into the import queue before downloading.
 
-![Import queue](docs/images/playlist-import.png)
+![Import queue](assets/images/playlist-import.png)
